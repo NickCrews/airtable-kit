@@ -180,8 +180,11 @@ I was using this before building this library, and it is a great library.
 
 ## License
 
-Private - Ship Creek Group
+MIT
 
 ## Contributing
 
-This is a private package for internal use.
+I don't want this project to feature-creep too much, so at first I will be hesitant
+on accepting new features. At least file an issue before starting work.
+But bug reports, documentation improvements,
+and performance improvements are always welcome!

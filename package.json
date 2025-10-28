@@ -1,7 +1,13 @@
 {
   "name": "airtable-kit",
   "version": "0.0.1",
-  "private": true,
+  "description": "A better ts/js airtable toolkit",
+  "license": "MIT",
+  "author": "Nick Crews",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NickCrews/airtable-kit"
+  },
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -34,7 +40,7 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp README.md dist/README.md && cp LICENSE dist/LICENSE",
     "dev": "tsc --watch",
     "test": "vitest run",
     "test:watch": "vitest watch"
