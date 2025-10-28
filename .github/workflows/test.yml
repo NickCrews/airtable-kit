@@ -1,0 +1,175 @@
+name: Test airtable-kit
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20, 22, 24]
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Run build
+        run: pnpm build
+
+  coverage:
+    name: Test Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests with coverage
+        run: pnpm test -- --coverage
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/coverage-final.json
+          flags: airtable-kit
+          name: airtable-kit-coverage
+        continue-on-error: true
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run integration tests
+        run: pnpm test src/codegen/generator.integration.test.ts
+
+      - name: Verify snapshots are up to date
+        run: |
+          if git diff --exit-code src/**/__snapshots__/; then
+            echo "✅ Snapshots are up to date"
+          else
+            echo "❌ Snapshots are out of date. Please run 'pnpm test -u' locally and commit the changes."
+            exit 1
+          fi
+
+  validate-package:
+    name: Validate Package Structure
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build package
+        run: pnpm build
+
+      - name: Check package exports
+        run: |
+          node -e "const pkg = require('./package.json'); console.log('✅ Package exports:', JSON.stringify(pkg.exports, null, 2));"
+
+      - name: Verify dist directory structure
+        run: |
+          echo "📦 Checking dist directory..."
+          if [ -d "dist" ]; then
+            echo "✅ dist directory exists"
+            echo "Contents:"
+            ls -la dist/
+          else
+            echo "❌ dist directory not found"
+            exit 1
+          fi
+
+  all-checks-passed:
+    name: All Checks Passed
+    runs-on: ubuntu-latest
+    needs: [test, coverage, integration, validate-package]
+    if: always()
+
+    steps:
+      - name: Check all jobs
+        run: |
+          if [[ "${{ needs.test.result }}" == "success" && \
+                "${{ needs.integration.result }}" == "success" && \
+                "${{ needs.validate-package.result }}" == "success" ]]; then
+            echo "✅ All required checks passed!"
+          else
+            echo "❌ Some checks failed"
+            echo "test: ${{ needs.test.result }}"
+            echo "coverage: ${{ needs.coverage.result }}"
+            echo "integration: ${{ needs.integration.result }}"
+            echo "validate-package: ${{ needs.validate-package.result }}"
+            exit 1
+          fi
