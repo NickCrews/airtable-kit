@@ -25,10 +25,10 @@ pnpm add airtable-kit
 Run the codegen CLI to fetch and save your base schema to a local file:
 
 ```bash
-npx airtable-kit codegen --apiKey YOUR_API_KEY --baseId appXXXXXXXXXXXXXX --output ./schemas/myBase.ts
+npx airtable-kit codegen --api-key YOUR_API_KEY --base-id appXXXXXXXXXXXXXX --output ./schemas/myBase.ts
 ```
 
-This will create a file at `./schemas/myBase.ts` with the very simple contents
+This will create a file at `./schemas/myBase.ts` with the very simple contents of
 
 ```typescript
 export default {
