@@ -4,8 +4,7 @@
 
 import { z } from 'zod';
 import type { BaseSchema, TableSchema } from '../schema/index.js';
-import { isComputedField } from '../schema/types.js';
-import { fieldTypeToZod, type FieldTypeHandler } from './field-to-zod.js';
+import { fieldSchemaToZod, type FieldTypeHandler } from './field-to-zod.js';
 import type { BaseValidators } from './types.js';
 
 export interface ValidatorGeneratorOptions {
@@ -13,11 +12,6 @@ export interface ValidatorGeneratorOptions {
    * Whether to make all fields optional (useful for updates)
    */
   optionalFields?: boolean;
-
-  /**
-   * Whether to include computed fields (formulas, rollups, etc.)
-   */
-  includeComputedFields?: boolean;
 
   /**
    * Custom field type handlers
@@ -49,7 +43,7 @@ export function createValidatorGenerator(
   ): z.ZodSchema {
     const opts = { ...defaultOptions, ...options };
     // This is a simplified version - in practice this would need the full FieldSchema
-    const schema = fieldTypeToZod(field as any, opts.customHandlers);
+    const schema = fieldSchemaToZod(field as any, opts.customHandlers);
     return opts.optionalFields ? schema.optional() : schema;
   }
 
@@ -61,12 +55,7 @@ export function createValidatorGenerator(
     const validators: Record<string, z.ZodSchema> = {};
 
     for (const field of table.fields) {
-      // Skip computed fields if not included
-      if (!opts.includeComputedFields && isComputedField(field)) {
-        continue;
-      }
-
-      const schema = fieldTypeToZod(field, opts.customHandlers);
+      const schema = fieldSchemaToZod(field, opts.customHandlers);
       validators[field.name] = opts.optionalFields ? schema.optional() : schema;
     }
 
@@ -95,12 +84,7 @@ export function createValidatorGenerator(
     const fieldValidators: Record<string, z.ZodSchema> = {};
 
     for (const field of table.fields) {
-      // Skip computed fields
-      if (isComputedField(field)) {
-        continue;
-      }
-
-      const schema = fieldTypeToZod(field, opts.customHandlers);
+      const schema = fieldSchemaToZod(field, opts.customHandlers);
 
       // Primary field is required, others are optional
       if (field.id === table.primaryFieldId) {

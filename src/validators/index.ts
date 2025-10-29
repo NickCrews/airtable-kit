@@ -10,8 +10,7 @@ export {
 export {
   AirtableSchemas,
   type FieldTypeHandler,
-  fieldTypeToZod,
-  fieldTypeToTS,
+  fieldSchemaToZod,
 } from './field-to-zod.js';
 
 export {
@@ -21,7 +20,6 @@ export {
 } from './generator.js';
 
 export {
-  fieldSchemaToZod,
   fieldSchemasToZodObject,
   createRecordSchemaFromFields,
   updateRecordSchemaFromFields,

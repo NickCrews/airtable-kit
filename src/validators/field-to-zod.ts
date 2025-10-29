@@ -4,6 +4,7 @@
 
 import { z } from 'zod';
 import type { FieldSchema } from '../schema/fields.js';
+import { fi } from 'zod/locales';
 
 /**
  * Common Zod schemas for Airtable types
@@ -37,10 +38,7 @@ export const AirtableSchemas = {
     type: z.string().optional(),
   }),
 
-  button: z.object({
-    label: z.string(),
-    url: z.string().url().optional(),
-  }),
+  button: z.never(), // Buttons are not writable via API
 };
 
 /**
@@ -51,7 +49,7 @@ export type FieldTypeHandler = (field: FieldSchema) => z.ZodSchema;
 /**
  * Convert a field type to a Zod schema
  */
-export function fieldTypeToZod(
+export function fieldSchemaToZod(
   field: FieldSchema,
   customHandlers?: Record<string, FieldTypeHandler>
 ): z.ZodSchema {
@@ -60,12 +58,28 @@ export function fieldTypeToZod(
     return customHandlers[field.type](field);
   }
 
-  switch (field.type) {
+  const fieldType = field.type;
+  switch (fieldType) {
+    // read-only fields
+    case 'autoNumber':
+    case 'button':
+    case 'count':
+    case 'createdBy':
+    case 'createdTime':
+    case 'formula':
+    case 'lastModifiedBy':
+    case 'lastModifiedTime':
+    case 'multipleLookupValues':
+    case 'rollup':
+      return z.never();
+
     case 'singleLineText':
     case 'multilineText':
     case 'richText':
     case 'phoneNumber':
       return z.string();
+    case 'externalSyncSource':
+      return z.any();
 
     case 'email':
       return z.string().email();
@@ -78,8 +92,6 @@ export function fieldTypeToZod(
     case 'currency':
     case 'duration':
     case 'rating':
-    case 'autoNumber':
-    case 'count':
       return z.number();
 
     case 'checkbox':
@@ -106,124 +118,24 @@ export function fieldTypeToZod(
       }
       return z.array(z.string());
 
-    case 'attachment':
+    case 'multipleAttachments':
       return z.array(AirtableSchemas.attachment);
 
     case 'multipleRecordLinks':
       return z.array(z.string());
 
-    case 'createdBy':
-    case 'lastModifiedBy':
-      return AirtableSchemas.collaborator;
-
     case 'barcode':
       return AirtableSchemas.barcode;
 
-    case 'button':
-      return AirtableSchemas.button;
+    case 'singleCollaborator':
+      return AirtableSchemas.collaborator;
+    case 'multipleCollaborators':
+      return z.array(AirtableSchemas.collaborator);
 
-    case 'createdTime':
-    case 'lastModifiedTime':
-      return z.string().datetime();
-
-    case 'formula':
-    case 'rollup':
-      // Formulas and rollups can return various types
-      // We use the result type if available
-      if (field.options?.result) {
-        const resultField: FieldSchema = {
-          ...field,
-          type: field.options.result.precision !== undefined ? 'number' : 'singleLineText',
-          options: field.options.result,
-        };
-        return fieldTypeToZod(resultField, customHandlers);
-      }
-      return z.unknown();
-
-    case 'lookup':
-      // Lookups return arrays of the linked field type
-      return z.array(z.unknown());
+    case 'aiText':
+      return z.string();
 
     default:
-      return z.unknown();
-  }
-}
-
-/**
- * Convert field type to TypeScript type string (for codegen)
- */
-export function fieldTypeToTS(field: FieldSchema): string {
-  switch (field.type) {
-    case 'singleLineText':
-    case 'multilineText':
-    case 'richText':
-    case 'phoneNumber':
-    case 'email':
-    case 'url':
-    case 'date':
-    case 'dateTime':
-    case 'createdTime':
-    case 'lastModifiedTime':
-      return 'string';
-
-    case 'number':
-    case 'percent':
-    case 'currency':
-    case 'duration':
-    case 'rating':
-    case 'autoNumber':
-    case 'count':
-      return 'number';
-
-    case 'checkbox':
-      return 'boolean';
-
-    case 'singleSelect':
-      if (field.options?.choices && field.options.choices.length > 0) {
-        const values = field.options.choices.map((c) => `'${c.name}'`);
-        return values.join(' | ');
-      }
-      return 'string';
-
-    case 'multipleSelects':
-      if (field.options?.choices && field.options.choices.length > 0) {
-        const values = field.options.choices.map((c) => `'${c.name}'`);
-        return `Array<${values.join(' | ')}>`;
-      }
-      return 'string[]';
-
-    case 'attachment':
-      return 'Attachment[]';
-
-    case 'multipleRecordLinks':
-      return 'string[]';
-
-    case 'createdBy':
-    case 'lastModifiedBy':
-      return 'Collaborator';
-
-    case 'barcode':
-      return 'Barcode';
-
-    case 'button':
-      return 'Button';
-
-    case 'formula':
-    case 'rollup':
-      if (field.options?.result) {
-        const resultField: FieldSchema = {
-          ...field,
-          type: field.options.result.precision !== undefined ? 'number' : 'singleLineText',
-          options: field.options.result,
-        };
-        return fieldTypeToTS(resultField);
-      }
-      return 'unknown';
-
-    case 'lookup':
-      return 'unknown[]';
-
-    default:
-      return 'unknown';
+      throw new Error(`Unsupported field type: ${fieldType satisfies never}`);
   }
 }
