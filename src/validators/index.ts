@@ -8,7 +8,7 @@ export {
 } from './types.js';
 
 export {
-  type FieldTypeHandler,
+  type FieldToZod as FieldTypeHandler,
   fieldSchemaToZod,
 } from './field-to-zod.js';
 
@@ -19,7 +19,6 @@ export {
 } from './generator.js';
 
 export {
-  fieldSchemasToZodObject,
   createRecordSchemaFromFields,
   updateRecordSchemaFromFields,
 } from './schema-to-zod.js';

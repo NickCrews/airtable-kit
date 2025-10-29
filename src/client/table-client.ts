@@ -210,7 +210,6 @@ export function tableClient<T extends ReadonlyArray<FieldSchema>>(
             return getRecord<T>({
                 recordId,
                 options,
-                fieldSpecs,
                 baseId,
                 tableId,
                 fetcher,
@@ -349,14 +348,12 @@ export async function getRecord<T extends ReadonlyArray<FieldSchema>>(
     {
         recordId,
         options,
-        fieldSpecs,
         fetcher,
         baseId,
         tableId,
     }: {
         recordId: string;
         options?: GetRecordOptions;
-        fieldSpecs: T;
         baseId: BaseId;
         tableId: TableId;
         fetcher: Fetcher;

@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod';
-import type { FieldSchema } from '../schema/fields.js';
+import { type FieldSchema, type FieldType } from '../schema/fields.js';
 
 
 const CollaboratorSchema = z.object({
@@ -15,14 +15,14 @@ const CollaboratorSchema = z.object({
 /**
  * Handler for custom field type conversions
  */
-export type FieldTypeHandler = (field: FieldSchema) => z.ZodSchema;
+export type FieldToZod = (field: FieldSchema) => z.ZodSchema;
 
 /**
  * Convert a field type to a Zod schema
  */
 export function fieldSchemaToZod(
   field: FieldSchema,
-  customHandlers?: Record<string, FieldTypeHandler>
+  customHandlers?: Record<FieldType, FieldToZod>
 ): z.ZodSchema {
   // Check for custom handler first
   if (customHandlers?.[field.type]) {
@@ -32,6 +32,7 @@ export function fieldSchemaToZod(
   const fieldType = field.type;
   switch (fieldType) {
     // read-only fields
+    case 'aiText':
     case 'autoNumber':
     case 'button':
     case 'count':
@@ -69,11 +70,10 @@ export function fieldSchemaToZod(
       return z.boolean();
 
     case 'date':
-      // Date format: YYYY-MM-DD
       return z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
     case 'dateTime':
-      return z.string().datetime();
+      return z.iso.datetime({ local: true });
 
     case 'singleSelect':
       if (field.options?.choices && field.options.choices.length > 0) {
@@ -108,9 +108,6 @@ export function fieldSchemaToZod(
       return CollaboratorSchema;
     case 'multipleCollaborators':
       return z.array(CollaboratorSchema);
-
-    case 'aiText':
-      return z.string();
 
     default:
       throw new Error(`Unsupported field type: ${fieldType satisfies never}`);

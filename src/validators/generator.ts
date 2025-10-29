@@ -4,7 +4,7 @@
 
 import { z } from 'zod';
 import type { BaseSchema, TableSchema } from '../schema/index.js';
-import { fieldSchemaToZod, type FieldTypeHandler } from './field-to-zod.js';
+import { fieldSchemaToZod, type FieldToZod } from './field-to-zod.js';
 import type { BaseValidators } from './types.js';
 
 export interface ValidatorGeneratorOptions {
@@ -16,7 +16,7 @@ export interface ValidatorGeneratorOptions {
   /**
    * Custom field type handlers
    */
-  customHandlers?: Record<string, FieldTypeHandler>;
+  customHandlers?: Record<string, FieldToZod>;
 }
 
 export interface ValidatorGenerator {
