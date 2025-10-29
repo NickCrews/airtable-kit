@@ -8,7 +8,6 @@ export {
 } from './types.js';
 
 export {
-  AirtableSchemas,
   type FieldTypeHandler,
   fieldSchemaToZod,
 } from './field-to-zod.js';

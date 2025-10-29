@@ -4,42 +4,13 @@
 
 import { z } from 'zod';
 import type { FieldSchema } from '../schema/fields.js';
-import { fi } from 'zod/locales';
 
-/**
- * Common Zod schemas for Airtable types
- */
-export const AirtableSchemas = {
-  attachment: z.object({
-    id: z.string(),
-    url: z.string().url(),
-    filename: z.string(),
-    size: z.number(),
-    type: z.string(),
-    width: z.number().optional(),
-    height: z.number().optional(),
-    thumbnails: z
-      .object({
-        small: z.object({ url: z.string().url(), width: z.number(), height: z.number() }),
-        large: z.object({ url: z.string().url(), width: z.number(), height: z.number() }),
-        full: z.object({ url: z.string().url(), width: z.number(), height: z.number() }),
-      })
-      .optional(),
-  }),
 
-  collaborator: z.object({
-    id: z.string(),
-    email: z.string().email(),
-    name: z.string().optional(),
-  }),
-
-  barcode: z.object({
-    text: z.string(),
-    type: z.string().optional(),
-  }),
-
-  button: z.never(), // Buttons are not writable via API
-};
+const CollaboratorSchema = z.object({
+  id: z.string(),
+  email: z.email(),
+  name: z.string().optional(),
+});
 
 /**
  * Handler for custom field type conversions
@@ -82,10 +53,10 @@ export function fieldSchemaToZod(
       return z.any();
 
     case 'email':
-      return z.string().email();
+      return z.email();
 
     case 'url':
-      return z.string().url();
+      return z.url();
 
     case 'number':
     case 'percent':
@@ -119,18 +90,24 @@ export function fieldSchemaToZod(
       return z.array(z.string());
 
     case 'multipleAttachments':
-      return z.array(AirtableSchemas.attachment);
+      return z.array(z.object({
+        url: z.url(),
+        filename: z.string(),
+      }));
 
     case 'multipleRecordLinks':
       return z.array(z.string());
 
     case 'barcode':
-      return AirtableSchemas.barcode;
+      return z.object({
+        text: z.string(),
+        type: z.string().optional(),
+      });
 
     case 'singleCollaborator':
-      return AirtableSchemas.collaborator;
+      return CollaboratorSchema;
     case 'multipleCollaborators':
-      return z.array(AirtableSchemas.collaborator);
+      return z.array(CollaboratorSchema);
 
     case 'aiText':
       return z.string();
