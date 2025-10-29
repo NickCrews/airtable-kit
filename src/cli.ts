@@ -8,22 +8,23 @@ import { fetchBaseSchema } from "./schema/index.js";
 import { generateCode } from "./codegen/index.js";
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
+import { IntoFetcher } from './client/fetcher.js';
 
 async function doCodegen({
   baseId,
-  apiKey,
+  fetcher,
   outPath,
   baseName: rawBaseName,
 }: {
   baseId: string;
-  apiKey: string;
   outPath: string;
   baseName?: string;
+  fetcher: IntoFetcher;
 }) {
   console.log("🔍 Fetching schema from Airtable...");
   const baseName = rawBaseName ?? baseId;
 
-  const rawSchema = await fetchBaseSchema(baseId, apiKey);
+  const rawSchema = await fetchBaseSchema(baseId, fetcher);
   const schemaWithName = { ...rawSchema, name: baseName };
   const firstTable = schemaWithName.tables[0];
 
@@ -64,7 +65,7 @@ Usage:
 `.trim();
 }
 
-export async function cli(argv: string[]) {
+export async function cli(args: string[], fetcher?: IntoFetcher) {
   const options = {
     version: { type: 'boolean' },
     help: { type: 'boolean' },
@@ -73,10 +74,7 @@ export async function cli(argv: string[]) {
     "base-name": { type: 'string' },
     output: { type: 'string' },
   } as const;
-  const {
-    values,
-    positionals,
-  } = parseArgs({ argv, options, allowPositionals: true });
+  const { values, positionals } = parseArgs({ args, options, allowPositionals: true });
 
   if (values.help || positionals[0] === 'help') {
     console.log(getHelp());
@@ -104,10 +102,10 @@ export async function cli(argv: string[]) {
       throw new Error(err);
     }
     await doCodegen({
-      baseId: values["base-id"]!,
-      apiKey: values["api-key"]!,
-      outPath: values.output!,
-      baseName: values["base-name"],
+      baseId: values["base-id"] as string,
+      fetcher: fetcher ?? values["api-key"] as string,
+      outPath: values.output as string,
+      baseName: values["base-name"] as string | undefined,
     });
     return;
   }

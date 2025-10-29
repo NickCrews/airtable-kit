@@ -8,12 +8,8 @@ import { Fetcher } from './client/fetcher.js';
 import { cli } from './cli.js';
 
 describe('CLI', () => {
-  // const mockFetch = vi.fn(async () => tasksSchema);
-
-  // const mockFetcher = { fetch: mockFetch } as Fetcher;
-  // vi.mock('./client/fetcher.js', () => ({
-  //   makeFetcher: vi.fn(() => mockFetcher),
-  // }));
+  const mockFetch = vi.fn(async () => tasksSchema);
+  const mockFetcher = { fetch: mockFetch } as Fetcher;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -21,8 +17,8 @@ describe('CLI', () => {
 
   describe('codegen command', () => {
     it('should create output directory', async () => {
-      cli(['codegen', '--base-id', 'appTestBase123', '--api-key', 'keyTest123', '--output', './schemas/appTestBase123.ts']);
-      // expect(mockFetch).toHaveBeenCalledWith({ path: '/meta/bases/appTestBase123/tables' });
+      await cli(["codegen", "--base-id", "appTestBase", "--api-key", "patTest123", "--output", "schemas/frEvents.ts"], mockFetcher);
+      expect(mockFetch).toHaveBeenCalledWith({ path: '/meta/bases/appTestBase/tables' });
     });
 
     it('should generate ts and js', async () => {
