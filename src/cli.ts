@@ -24,8 +24,9 @@ async function doCodegen({
   console.log("🔍 Fetching schema from Airtable...");
   const baseName = rawBaseName ?? baseId;
 
-  const rawSchema = await fetchBaseSchema(baseId, fetcher);
-  const schemaWithName = { ...rawSchema, name: baseName };
+  const { id, ...rest } = await fetchBaseSchema(baseId, fetcher);
+  // Get the order right just for ergonomics
+  const schemaWithName = { id, name: baseName, ...rest };
   const firstTable = schemaWithName.tables[0];
 
   console.log(`✓ Found base with ${schemaWithName.tables.length} tables`);
