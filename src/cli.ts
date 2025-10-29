@@ -20,7 +20,7 @@ async function doCodegen({
   outPath: string;
   baseName?: string;
   fetcher: IntoFetcher;
-}) {
+}, console: Consolish = globalThis.console): Promise<void> {
   console.log("🔍 Fetching schema from Airtable...");
   const baseName = rawBaseName ?? baseId;
 
@@ -66,7 +66,12 @@ Usage:
 `.trim();
 }
 
-export async function cli(args: string[], fetcher?: IntoFetcher) {
+type Consolish = {
+  log: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+};
+
+export async function cli(args: string[], fetcher?: IntoFetcher, console: Consolish = globalThis.console): Promise<void> {
   const options = {
     version: { type: 'boolean' },
     help: { type: 'boolean' },
@@ -107,7 +112,7 @@ export async function cli(args: string[], fetcher?: IntoFetcher) {
       fetcher: fetcher ?? values["api-key"] as string,
       outPath: values.output as string,
       baseName: values["base-name"] as string | undefined,
-    });
+    }, console);
     return;
   }
   console.log(getHelp());
