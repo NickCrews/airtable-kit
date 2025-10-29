@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod';
-import type { FieldSchema, FieldType } from '../schema/types.js';
+import type { FieldSchema } from '../schema/fields.js';
 
 /**
  * Common Zod schemas for Airtable types

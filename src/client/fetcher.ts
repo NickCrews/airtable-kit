@@ -15,9 +15,9 @@ export type FetcherArgs = {
 
 export type IntoFetcher = Fetcher | string | FetcherArgs | undefined;
 
-export function createRealFetcher(args?: IntoFetcher): Fetcher {
+export function makeFetcher(args?: IntoFetcher): Fetcher {
     if (typeof args === "string") {
-        return createRealFetcher({ apiKey: args });
+        return makeFetcher({ apiKey: args });
     }
     if (args && "fetch" in args) {
         return args;

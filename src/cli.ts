@@ -4,104 +4,82 @@
  */
 
 import { Command } from "commander";
-import { createCodeGenerator, createSchemaFetcher } from "./index.js";
+import { fetchBaseSchema } from "./schema/index.js";
+import { createCodeGenerator } from "./codegen/index.js";
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 
-const program = new Command();
+function cli(argv: string[]) {
+  const program = new Command();
 
-program
-  .name("airtable-kit")
-  .description("Type-safe Airtable client - code generation and utilities")
-  .version("0.0.1");
+  program
+    .name("airtable-kit")
+    .description("Type-safe Airtable client - code generation and utilities")
+    .version("0.0.1");
 
-program
-  .command("codegen")
-  .description("Generate TypeScript schema from Airtable base")
-  .requiredOption("-b, --base-id <baseId>", "Airtable base ID (appXXXXXX)")
-  .requiredOption("-k, --api-key <apiKey>", "Airtable API key")
-  .option("-o, --output <file>", "Output file path", "./generated/schema.ts")
-  .option(
-    "-v, --variable-name <name>",
-    "Variable name for schema",
-    "baseSchema",
-  )
-  .action(async (options) => {
-    try {
-      console.log("🔍 Fetching schema from Airtable...");
+  program
+    .command("codegen")
+    .description("Generate TypeScript schema from Airtable base")
+    .requiredOption("--base-id <baseId>", "Airtable base ID (appXXXXXX)")
+    .requiredOption("--api-key <apiKey>", "Airtable API key")
+    .option("--output <file>", "Output file path. Default to ./schemas/<baseId>.ts")
+    .option(
+      "--base-name <name>",
+      "name of the base in the generated JSON. Defaults to base ID",
+    )
+    .action(async (options) => {
+      try {
+        console.log("🔍 Fetching schema from Airtable...");
+        const baseName = options.baseName ?? options.baseId;
 
-      const fetcher = createSchemaFetcher({ apiKey: options.apiKey });
-      const schema = await fetcher.fetchBaseSchema(options.baseId);
+        const rawSchema = await fetchBaseSchema(options.baseId, options.apiKey);
+        const schemaWithName = { ...rawSchema, name: baseName };
+        const firstTable = schemaWithName.tables[0];
 
-      console.log(`✓ Found base with ${schema.tables.length} tables`);
-      console.log(`  Tables: ${schema.tables.map((t) => t.name).join(", ")}`);
+        console.log(`✓ Found base with ${schemaWithName.tables.length} tables`);
+        console.log(`  Tables: ${schemaWithName.tables.map((t) => t.name).join(", ")}`);
 
-      console.log("\n📝 Generating schema...");
+        console.log("\n📝 Generating schema...");
 
-      const generator = createCodeGenerator({
-        variableName: options.variableName,
-      });
+        const generator = createCodeGenerator();
+        const code = generator.generateSchema(schemaWithName);
 
-      const code = generator.generateSchema(schema);
+        // Create output directory
+        const outputDir = path.dirname(options.output);
+        await fs.mkdir(outputDir, { recursive: true });
 
-      // Create output directory
-      const outputDir = path.dirname(options.output);
-      await fs.mkdir(outputDir, { recursive: true });
+        // Write schema file
+        await generator.writeToFile(code, options.output);
+        console.log(`  ✓ ${options.output}`);
 
-      // Write schema file
-      await generator.writeToFile(code, options.output);
-      console.log(`  ✓ ${options.output}`);
+        console.log(`\n✅ Generated schema at ${options.output}`);
+        console.log("\n📚 Example usage:");
+        console.log(
+          `
+  import * as myBaseSchema from '${options.output.replace(".ts", "")}';
+  import baseClient from 'airtable-kit/client';
 
-      // Save schema JSON for reference
-      const schemaPath = path.join(outputDir, "schema.json");
-      await fetcher.saveSchemaToFile(schema, schemaPath);
-      console.log(`  ✓ ${schemaPath}`);
-
-      console.log(`\n✅ Generated schema at ${options.output}`);
-      console.log("\n📚 Next steps:");
-      console.log(
-        `  1. Import the schema: import { ${options.variableName} } from '${
-          options.output.replace(".ts", "")
-        }';`,
-      );
-      console.log(`  2. Types are automatically inferred from the schema`);
-      console.log(
-        `  3. Use with MCP tools: createMCPTools({ baseSchema, tableId: 'tblXXX' })`,
-      );
-    } catch (error) {
-      console.error(
-        "\n❌ Error:",
-        error instanceof Error ? error.message : error,
-      );
-      process.exit(1);
-    }
+  const client = baseClient({
+    baseId: myBaseSchema.id,
+    tables: myBaseSchema.tables,
+    fetcher: 'YOUR_API_KEY',
   });
+  const records = await client.tables.${firstTable.name}.listRecords()
+  console.log(records);
+  `.trim(),
+        );
+      } catch (error) {
+        console.error(
+          "\n❌ Error:",
+          error instanceof Error ? error.message : error,
+        );
+        process.exit(1);
+      }
+    });
 
-program
-  .command("fetch-schema")
-  .description("Fetch and save Airtable base schema")
-  .requiredOption("-b, --base-id <baseId>", "Airtable base ID")
-  .requiredOption("-k, --api-key <apiKey>", "Airtable API key")
-  .option("-o, --output <file>", "Output file", "./schema.json")
-  .action(async (options) => {
-    try {
-      console.log("🔍 Fetching schema from Airtable...");
+  program.parse(argv);
+}
 
-      const fetcher = createSchemaFetcher({ apiKey: options.apiKey });
-      const schema = await fetcher.fetchBaseSchema(options.baseId);
-
-      await fetcher.saveSchemaToFile(schema, options.output);
-
-      console.log(`✅ Schema saved to ${options.output}`);
-      console.log(`   Base: ${schema.id}`);
-      console.log(`   Tables: ${schema.tables.length}`);
-    } catch (error) {
-      console.error(
-        "\n❌ Error:",
-        error instanceof Error ? error.message : error,
-      );
-      process.exit(1);
-    }
-  });
-
-program.parse();
+if (import.meta.url === `file://${process.argv[1]}`) {
+  cli(process.argv);
+}

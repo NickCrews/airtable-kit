@@ -4,7 +4,7 @@ import {
     MultipleSelects,
     SelectChoice,
     SingleSelect,
-} from "../schema/fields.ts";
+} from "../schema/fields.js";
 
 type ToAirtableConverter<T> = (value: T) => unknown;
 type FromAirtableConverter<T> = (value: unknown) => T;

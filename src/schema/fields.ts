@@ -1,8 +1,8 @@
 /**
  * Airtable field type definitions
  */
-import { type Timezone } from "./timezones.ts";
-import { type BrightColor, type SelectColor } from "./colors.ts";
+import { type Timezone } from "./timezones.js";
+import { type BrightColor, type SelectColor } from "./colors.js";
 
 export type FieldId = `fld${string}`;
 interface FieldBase {

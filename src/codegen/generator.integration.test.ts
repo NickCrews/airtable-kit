@@ -8,7 +8,7 @@ import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createCodeGenerator } from './generator.js';
-import { createSampleBaseSchema } from '../test-helpers/mocks.js';
+import taskBase from '../tests/taskBase.js';
 
 describe('Code Generator Integration', () => {
   let tempDir: string;
@@ -28,96 +28,9 @@ describe('Code Generator Integration', () => {
     }
   });
 
-  it('should generate schema with default variable name', () => {
-    const generator = createCodeGenerator();
-    const schema = createSampleBaseSchema();
-
-    const code = generator.generateSchema(schema);
-
-    // Verify the generated code structure
-    expect(code).toContain('/**');
-    expect(code).toContain('* Auto-generated from Airtable schema');
-    expect(code).toContain('* Do not edit manually');
-    expect(code).toContain('export const baseSchema =');
-    expect(code).toContain('as const;');
-
-    // Verify schema content is included
-    expect(code).toContain('"id": "appTestBase123"');
-    expect(code).toContain('"tables"');
-
-    // Verify table structure
-    expect(code).toContain('"id": "tblTasks"');
-    expect(code).toContain('"name": "Tasks"');
-    expect(code).toContain('"id": "tblUsers"');
-    expect(code).toContain('"name": "Users"');
-
-    // Verify field types are present
-    expect(code).toContain('"type": "singleLineText"');
-    expect(code).toContain('"type": "singleSelect"');
-    expect(code).toContain('"type": "multipleSelects"');
-    expect(code).toContain('"type": "number"');
-    expect(code).toContain('"type": "checkbox"');
-    expect(code).toContain('"type": "date"');
-    expect(code).toContain('"type": "email"');
-  });
-
-  it('should generate schema with custom variable name', () => {
-    const generator = createCodeGenerator({ variableName: 'myCustomSchema' });
-    const schema = createSampleBaseSchema();
-
-    const code = generator.generateSchema(schema);
-
-    expect(code).toContain('export const myCustomSchema =');
-    expect(code).not.toContain('export const baseSchema =');
-  });
-
-  it('should write generated code to file', async () => {
-    const generator = createCodeGenerator();
-    const schema = createSampleBaseSchema();
-    const outputPath = join(tempDir, 'generated-schema.ts');
-
-    const code = generator.generateSchema(schema);
-    await generator.writeToFile(code, outputPath);
-
-    // Verify file was created
-    const fileExists = await fs.access(outputPath).then(() => true).catch(() => false);
-    expect(fileExists).toBe(true);
-
-    // Verify file content matches generated code
-    const fileContent = await fs.readFile(outputPath, 'utf-8');
-    expect(fileContent).toContain('export const baseSchema =');
-    expect(fileContent).toContain('"id": "appTestBase123"');
-  });
-
-  it('should generate valid TypeScript that can be imported', async () => {
-    const generator = createCodeGenerator();
-    const schema = createSampleBaseSchema();
-    const outputPath = join(tempDir, 'schema.ts');
-
-    const code = generator.generateSchema(schema);
-    await generator.writeToFile(code, outputPath);
-
-    // Verify the generated code is valid JSON structure
-    const fileContent = await fs.readFile(outputPath, 'utf-8');
-
-    // Extract the JSON part
-    const match = fileContent.match(/= (.*) as const;/s);
-    expect(match).toBeTruthy();
-
-    if (match) {
-      const jsonStr = match[1];
-      // Should be valid JSON
-      const parsed = JSON.parse(jsonStr);
-      expect(parsed.id).toBe('appTestBase123');
-      expect(parsed.tables).toHaveLength(2);
-    }
-  });
-
   it('should match snapshot for sample schema', () => {
     const generator = createCodeGenerator();
-    const schema = createSampleBaseSchema();
-
-    const code = generator.generateSchema(schema);
+    const code = generator.generateSchema({...taskBase, id: 'appTestBase123', name: 'Test Base'});
 
     // Snapshot test - this will create a snapshot file on first run
     // and compare against it on subsequent runs

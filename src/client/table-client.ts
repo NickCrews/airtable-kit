@@ -1,13 +1,13 @@
-import { BaseId } from "../schema/bases.ts";
-import { FieldSchema } from "../schema/fields.ts";
-import { TableId } from "../schema/tables.ts";
-import { Fetcher, IntoFetcher } from "./fetcher.ts";
+import { BaseId } from "../schema/bases.js";
+import { FieldSchema } from "../schema/fields.js";
+import { TableId } from "../schema/tables.js";
+import { Fetcher, IntoFetcher } from "./fetcher.js";
 import {
     type ReadRecord,
     recordToAirtableRecord,
     type WriteRecord,
-} from "./converters.ts";
-import { createRealFetcher } from "./fetcher.ts";
+} from "./converters.js";
+import { makeFetcher } from "./fetcher.js";
 
 type InsertRecords<T extends ReadonlyArray<FieldSchema>> = Partial<
     WriteRecord<T>
@@ -184,7 +184,7 @@ export function tableClient<T extends ReadonlyArray<FieldSchema>>(
         fetcher: intoFetcher,
     }: TableClientOptions<T>,
 ): TableClient<T> {
-    const fetcher = createRealFetcher(intoFetcher);
+    const fetcher = fetcher(intoFetcher);
     return {
         baseId,
         tableId,

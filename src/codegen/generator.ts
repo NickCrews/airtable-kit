@@ -3,7 +3,7 @@
  */
 
 import { promises as fs } from "node:fs";
-import type { BaseId, BaseSchema } from "../schema/bases.ts";
+import type { BaseId, BaseSchema } from "../schema/bases.js";
 
 export interface CodegenOptions {
   baseId: BaseId;

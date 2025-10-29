@@ -2,11 +2,10 @@
  * MCP tools for Airtable operations - per-table typed tools
  */
 
-import type { BaseSchema } from '../schema/bases.ts';
-import type { TableSchema, TableId } from '../schema/tables.ts';
+import type { BaseSchema } from '../schema/bases.js';
+import type { TableSchema, TableId } from '../schema/tables.js';
 import { z } from 'zod';
 import {
-  fieldSchemasToZodObject,
   createRecordSchemaFromFields,
   updateRecordSchemaFromFields,
 } from '../validators/schema-to-zod.js';

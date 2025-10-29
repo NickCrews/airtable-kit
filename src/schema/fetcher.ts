@@ -1,13 +1,14 @@
-import { type TableSchema } from "./tables.ts";
-import { type BaseSchema } from "./bases.ts";
-import { type Fetcher } from "../client/fetcher.ts";
+import { type TableSchema } from "./tables.js";
+import { type BaseSchema } from "./bases.js";
+import { type IntoFetcher, makeFetcher } from "../client/fetcher.js";
 
 export async function fetchBaseSchema(
   baseId: string,
-  fetcher: Fetcher,
+  fetcher: IntoFetcher,
 ): Promise<Omit<BaseSchema, "name">> {
   const path = `/meta/bases/${baseId}/tables`;
-  const response = await fetcher.fetch({ path });
+  const realFetcher = makeFetcher(fetcher);
+  const response = await realFetcher.fetch({ path });
 
   return {
     id: baseId as `app${string}`,

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { createMockFetcher } from "./fetcher.ts";
-import { tableClient } from "./table-client.ts";
+import { createMockFetcher } from "./fetcher.js";
+import { tableClient } from "./table-client.js";
 
 const myFields = [
     { name: "age", type: "number", id: "fldAge" },

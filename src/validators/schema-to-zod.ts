@@ -3,82 +3,89 @@
  * This is used by the MCP server for runtime validation
  */
 
-import { z } from 'zod';
-import type { FieldSchema } from '../schema/fields.ts';
+import { z } from "zod";
+import type { FieldSchema } from "../schema/fields.js";
 
 /**
  * Convert a field schema to a Zod schema at runtime
  */
 export function fieldSchemaToZod(field: FieldSchema): z.ZodTypeAny {
   switch (field.type) {
-    case 'singleLineText':
-    case 'multilineText':
-    case 'richText':
-    case 'phoneNumber':
+    case "singleLineText":
+    case "multilineText":
+    case "richText":
+    case "phoneNumber":
       return z.string();
 
-    case 'email':
+    case "email":
       return z.string().email();
 
-    case 'url':
+    case "url":
       return z.string().url();
 
-    case 'number':
-    case 'percent':
-    case 'currency':
-    case 'duration':
-    case 'rating':
-    case 'autoNumber':
-    case 'count':
+    case "number":
+    case "percent":
+    case "currency":
+    case "duration":
+    case "rating":
+    case "autoNumber":
+    case "count":
       return z.number();
 
-    case 'checkbox':
+    case "checkbox":
       return z.boolean();
 
-    case 'date':
+    case "date":
       return z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
-    case 'dateTime':
-    case 'createdTime':
-    case 'lastModifiedTime':
+    case "dateTime":
+    case "createdTime":
+    case "lastModifiedTime":
       return z.string().datetime();
 
-    case 'singleSelect':
+    case "singleSelect":
       if (field.options?.choices && field.options.choices.length > 0) {
-        const values = field.options.choices.map((c) => c.name) as [string, ...string[]];
+        const values = field.options.choices.map((c) => c.name) as [
+          string,
+          ...string[],
+        ];
         return z.enum(values);
       }
       return z.string();
 
-    case 'multipleSelects':
+    case "multipleSelects":
       if (field.options?.choices && field.options.choices.length > 0) {
-        const values = field.options.choices.map((c) => c.name) as [string, ...string[]];
+        const values = field.options.choices.map((c) => c.name) as [
+          string,
+          ...string[],
+        ];
         return z.array(z.enum(values));
       }
       return z.array(z.string());
 
-    case 'multipleAttachments':
+    case "multipleAttachments":
       return z.array(AttachmentSchema);
 
-    case 'multipleRecordLinks':
+    case "multipleRecordLinks":
       return z.array(z.string());
 
-    case 'createdBy':
-    case 'lastModifiedBy':
+    case "createdBy":
+    case "lastModifiedBy":
       return CollaboratorSchema;
 
-    case 'barcode':
+    case "barcode":
       return BarcodeSchema;
 
-    case 'button':
+    case "button":
       return ButtonSchema;
 
-    case 'formula':
-    case 'rollup':
+    case "formula":
       if (field.options?.result) {
         // Recursively handle formula result type
         // Note: FieldOptions.result doesn't have a 'type' property, we infer it
-        const resultType = field.options.result.precision !== undefined ? 'number' : 'singleLineText';
+        const resultType = field.options.result.precision !== undefined
+          ? "number"
+          : "singleLineText";
         const resultField: FieldSchema = {
           ...field,
           type: resultType as any,
@@ -86,9 +93,10 @@ export function fieldSchemaToZod(field: FieldSchema): z.ZodTypeAny {
         };
         return fieldSchemaToZod(resultField);
       }
+    case "rollup":
       return z.unknown();
 
-    case 'lookup':
+    case "multipleLookupValues":
       return z.array(z.unknown());
 
     default:
@@ -101,7 +109,7 @@ export function fieldSchemaToZod(field: FieldSchema): z.ZodTypeAny {
  */
 export function fieldSchemasToZodObject(
   fields: readonly FieldSchema[],
-  primaryFieldId?: string
+  primaryFieldId?: string,
 ): z.ZodObject<any> {
   const shape: Record<string, z.ZodTypeAny> = {};
 
@@ -119,19 +127,19 @@ export function fieldSchemasToZodObject(
  */
 export function createRecordSchemaFromFields(
   fields: readonly FieldSchema[],
-  primaryFieldId?: string
+  primaryFieldId?: string,
 ): z.ZodObject<any> {
   const computedTypes = [
-    'formula',
-    'rollup',
-    'lookup',
-    'multipleLookupValues',
-    'createdTime',
-    'lastModifiedTime',
-    'createdBy',
-    'lastModifiedBy',
-    'autoNumber',
-    'count',
+    "formula",
+    "rollup",
+    "lookup",
+    "multipleLookupValues",
+    "createdTime",
+    "lastModifiedTime",
+    "createdBy",
+    "lastModifiedBy",
+    "autoNumber",
+    "count",
   ];
 
   const writableFields = fields.filter((f) => !computedTypes.includes(f.type));
@@ -142,19 +150,19 @@ export function createRecordSchemaFromFields(
  * Create a Zod schema for record updates (all fields optional, excludes computed)
  */
 export function updateRecordSchemaFromFields(
-  fields: readonly FieldSchema[]
+  fields: readonly FieldSchema[],
 ): z.ZodObject<any> {
   const computedTypes = [
-    'formula',
-    'rollup',
-    'lookup',
-    'multipleLookupValues',
-    'createdTime',
-    'lastModifiedTime',
-    'createdBy',
-    'lastModifiedBy',
-    'autoNumber',
-    'count',
+    "formula",
+    "rollup",
+    "lookup",
+    "multipleLookupValues",
+    "createdTime",
+    "lastModifiedTime",
+    "createdBy",
+    "lastModifiedBy",
+    "autoNumber",
+    "count",
   ];
 
   const writableFields = fields.filter((f) => !computedTypes.includes(f.type));
@@ -178,9 +186,21 @@ const AttachmentSchema = z.object({
   height: z.number().optional(),
   thumbnails: z
     .object({
-      small: z.object({ url: z.string().url(), width: z.number(), height: z.number() }),
-      large: z.object({ url: z.string().url(), width: z.number(), height: z.number() }),
-      full: z.object({ url: z.string().url(), width: z.number(), height: z.number() }),
+      small: z.object({
+        url: z.string().url(),
+        width: z.number(),
+        height: z.number(),
+      }),
+      large: z.object({
+        url: z.string().url(),
+        width: z.number(),
+        height: z.number(),
+      }),
+      full: z.object({
+        url: z.string().url(),
+        width: z.number(),
+        height: z.number(),
+      }),
     })
     .optional(),
 });

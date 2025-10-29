@@ -3,9 +3,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { z } from 'zod';
 import { fieldTypeToZod, fieldTypeToTS } from './field-to-zod.js';
-import type { FieldSchema } from '../schema/types.js';
+import type { FieldSchema } from '../schema/fields.js';
 
 describe('Field to Zod Conversion', () => {
   describe('fieldTypeToZod', () => {

@@ -4,13 +4,13 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as fs from 'node:fs/promises';
-import { createSampleBaseSchema } from './test-helpers/mocks.js';
+import tasksSchema from './tests/taskBase.js';
 
 // Mock dependencies
 vi.mock('node:fs/promises');
 vi.mock('./index.js', () => ({
   createSchemaFetcher: vi.fn(() => ({
-    fetchBaseSchema: vi.fn(async () => createSampleBaseSchema()),
+    fetchBaseSchema: vi.fn(async () => tasksSchema),
     saveSchemaToFile: vi.fn(async () => {}),
   })),
   createCodeGenerator: vi.fn(() => ({
@@ -36,7 +36,7 @@ describe('CLI', () => {
 
     it('should create output directory', async () => {
       // Test that mkdir is called with recursive option
-      const { createSchemaFetcher } = await import('./index.js');
+      const { createSchemaFetcher } = await import('./schema/index.js');
       const fetcher = createSchemaFetcher({ apiKey: 'test' });
 
       await fetcher.fetchBaseSchema('appTest');

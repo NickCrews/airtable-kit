@@ -1,4 +1,4 @@
-import { TableSchema } from "./tables.ts";
+import { TableSchema } from "./tables.js";
 
 export type BaseId = `app${string}`;
 

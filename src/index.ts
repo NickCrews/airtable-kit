@@ -13,3 +13,6 @@ export { client };
 
 import * as mcp from "./mcp/index.js";
 export { mcp };
+
+import * as codegen from "./codegen/index.js";
+export { codegen };
