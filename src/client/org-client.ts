@@ -3,7 +3,7 @@ import { IntoFetcher } from "./fetcher.js";
 import { BaseClient, baseClient } from "./base-client.js";
 
 type BaseClients<T extends ReadonlyArray<BaseSchema>> = {
-    [K in T[number] as K["name"]]: BaseClient<K["id"], K["tables"]>;
+    [K in T[number]as K["name"]]: BaseClient<K>;
 };
 
 /**
@@ -35,11 +35,7 @@ export function orgClient<T extends ReadonlyArray<BaseSchema>>(
 ): OrgClient<T> {
     const bases = Object.fromEntries(
         baseSchemas.map((baseSchema) => {
-            const client = baseClient({
-                baseId: baseSchema.id,
-                tables: baseSchema.tables,
-                fetcher,
-            });
+            const client = baseClient({ baseSchema, fetcher });
             return [baseSchema.name, client];
         }),
     ) as BaseClients<T>;
