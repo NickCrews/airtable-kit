@@ -8,7 +8,7 @@ import { Fetcher } from './client/fetcher.js';
 import { cli } from './cli.js';
 
 describe('CLI', () => {
-  const mockFetch = vi.fn(async () => tasksSchema);
+  // const mockFetch = vi.fn(async () => tasksSchema);
 
   // const mockFetcher = { fetch: mockFetch } as Fetcher;
   // vi.mock('./client/fetcher.js', () => ({
@@ -21,7 +21,7 @@ describe('CLI', () => {
 
   describe('codegen command', () => {
     it('should create output directory', async () => {
-      cli(['node', 'airtable-kit', 'codegen', '--base-id', 'appTestBase123', '--api-key', 'keyTest123', '--output', './schemas/appTestBase123.ts']);
+      cli(['codegen', '--base-id', 'appTestBase123', '--api-key', 'keyTest123', '--output', './schemas/appTestBase123.ts']);
       // expect(mockFetch).toHaveBeenCalledWith({ path: '/meta/bases/appTestBase123/tables' });
     });
 

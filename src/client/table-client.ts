@@ -7,7 +7,7 @@ import {
     recordToAirtableRecord,
     type WriteRecord,
 } from "./converters.js";
-import { makeFetcher } from "./fetcher.js";
+import { createFetcher } from "./fetcher.js";
 
 type InsertRecords<T extends ReadonlyArray<FieldSchema>> = Partial<
     WriteRecord<T>
@@ -184,7 +184,7 @@ export function tableClient<T extends ReadonlyArray<FieldSchema>>(
         fetcher: intoFetcher,
     }: TableClientOptions<T>,
 ): TableClient<T> {
-    const fetcher = makeFetcher(intoFetcher);
+    const fetcher = createFetcher(intoFetcher);
     return {
         baseId,
         tableId,

@@ -3,72 +3,123 @@
  * CLI for airtable-kit
  */
 
-import { Command } from "commander";
+import { parseArgs } from 'node:util';
 import { fetchBaseSchema } from "./schema/index.js";
 import { generateCode } from "./codegen/index.js";
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 
-export function cli(argv: string[]) {
-  const program = new Command();
+async function doCodegen({
+  baseId,
+  apiKey,
+  outPath,
+  baseName: rawBaseName,
+}: {
+  baseId: string;
+  apiKey: string;
+  outPath: string;
+  baseName?: string;
+}) {
+  console.log("🔍 Fetching schema from Airtable...");
+  const baseName = rawBaseName ?? baseId;
 
-  program
-    .name("airtable-kit")
-    .description("Type-safe Airtable client - code generation and utilities")
-    .version("0.0.1");
+  const rawSchema = await fetchBaseSchema(baseId, apiKey);
+  const schemaWithName = { ...rawSchema, name: baseName };
+  const firstTable = schemaWithName.tables[0];
 
-  program
-    .command("codegen")
-    .description("Generate TypeScript schema from Airtable base")
-    .requiredOption("--base-id <baseId>", "Airtable base ID (appXXXXXX)")
-    .requiredOption("--api-key <apiKey>", "Airtable API key")
-    .option("--output <file>", "Output file path. Default to ./schemas/<baseId>.ts")
-    .option(
-      "--base-name <name>",
-      "name of the base in the generated JSON. Defaults to base ID",
-    )
-    .action(async (options) => {
-      console.log("🔍 Fetching schema from Airtable...");
-      const baseName = options.baseName ?? options.baseId;
+  console.log(`✓ Found base with ${schemaWithName.tables.length} tables`);
+  console.log(`  Tables: ${schemaWithName.tables.map((t) => t.name).join(", ")}`);
 
-      const rawSchema = await fetchBaseSchema(options.baseId, options.apiKey);
-      const schemaWithName = { ...rawSchema, name: baseName };
-      const firstTable = schemaWithName.tables[0];
+  const filetype = outPath.endsWith(".ts") ? "ts" : "js";
+  const code = generateCode(schemaWithName, { filetype });
 
-      console.log(`✓ Found base with ${schemaWithName.tables.length} tables`);
-      console.log(`  Tables: ${schemaWithName.tables.map((t) => t.name).join(", ")}`);
+  const outputDir = path.dirname(outPath);
+  await fs.mkdir(outputDir, { recursive: true });
+  await fs.writeFile(outPath, code, "utf-8");
 
-      console.log("\n📝 Generating schema...");
+  console.log(`\n✅ Generated schema at ${outPath}`);
+  console.log("\n📚 Example usage:");
+  const importPath = outPath.startsWith("/") ? outPath : outPath.startsWith(".") ? outPath : `./${outPath}`;
+  console.log(
+    `import myBaseSchema from '${importPath}';
+import { baseClient } from 'airtable-kit/client';
 
-      const code = generateCode(schemaWithName);
+const client = baseClient({
+  baseId: myBaseSchema.id,
+  tables: myBaseSchema.tables,
+  fetcher: 'YOUR_API_KEY',
+});
+const records = await client.tables.${firstTable.name}.list()
+console.log(records);`
+  );
+}
 
-      // Create output directory
-      const outputDir = path.dirname(options.output);
-      await fs.mkdir(outputDir, { recursive: true });
-      await fs.writeFile(options.output, code, "utf-8");
-      console.log(`  ✓ ${options.output}`);
+function getHelp() {
+  return `Airtable Kit CLI
 
-      console.log(`\n✅ Generated schema at ${options.output}`);
-      console.log("\n📚 Example usage:");
-      console.log(
-        `
-  import * as myBaseSchema from '${options.output}';
-  import baseClient from 'airtable-kit/client';
+Usage:
+  npx airtable-kit codegen --base-id <BASE_ID> --api-key <API_KEY> --output <OUTPUT_PATH> [--base-name <BASE_NAME>]
+  npx airtable-kit --help
+  npx airtable-kit --version
+`.trim();
+}
 
-  const client = baseClient({
-    baseId: myBaseSchema.id,
-    tables: myBaseSchema.tables,
-    fetcher: 'YOUR_API_KEY',
-  });
-  const records = await client.tables.${firstTable.name}.listRecords()
-  console.log(records);
-  `.trim(),
-      );
+export async function cli(argv: string[]) {
+  const options = {
+    version: { type: 'boolean' },
+    help: { type: 'boolean' },
+    "base-id": { type: 'string' },
+    "api-key": { type: 'string' },
+    "base-name": { type: 'string' },
+    output: { type: 'string' },
+  } as const;
+  const {
+    values,
+    positionals,
+  } = parseArgs({ argv, options, allowPositionals: true });
+
+  if (values.help || positionals[0] === 'help') {
+    console.log(getHelp());
+    return;
+  }
+  if (values.version || positionals[0] === 'version') {
+    console.log('Airtable Kit CLI version 1.0.0');
+    return;
+  }
+  if (positionals[0] === 'codegen') {
+    const missings = [];
+    if (!values["base-id"]) {
+      missings.push('--base-id');
+    }
+    if (!values["api-key"]) {
+      missings.push('--api-key');
+    }
+    if (!values.output) {
+      missings.push('--output');
+    }
+    if (missings.length > 0) {
+      const err = `Missing required options: ${missings.join(', ')}`;
+      console.error(`❌ ${err}`);
+      console.log(getHelp());
+      throw new Error(err);
+    }
+    await doCodegen({
+      baseId: values["base-id"]!,
+      apiKey: values["api-key"]!,
+      outPath: values.output!,
+      baseName: values["base-name"],
     });
-
-  program.parse(argv);
+    return;
+  }
+  console.log(getHelp());
+  throw new Error(`Unknown command`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  cli(process.argv);
+  try {
+    await cli(process.argv.slice(2));
+  } catch (error) {
+    console.error("❌ Error:", (error as Error).message);
+    process.exit(1);
+  }
 }

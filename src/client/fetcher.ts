@@ -15,9 +15,15 @@ export type FetcherArgs = {
 
 export type IntoFetcher = Fetcher | string | FetcherArgs | undefined;
 
-export function makeFetcher(args?: IntoFetcher): Fetcher {
+/**
+ * Create a Fetcher from various input types.
+ * 
+ * @param args - The input to create a Fetcher from.
+ * @returns A Fetcher instance.
+ */
+export function createFetcher(args?: IntoFetcher): Fetcher {
     if (typeof args === "string") {
-        return makeFetcher({ apiKey: args });
+        return createFetcher({ apiKey: args });
     }
     if (args && "fetch" in args) {
         return args;
