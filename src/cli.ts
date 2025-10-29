@@ -5,11 +5,11 @@
 
 import { Command } from "commander";
 import { fetchBaseSchema } from "./schema/index.js";
-import { createCodeGenerator } from "./codegen/index.js";
+import { generateCode } from "./codegen/index.js";
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 
-function cli(argv: string[]) {
+export function cli(argv: string[]) {
   const program = new Command();
 
   program
@@ -28,35 +28,31 @@ function cli(argv: string[]) {
       "name of the base in the generated JSON. Defaults to base ID",
     )
     .action(async (options) => {
-      try {
-        console.log("🔍 Fetching schema from Airtable...");
-        const baseName = options.baseName ?? options.baseId;
+      console.log("🔍 Fetching schema from Airtable...");
+      const baseName = options.baseName ?? options.baseId;
 
-        const rawSchema = await fetchBaseSchema(options.baseId, options.apiKey);
-        const schemaWithName = { ...rawSchema, name: baseName };
-        const firstTable = schemaWithName.tables[0];
+      const rawSchema = await fetchBaseSchema(options.baseId, options.apiKey);
+      const schemaWithName = { ...rawSchema, name: baseName };
+      const firstTable = schemaWithName.tables[0];
 
-        console.log(`✓ Found base with ${schemaWithName.tables.length} tables`);
-        console.log(`  Tables: ${schemaWithName.tables.map((t) => t.name).join(", ")}`);
+      console.log(`✓ Found base with ${schemaWithName.tables.length} tables`);
+      console.log(`  Tables: ${schemaWithName.tables.map((t) => t.name).join(", ")}`);
 
-        console.log("\n📝 Generating schema...");
+      console.log("\n📝 Generating schema...");
 
-        const generator = createCodeGenerator();
-        const code = generator.generateSchema(schemaWithName);
+      const code = generateCode(schemaWithName);
 
-        // Create output directory
-        const outputDir = path.dirname(options.output);
-        await fs.mkdir(outputDir, { recursive: true });
+      // Create output directory
+      const outputDir = path.dirname(options.output);
+      await fs.mkdir(outputDir, { recursive: true });
+      await fs.writeFile(options.output, code, "utf-8");
+      console.log(`  ✓ ${options.output}`);
 
-        // Write schema file
-        await generator.writeToFile(code, options.output);
-        console.log(`  ✓ ${options.output}`);
-
-        console.log(`\n✅ Generated schema at ${options.output}`);
-        console.log("\n📚 Example usage:");
-        console.log(
-          `
-  import * as myBaseSchema from '${options.output.replace(".ts", "")}';
+      console.log(`\n✅ Generated schema at ${options.output}`);
+      console.log("\n📚 Example usage:");
+      console.log(
+        `
+  import * as myBaseSchema from '${options.output}';
   import baseClient from 'airtable-kit/client';
 
   const client = baseClient({
@@ -67,14 +63,7 @@ function cli(argv: string[]) {
   const records = await client.tables.${firstTable.name}.listRecords()
   console.log(records);
   `.trim(),
-        );
-      } catch (error) {
-        console.error(
-          "\n❌ Error:",
-          error instanceof Error ? error.message : error,
-        );
-        process.exit(1);
-      }
+      );
     });
 
   program.parse(argv);

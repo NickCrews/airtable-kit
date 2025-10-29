@@ -449,7 +449,6 @@ describe("Converters", () => {
         id: "fldAttachments",
         name: "Attachments",
         type: "multipleAttachments",
-        options: {},
       };
       const converter = CONVERTERS.multipleAttachments.makeTo(
         fieldSchema as any,
@@ -467,7 +466,6 @@ describe("Converters", () => {
         id: "fldAttachments",
         name: "Attachments",
         type: "multipleAttachments",
-        options: {},
       };
       const converter = CONVERTERS.multipleAttachments.makeFrom(
         fieldSchema as any,
@@ -782,7 +780,6 @@ describe("Converters", () => {
         id: "fldAttachments",
         name: "Attachments",
         type: "multipleAttachments",
-        options: {},
       };
       const converter = CONVERTERS.multipleAttachments.makeTo(
         fieldSchema as any,

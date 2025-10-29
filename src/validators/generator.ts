@@ -3,10 +3,10 @@
  */
 
 import { z } from 'zod';
-import type { BaseSchema, TableSchema } from '../schema/types.js';
+import type { BaseSchema, TableSchema } from '../schema/index.js';
 import { isComputedField } from '../schema/types.js';
 import { fieldTypeToZod, type FieldTypeHandler } from './field-to-zod.js';
-import type { BaseValidators, TableValidators } from './types.js';
+import type { BaseValidators } from './types.js';
 
 export interface ValidatorGeneratorOptions {
   /**

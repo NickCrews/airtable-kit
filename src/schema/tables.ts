@@ -11,10 +11,10 @@ export interface TableSchema<
 > {
     id: I;
     name: N;
-    primaryFieldId: FieldId;
-    description?: string;
     fields: F;
-    views: ReadonlyArray<ViewSchema>;
+    primaryFieldId?: FieldId;
+    description?: string;
+    views?: ReadonlyArray<ViewSchema>;
 }
 
 export type ViewType =

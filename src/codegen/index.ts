@@ -4,6 +4,5 @@
 
 export {
   type CodegenOptions,
-  type CodeGenerator,
-  createCodeGenerator,
+  generateCode,
 } from './generator.js';

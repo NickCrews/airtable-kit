@@ -184,7 +184,7 @@ export function tableClient<T extends ReadonlyArray<FieldSchema>>(
         fetcher: intoFetcher,
     }: TableClientOptions<T>,
 ): TableClient<T> {
-    const fetcher = fetcher(intoFetcher);
+    const fetcher = makeFetcher(intoFetcher);
     return {
         baseId,
         tableId,

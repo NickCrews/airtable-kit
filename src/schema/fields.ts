@@ -22,17 +22,17 @@ export type SelectChoice<
 export interface AiText extends FieldBase {
   type: "aiText";
   options:
-    | {
-      state: "empty" | "loading" | "generated";
-      isStale: boolean;
-      value: string | null;
-    }
-    | {
-      state: "error";
-      errorType: string;
-      isStale: boolean;
-      value: string | null;
-    };
+  | {
+    state: "empty" | "loading" | "generated";
+    isStale: boolean;
+    value: string | null;
+  }
+  | {
+    state: "error";
+    errorType: string;
+    isStale: boolean;
+    value: string | null;
+  };
 }
 export interface AutoNumber extends FieldBase {
   type: "autoNumber";
@@ -45,21 +45,21 @@ export interface Button extends FieldBase {
 }
 export interface Checkbox extends FieldBase {
   type: "checkbox";
-  options: {
+  options?: {
     icon?:
-      | "check"
-      | "xCheckbox"
-      | "star"
-      | "heart"
-      | "thumbsUp"
-      | "flag"
-      | "dot";
+    | "check"
+    | "xCheckbox"
+    | "star"
+    | "heart"
+    | "thumbsUp"
+    | "flag"
+    | "dot";
     color?: BrightColor;
   };
 }
 export interface Count extends FieldBase {
   type: "count";
-  options: {
+  options?: {
     recordLinkFieldId?: string;
   };
 }
@@ -71,7 +71,7 @@ export interface CreatedTime extends FieldBase {
 }
 export interface Currency extends FieldBase {
   type: "currency";
-  options: {
+  options?: {
     /** Indicates the number of digits shown to the right of the decimal point for this field. (0-7 inclusive) */
     precision?: number;
     symbol?: string;
@@ -107,13 +107,13 @@ export interface DateTime extends FieldBase {
 /** An integer representing number of seconds. */
 export interface Duration extends FieldBase {
   type: "duration";
-  options: {
+  options?: {
     durationFormat?:
-      | "h:mm"
-      | "h:mm:ss"
-      | "h:mm:ss.S"
-      | "h:mm:ss.SS"
-      | "h:mm:ss.SSS";
+    | "h:mm"
+    | "h:mm:ss"
+    | "h:mm:ss.S"
+    | "h:mm:ss.SS"
+    | "h:mm:ss.SSS";
   };
 }
 export interface Email extends FieldBase {
@@ -122,13 +122,13 @@ export interface Email extends FieldBase {
 export interface ExternalSyncSource<C extends SelectChoice = SelectChoice>
   extends FieldBase {
   type: "externalSyncSource";
-  options: {
+  options?: {
     choices: readonly C[];
   };
 }
 export interface Formula extends FieldBase {
   type: "formula";
-  options: {
+  options?: {
     isValid?: boolean;
     formula?: string;
     referencedFieldIds?: readonly string[];
@@ -146,7 +146,7 @@ export interface MultilineText extends FieldBase {
 }
 export interface MultipleAttachments extends FieldBase {
   type: "multipleAttachments";
-  options: {
+  option?: {
     isReversed?: boolean;
   };
 }
@@ -155,7 +155,7 @@ export interface MultipleCollaborators extends FieldBase {
 }
 export interface MultipleLookupValues extends FieldBase {
   type: "multipleLookupValues";
-  options: {
+  options?: {
     /** Is the field currently valid (e.g. false if the linked record field has been deleted) */
     isValid?: boolean;
     recordLinkFieldId?: string;
@@ -165,7 +165,7 @@ export interface MultipleLookupValues extends FieldBase {
 }
 export interface MultipleRecordLinks extends FieldBase {
   type: "multipleRecordLinks";
-  options: {
+  options?: {
     linkedTableId?: string;
     isReversed?: boolean;
     prefersSingleRecordLink?: boolean;
@@ -211,7 +211,7 @@ export interface RichText extends FieldBase {
 }
 export interface Rollup extends FieldBase {
   type: "rollup";
-  options: {
+  options?: {
     recordLinkFieldId?: string;
     fieldIdInLinkedTable?: string;
   };
