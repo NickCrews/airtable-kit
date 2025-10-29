@@ -10,23 +10,21 @@ import { fieldSchemaToZod } from "./field-to-zod.js";
 /**
  * Create a Zod schema for record creation
  */
-export function createRecordSchemaFromFields(fields: readonly FieldSchema[]): z.ZodObject<any> {
+export function makeZodForCreate(fields: readonly FieldSchema[]) {
   const shape: Record<string, z.ZodTypeAny> = {};
   for (const field of fields) {
     shape[field.name] = fieldSchemaToZod(field).optional();
   }
-  return z.object(shape);
+  return z.array(z.object(shape));
 }
 
 /**
  * Create a Zod schema for record updates
  */
-export function updateRecordSchemaFromFields(
-  fields: readonly FieldSchema[],
-): z.ZodObject<any> {
+export function makeZodForUpdate(fields: readonly FieldSchema[]) {
   const shape: Record<string, z.ZodTypeAny> = {};
   for (const field of fields) {
     shape[field.name] = fieldSchemaToZod(field).optional();
   }
-  return z.object(shape);
+  return z.array(z.object(shape));
 }

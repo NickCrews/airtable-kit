@@ -1,121 +1,5 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Code Generator Integration > should match snapshot for sample schema 1`] = `
-"/**
- * Auto-generated from Airtable schema
- * Do not edit manually
- */
-
-export const baseSchema = {
-  "id": "appTestBase123",
-  "tables": [
-    {
-      "id": "tblTasks",
-      "name": "Tasks",
-      "description": "Mock table Tasks",
-      "primaryFieldId": "fldName",
-      "fields": [
-        {
-          "id": "fldName",
-          "name": "Name",
-          "type": "singleLineText"
-        },
-        {
-          "id": "fldStatus",
-          "name": "Status",
-          "type": "singleSelect",
-          "options": {
-            "choices": [
-              {
-                "id": "selTodo",
-                "name": "Todo",
-                "color": "blueLight2"
-              },
-              {
-                "id": "selInProgress",
-                "name": "In Progress",
-                "color": "yellowLight2"
-              },
-              {
-                "id": "selDone",
-                "name": "Done",
-                "color": "greenLight2"
-              }
-            ]
-          }
-        },
-        {
-          "id": "fldPriority",
-          "name": "Priority",
-          "type": "number",
-          "precision": 0
-        },
-        {
-          "id": "fldDueDate",
-          "name": "Due Date",
-          "type": "date"
-        },
-        {
-          "id": "fldCompleted",
-          "name": "Completed",
-          "type": "checkbox"
-        },
-        {
-          "id": "fldNotes",
-          "name": "Notes",
-          "type": "multilineText"
-        },
-        {
-          "id": "fldTags",
-          "name": "Tags",
-          "type": "multipleSelects",
-          "options": {
-            "choices": [
-              {
-                "id": "selUrgent",
-                "name": "Urgent",
-                "color": "redLight2"
-              },
-              {
-                "id": "selImportant",
-                "name": "Important",
-                "color": "orangeLight2"
-              }
-            ]
-          }
-        }
-      ],
-      "views": []
-    },
-    {
-      "id": "tblUsers",
-      "name": "Users",
-      "description": "Mock table Users",
-      "primaryFieldId": "fldEmail",
-      "fields": [
-        {
-          "id": "fldEmail",
-          "name": "Email",
-          "type": "email"
-        },
-        {
-          "id": "fldFullName",
-          "name": "Full Name",
-          "type": "singleLineText"
-        },
-        {
-          "id": "fldPhone",
-          "name": "Phone",
-          "type": "phoneNumber"
-        }
-      ],
-      "views": []
-    }
-  ]
-} as const;
-"
-`;
-
 exports[`Code Generator Integration > should match snapshot with filetype=js 1`] = `
 "/**
  * Auto-generated from Airtable schema
@@ -123,8 +7,8 @@ exports[`Code Generator Integration > should match snapshot with filetype=js 1`]
  */
 
 export default {
-  "id": "appTestBase123",
-  "name": "Test Base",
+  "id": "appTaskBase",
+  "name": "taskTracker",
   "tables": [
     {
       "id": "tblTasks",
@@ -133,12 +17,14 @@ export default {
         {
           "id": "fldName",
           "name": "Name",
-          "type": "singleLineText"
+          "type": "singleLineText",
+          "description": "The name of the task"
         },
         {
           "id": "fldStatus",
           "name": "Status",
           "type": "singleSelect",
+          "description": "The current status of the task",
           "options": {
             "choices": [
               {
@@ -163,6 +49,7 @@ export default {
           "id": "fldPriority",
           "name": "Priority",
           "type": "number",
+          "description": "The priority level of the task. Lower numbers indicate higher priority.",
           "options": {
             "precision": 0
           }
@@ -170,22 +57,26 @@ export default {
         {
           "id": "fldDueDate",
           "name": "Due Date",
-          "type": "date"
+          "type": "date",
+          "description": "The due date of the task"
         },
         {
           "id": "fldCompleted",
           "name": "Completed",
-          "type": "checkbox"
+          "type": "checkbox",
+          "description": "Whether the task is completed"
         },
         {
           "id": "fldNotes",
           "name": "Notes",
-          "type": "multilineText"
+          "type": "multilineText",
+          "description": "Additional notes about the task"
         },
         {
           "id": "fldTags",
           "name": "Tags",
           "type": "multipleSelects",
+          "description": "Tags associated with the task",
           "options": {
             "choices": [
               {
@@ -204,22 +95,26 @@ export default {
         {
           "id": "fldAttachments",
           "name": "Attachments",
-          "type": "multipleAttachments"
+          "type": "multipleAttachments",
+          "description": "Files attached to the task"
         },
         {
           "id": "fldCreatedAt",
           "name": "Created At",
-          "type": "createdTime"
+          "type": "createdTime",
+          "description": "The time when the task was created"
         },
         {
           "id": "fldUpdatedAt",
           "name": "Updated At",
-          "type": "lastModifiedTime"
+          "type": "lastModifiedTime",
+          "description": "The time when the task was last updated"
         },
         {
           "id": "fldAssignedTo",
           "name": "Assigned To",
           "type": "multipleRecordLinks",
+          "description": "Users assigned to the task",
           "options": {
             "linkedTableId": "tblUsers"
           }
@@ -243,7 +138,8 @@ export default {
         {
           "id": "fldPhone",
           "name": "Phone",
-          "type": "phoneNumber"
+          "type": "phoneNumber",
+          "description": "please include area code"
         }
       ]
     }
@@ -259,8 +155,8 @@ exports[`Code Generator Integration > should match snapshot with filetype=ts 1`]
  */
 
 export default {
-  "id": "appTestBase123",
-  "name": "Test Base",
+  "id": "appTaskBase",
+  "name": "taskTracker",
   "tables": [
     {
       "id": "tblTasks",
@@ -269,12 +165,14 @@ export default {
         {
           "id": "fldName",
           "name": "Name",
-          "type": "singleLineText"
+          "type": "singleLineText",
+          "description": "The name of the task"
         },
         {
           "id": "fldStatus",
           "name": "Status",
           "type": "singleSelect",
+          "description": "The current status of the task",
           "options": {
             "choices": [
               {
@@ -299,6 +197,7 @@ export default {
           "id": "fldPriority",
           "name": "Priority",
           "type": "number",
+          "description": "The priority level of the task. Lower numbers indicate higher priority.",
           "options": {
             "precision": 0
           }
@@ -306,22 +205,26 @@ export default {
         {
           "id": "fldDueDate",
           "name": "Due Date",
-          "type": "date"
+          "type": "date",
+          "description": "The due date of the task"
         },
         {
           "id": "fldCompleted",
           "name": "Completed",
-          "type": "checkbox"
+          "type": "checkbox",
+          "description": "Whether the task is completed"
         },
         {
           "id": "fldNotes",
           "name": "Notes",
-          "type": "multilineText"
+          "type": "multilineText",
+          "description": "Additional notes about the task"
         },
         {
           "id": "fldTags",
           "name": "Tags",
           "type": "multipleSelects",
+          "description": "Tags associated with the task",
           "options": {
             "choices": [
               {
@@ -340,22 +243,26 @@ export default {
         {
           "id": "fldAttachments",
           "name": "Attachments",
-          "type": "multipleAttachments"
+          "type": "multipleAttachments",
+          "description": "Files attached to the task"
         },
         {
           "id": "fldCreatedAt",
           "name": "Created At",
-          "type": "createdTime"
+          "type": "createdTime",
+          "description": "The time when the task was created"
         },
         {
           "id": "fldUpdatedAt",
           "name": "Updated At",
-          "type": "lastModifiedTime"
+          "type": "lastModifiedTime",
+          "description": "The time when the task was last updated"
         },
         {
           "id": "fldAssignedTo",
           "name": "Assigned To",
           "type": "multipleRecordLinks",
+          "description": "Users assigned to the task",
           "options": {
             "linkedTableId": "tblUsers"
           }
@@ -379,7 +286,8 @@ export default {
         {
           "id": "fldPhone",
           "name": "Phone",
-          "type": "phoneNumber"
+          "type": "phoneNumber",
+          "description": "please include area code"
         }
       ]
     }
@@ -395,8 +303,8 @@ exports[`Code Generator Integration > should match snapshot with no options 1`] 
  */
 
 export default {
-  "id": "appTestBase123",
-  "name": "Test Base",
+  "id": "appTaskBase",
+  "name": "taskTracker",
   "tables": [
     {
       "id": "tblTasks",
@@ -405,12 +313,14 @@ export default {
         {
           "id": "fldName",
           "name": "Name",
-          "type": "singleLineText"
+          "type": "singleLineText",
+          "description": "The name of the task"
         },
         {
           "id": "fldStatus",
           "name": "Status",
           "type": "singleSelect",
+          "description": "The current status of the task",
           "options": {
             "choices": [
               {
@@ -435,6 +345,7 @@ export default {
           "id": "fldPriority",
           "name": "Priority",
           "type": "number",
+          "description": "The priority level of the task. Lower numbers indicate higher priority.",
           "options": {
             "precision": 0
           }
@@ -442,22 +353,26 @@ export default {
         {
           "id": "fldDueDate",
           "name": "Due Date",
-          "type": "date"
+          "type": "date",
+          "description": "The due date of the task"
         },
         {
           "id": "fldCompleted",
           "name": "Completed",
-          "type": "checkbox"
+          "type": "checkbox",
+          "description": "Whether the task is completed"
         },
         {
           "id": "fldNotes",
           "name": "Notes",
-          "type": "multilineText"
+          "type": "multilineText",
+          "description": "Additional notes about the task"
         },
         {
           "id": "fldTags",
           "name": "Tags",
           "type": "multipleSelects",
+          "description": "Tags associated with the task",
           "options": {
             "choices": [
               {
@@ -476,22 +391,26 @@ export default {
         {
           "id": "fldAttachments",
           "name": "Attachments",
-          "type": "multipleAttachments"
+          "type": "multipleAttachments",
+          "description": "Files attached to the task"
         },
         {
           "id": "fldCreatedAt",
           "name": "Created At",
-          "type": "createdTime"
+          "type": "createdTime",
+          "description": "The time when the task was created"
         },
         {
           "id": "fldUpdatedAt",
           "name": "Updated At",
-          "type": "lastModifiedTime"
+          "type": "lastModifiedTime",
+          "description": "The time when the task was last updated"
         },
         {
           "id": "fldAssignedTo",
           "name": "Assigned To",
           "type": "multipleRecordLinks",
+          "description": "Users assigned to the task",
           "options": {
             "linkedTableId": "tblUsers"
           }
@@ -515,7 +434,8 @@ export default {
         {
           "id": "fldPhone",
           "name": "Phone",
-          "type": "phoneNumber"
+          "type": "phoneNumber",
+          "description": "please include area code"
         }
       ]
     }

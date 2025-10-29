@@ -40,7 +40,6 @@ export function makeInTmpDir() {
         const testFileName = path.basename(testPath);
         const testDir = path.dirname(testPath);
         const tmpDir = path.join(testDir, '.test', testFileName, safeTestName);
-        console.log(`Setting up test dir for ${rawTestName} at ${tmpDir}`);
         fs.rmSync(tmpDir, { recursive: true, force: true });
         fs.mkdirSync(tmpDir, { recursive: true });
         process.chdir(tmpDir);

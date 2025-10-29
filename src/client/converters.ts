@@ -49,10 +49,10 @@ const BarcodeConverters = {
     type: "barcode",
     makeTo:
         (_fieldSchema: FieldOfType<"barcode">) =>
-        (value: BarcodeValue): BarcodeValue => value,
+            (value: BarcodeValue): BarcodeValue => value,
     makeFrom:
         (_fieldSchema: FieldOfType<"barcode">) =>
-        (value: unknown): BarcodeValue => value as BarcodeValue,
+            (value: unknown): BarcodeValue => value as BarcodeValue,
 } as const satisfies IConverters<
     BarcodeValue,
     BarcodeValue,
@@ -125,8 +125,8 @@ const CreatedTimeConverters = {
     makeTo: (_fieldSchema: FieldOfType<"createdTime">) => null,
     makeFrom:
         (_fieldSchema: FieldOfType<"createdTime">) =>
-        (value: unknown): globalThis.Date =>
-            new globalThis.Date(value as string),
+            (value: unknown): globalThis.Date =>
+                new globalThis.Date(value as string),
 } as const satisfies IConverters<
     never,
     globalThis.Date,
@@ -152,12 +152,12 @@ const DateConverters = {
     type: "date",
     makeTo:
         (_fieldSchema: FieldOfType<"date">) =>
-        (value: globalThis.Date | TDateString): string => {
-            if (value instanceof globalThis.Date) {
-                return value.toISOString().split("T")[0];
-            }
-            return value;
-        },
+            (value: globalThis.Date | TDateString): string => {
+                if (value instanceof globalThis.Date) {
+                    return value.toISOString().split("T")[0];
+                }
+                return value;
+            },
     makeFrom: (_fieldSchema: FieldOfType<"date">) => (value: unknown): string =>
         value as string,
 } as const satisfies IConverters<
@@ -170,16 +170,16 @@ const DateTimeConverters = {
     type: "dateTime",
     makeTo:
         (_fieldSchema: FieldOfType<"dateTime">) =>
-        (value: globalThis.Date | string): string => {
-            if (value instanceof globalThis.Date) {
-                return value.toISOString();
-            }
-            return value;
-        },
+            (value: globalThis.Date | string): string => {
+                if (value instanceof globalThis.Date) {
+                    return value.toISOString();
+                }
+                return value;
+            },
     makeFrom:
         (_fieldSchema: FieldOfType<"dateTime">) =>
-        (value: unknown): globalThis.Date =>
-            new globalThis.Date(value as string),
+            (value: unknown): globalThis.Date =>
+                new globalThis.Date(value as string),
 } as const satisfies IConverters<
     globalThis.Date | string,
     globalThis.Date,
@@ -210,10 +210,10 @@ const ExternalSyncSourceConverters = {
     type: "externalSyncSource",
     makeTo:
         (_fieldSchema: FieldOfType<"externalSyncSource">) =>
-        (value: unknown): unknown => value,
+            (value: unknown): unknown => value,
     makeFrom:
         (_fieldSchema: FieldOfType<"externalSyncSource">) =>
-        (value: unknown): unknown => value,
+            (value: unknown): unknown => value,
 } as const satisfies IConverters<
     unknown,
     unknown,
@@ -233,7 +233,7 @@ const LastModifiedByConverters = {
     makeTo: (_fieldSchema: FieldOfType<"lastModifiedBy">) => null,
     makeFrom:
         (_fieldSchema: FieldOfType<"lastModifiedBy">) =>
-        (value: unknown): User => value as User,
+            (value: unknown): User => value as User,
 } as const satisfies IConverters<
     never,
     User,
@@ -245,8 +245,8 @@ const LastModifiedTimeConverters = {
     makeTo: (_fieldSchema: FieldOfType<"lastModifiedTime">) => null,
     makeFrom:
         (_fieldSchema: FieldOfType<"lastModifiedTime">) =>
-        (value: unknown): globalThis.Date =>
-            new globalThis.Date(value as string),
+            (value: unknown): globalThis.Date =>
+                new globalThis.Date(value as string),
 } as const satisfies IConverters<
     never,
     globalThis.Date,
@@ -271,15 +271,15 @@ const MultipleAttachmentsConverters = {
     type: "multipleAttachments",
     makeTo:
         (_fieldSchema: FieldOfType<"multipleAttachments">) =>
-        (value: MultipleAttachment): MultipleAttachment => {
-            return value.map(({ url, filename }) => ({
-                url,
-                filename,
-            }));
-        },
+            (value: MultipleAttachment): MultipleAttachment => {
+                return value.map(({ url, filename }) => ({
+                    url,
+                    filename,
+                }));
+            },
     makeFrom:
         (_fieldSchema: FieldOfType<"multipleAttachments">) =>
-        (value: unknown): MultipleAttachment => value as MultipleAttachment,
+            (value: unknown): MultipleAttachment => value as MultipleAttachment,
 } as const satisfies IConverters<
     MultipleAttachment,
     MultipleAttachment,
@@ -289,10 +289,10 @@ const MultipleCollaboratorsConverters = {
     type: "multipleCollaborators",
     makeTo:
         (_fieldSchema: FieldOfType<"multipleCollaborators">) =>
-        (value: User[]): User[] => value,
+            (value: User[]): User[] => value,
     makeFrom:
         (_fieldSchema: FieldOfType<"multipleCollaborators">) =>
-        (value: unknown): User[] => value as User[],
+            (value: unknown): User[] => value as User[],
 } as const satisfies IConverters<
     User[],
     User[],
@@ -303,10 +303,10 @@ const MultipleLookupValuesConverters = {
     type: "multipleLookupValues",
     makeTo:
         (_fieldSchema: FieldOfType<"multipleLookupValues">) =>
-        (value: unknown[]): unknown[] => value,
+            (value: unknown[]): unknown[] => value,
     makeFrom:
         (_fieldSchema: FieldOfType<"multipleLookupValues">) =>
-        (value: unknown): unknown[] => value as unknown[],
+            (value: unknown): unknown[] => value as unknown[],
 } as const satisfies IConverters<
     unknown[],
     unknown[],
@@ -317,10 +317,10 @@ const MultipleRecordLinksConverters = {
     type: "multipleRecordLinks",
     makeTo:
         (_fieldSchema: FieldOfType<"multipleRecordLinks">) =>
-        (value: string[]): string[] => value,
+            (value: string[]): string[] => value,
     makeFrom:
         (_fieldSchema: FieldOfType<"multipleRecordLinks">) =>
-        (value: unknown): string[] => value as string[],
+            (value: unknown): string[] => value as string[],
 } as const satisfies IConverters<
     string[],
     string[],
@@ -331,29 +331,28 @@ const MultipleSelectsConverters = {
     type: "multipleSelects",
     makeTo:
         <C extends SelectChoice>(fieldSchema: MultipleSelects<C>) =>
-        (idsOrValues: Array<C["id"] | C["name"]>): Array<C["id"]> => {
-            const choices = fieldSchema.options.choices;
-            return idsOrValues.map((idOrValue) => {
-                let found = choices.find((option) => option.id === idOrValue);
-                if (found) {
-                    return found.id;
-                }
-                found = choices.find((option) => option.name === idOrValue);
-                if (found) {
-                    return found.id;
-                }
-                const availableOptions = choices.map((o) => o.name);
-                availableOptions.push(...choices.map((o) => o.id));
-                throw new Error(
-                    `No option found for value: ${idOrValue}. Available options: ${
-                        availableOptions.join(", ")
-                    }`,
-                );
-            });
-        },
+            (idsOrValues: Array<C["id"] | C["name"]>): Array<C["id"]> => {
+                const choices = fieldSchema.options.choices;
+                return idsOrValues.map((idOrValue) => {
+                    let found = choices.find((option) => option.id === idOrValue);
+                    if (found) {
+                        return found.id;
+                    }
+                    found = choices.find((option) => option.name === idOrValue);
+                    if (found) {
+                        return found.id;
+                    }
+                    const availableOptions = choices.map((o) => o.name);
+                    availableOptions.push(...choices.map((o) => o.id));
+                    throw new Error(
+                        `No option found for value: ${idOrValue}. Available options: ${availableOptions.join(", ")
+                        }`,
+                    );
+                });
+            },
     makeFrom:
         <C extends SelectChoice>(_fieldSchema: MultipleSelects<C>) =>
-        (value: unknown): C[] => value as C[],
+            (value: unknown): C[] => value as C[],
 } as const;
 
 const NumberConverters = {
@@ -415,10 +414,10 @@ const SingleCollaboratorConverters = {
     type: "singleCollaborator",
     makeTo:
         (_fieldSchema: FieldOfType<"singleCollaborator">) =>
-        (value: UserWrite): UserWrite => value,
+            (value: UserWrite): UserWrite => value,
     makeFrom:
         (_fieldSchema: FieldOfType<"singleCollaborator">) =>
-        (value: unknown): User => value as User,
+            (value: unknown): User => value as User,
 } as const satisfies IConverters<
     UserWrite,
     User,
@@ -439,30 +438,29 @@ const SingleSelectConverters = {
     type: "singleSelect",
     makeTo:
         <C extends SelectChoice>(fieldSchema: SingleSelect<C>) =>
-        (idOrValue: C["id"] | C["name"]): C["id"] => {
-            // If already an ID in the spec, return it.
-            // Otherwise, try to lookup the ID from the value.
-            // If not found, error.
-            const choices = fieldSchema.options.choices;
-            let found = choices.find((option) => option.id === idOrValue);
-            if (found) {
-                return found.id;
-            }
-            found = choices.find((option) => option.name === idOrValue);
-            if (found) {
-                return found.id;
-            }
-            const availableOptions = choices.map((o) => o.name);
-            availableOptions.push(...choices.map((o) => o.id));
-            throw new Error(
-                `No option found for value '${idOrValue}' in field '${fieldSchema.name}'. Available options: ${
-                    availableOptions.join(", ")
-                }`,
-            );
-        },
+            (idOrValue: C["id"] | C["name"]): C["id"] => {
+                // If already an ID in the spec, return it.
+                // Otherwise, try to lookup the ID from the value.
+                // If not found, error.
+                const choices = fieldSchema.options.choices;
+                let found = choices.find((option) => option.id === idOrValue);
+                if (found) {
+                    return found.id;
+                }
+                found = choices.find((option) => option.name === idOrValue);
+                if (found) {
+                    return found.id;
+                }
+                const availableOptions = choices.map((o) => o.name);
+                availableOptions.push(...choices.map((o) => o.id));
+                throw new Error(
+                    `No option found for value '${idOrValue}' in field '${fieldSchema.name}'. Available options: ${availableOptions.join(", ")
+                    }`,
+                );
+            },
     makeFrom:
         <C extends SelectChoice>(_fieldSchema: SingleSelect<C>) =>
-        (value: unknown): C => value as C,
+            (value: unknown): C => value as C,
 } as const;
 
 const UrlConverters = {
@@ -581,24 +579,27 @@ export type inferWrite<F extends FieldSchema> = F extends FieldOfType<"aiText">
     : F extends FieldOfType<"url"> ? string
     : never;
 
-export type ReadRecord<T extends ReadonlyArray<FieldSchema>> = {
+export type ReadRecordByName<T extends ReadonlyArray<FieldSchema>> = {
     [K in T[number]["name"]]: inferRead<Extract<T[number], { name: K }>>;
+};
+export type ReadRecordById<T extends ReadonlyArray<FieldSchema>> = {
+    [K in T[number]["id"]]: inferRead<Extract<T[number], { id: K }>>;
 };
 
 type FieldValue<F extends FieldSchema> = inferWrite<F>;
 
 export type WriteRecord<T extends ReadonlyArray<FieldSchema>> = {
     [K in T[number]["name"] | T[number]["id"]]?: K extends T[number]["name"]
-        ? Extract<T[number], { name: K }> extends infer F
-            ? F extends FieldSchema ? FieldValue<F>
-            : never
-        : never
-        : K extends T[number]["id"]
-            ? Extract<T[number], { id: K }> extends infer F
-                ? F extends FieldSchema ? FieldValue<F>
-                : never
-            : never
-        : never;
+    ? Extract<T[number], { name: K }> extends infer F
+    ? F extends FieldSchema ? FieldValue<F>
+    : never
+    : never
+    : K extends T[number]["id"]
+    ? Extract<T[number], { id: K }> extends infer F
+    ? F extends FieldSchema ? FieldValue<F>
+    : never
+    : never
+    : never;
 };
 
 function toAirtableValue<F extends FieldSchema>(

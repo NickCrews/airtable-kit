@@ -2,40 +2,59 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { createMockFetcher } from "./fetcher.js";
 import { baseClient } from "./index.js";
 
-import { SAMPLE_SCHEMA } from "../codegen/sample_raw_schema.js";
+import TaskSchema from "../tests/taskBase.js";
 
 describe("BaseClient", () => {
     const mockFetcher = createMockFetcher();
     const client = baseClient({
-        baseId: "app123",
-        tables: SAMPLE_SCHEMA.tables,
+        baseSchema: TaskSchema,
         fetcher: mockFetcher,
     });
     beforeEach(() => {
         mockFetcher.reset();
     });
     it("can insert records", async () => {
-        await client.tables.Events.insert(
+        mockFetcher.setReturnValue({
+            records: [
+                {
+                    id: "rec123",
+                    createdTime: "2024-01-01T00:00:00.000Z",
+                    fields: {
+                        fldName: "do laundry",
+                        fldDueDate: "1990-01-01",
+                        fldTags: ["selUrgent", "selImportant"],
+                    },
+                }
+            ]
+        })
+        const result = await client.tables.tasks.create(
             [{
-                "Event Type": "Fundraiser",
-                "fld0J1Cnyzq0Ky3pL": "123 Main St",
-                "Guest Start Time": "1990-01-01",
+                "Name": "do laundry",
+                "fldDueDate": "1990-01-01",
+                "Tags": ["Urgent", "Important"]
             }],
         );
         expect(mockFetcher.getCallHistory()).toEqual([{
-            path: "/app123/tblXxZtsavNuPBVKl",
+            path: "/appTaskBase/tblTasks",
             method: "POST",
             data: {
                 records: [
                     {
                         fields: {
-                            fldxjj28UXFcfytVZ: "selP5uBC3P2jRAoi3",
-                            fld0J1Cnyzq0Ky3pL: "123 Main St",
-                            fldMB7iO24wqe8cKt: "1990-01-01",
+                            fldName: "do laundry",
+                            fldDueDate: "1990-01-01",
+                            fldTags: ["selUrgent", "selImportant"],
                         },
                     },
                 ],
+                returnFieldsByFieldId: true,
             },
+        }]);
+        expect(result).toEqual([{
+            id: "rec123",
+            Name: "do laundry",
+            "Due Date": "1990-01-01",
+            Tags: ["selUrgent", "selImportant"],
         }]);
     });
 });

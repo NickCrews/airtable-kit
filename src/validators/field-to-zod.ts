@@ -24,6 +24,16 @@ export function fieldSchemaToZod(
   field: FieldSchema,
   customHandlers?: Record<FieldType, FieldToZod>
 ): z.ZodSchema {
+  let validator = _fieldSchemaToZod(field, customHandlers);
+  if (field.description) {
+    validator = validator.describe(field.description);
+  }
+  return validator;
+}
+function _fieldSchemaToZod(
+  field: FieldSchema,
+  customHandlers?: Record<FieldType, FieldToZod>
+): z.ZodSchema {
   // Check for custom handler first
   if (customHandlers?.[field.type]) {
     return customHandlers[field.type](field);

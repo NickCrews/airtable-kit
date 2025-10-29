@@ -9,12 +9,14 @@ export default {
                 {
                     "id": "fldName",
                     "name": "Name",
-                    "type": "singleLineText"
+                    "type": "singleLineText",
+                    "description": "The name of the task",
                 },
                 {
                     "id": "fldStatus",
                     "name": "Status",
                     "type": "singleSelect",
+                    "description": "The current status of the task",
                     "options": {
                         "choices": [
                             { "id": "selTodo", "name": "Todo", "color": "blueLight2" },
@@ -27,27 +29,32 @@ export default {
                     "id": "fldPriority",
                     "name": "Priority",
                     "type": "number",
+                    "description": "The priority level of the task. Lower numbers indicate higher priority.",
                     "options": { "precision": 0 }
                 },
                 {
                     "id": "fldDueDate",
                     "name": "Due Date",
-                    "type": "date"
+                    "type": "date",
+                    "description": "The due date of the task"
                 },
                 {
                     "id": "fldCompleted",
                     "name": "Completed",
-                    "type": "checkbox"
+                    "type": "checkbox",
+                    "description": "Whether the task is completed"
                 },
                 {
                     "id": "fldNotes",
                     "name": "Notes",
-                    "type": "multilineText"
+                    "type": "multilineText",
+                    "description": "Additional notes about the task",
                 },
                 {
                     "id": "fldTags",
                     "name": "Tags",
                     "type": "multipleSelects",
+                    "description": "Tags associated with the task",
                     "options": {
                         "choices": [
                             { "id": "selUrgent", "name": "Urgent", "color": "redLight2" },
@@ -59,21 +66,25 @@ export default {
                     "id": "fldAttachments",
                     "name": "Attachments",
                     "type": "multipleAttachments",
+                    "description": "Files attached to the task"
                 },
                 {
                     "id": "fldCreatedAt",
                     "name": "Created At",
                     "type": "createdTime",
+                    "description": "The time when the task was created",
                 },
                 {
                     "id": "fldUpdatedAt",
                     "name": "Updated At",
                     "type": "lastModifiedTime",
+                    "description": "The time when the task was last updated",
                 },
                 {
                     "id": "fldAssignedTo",
                     "name": "Assigned To",
                     "type": "multipleRecordLinks",
+                    "description": "Users assigned to the task",
                     "options": {
                         "linkedTableId": "tblUsers"
                     },
@@ -92,12 +103,13 @@ export default {
                 {
                     "id": "fldFullName",
                     "name": "Full Name",
-                    "type": "singleLineText"
+                    "type": "singleLineText",
                 },
                 {
                     "id": "fldPhone",
                     "name": "Phone",
-                    "type": "phoneNumber"
+                    "type": "phoneNumber",
+                    "description": "please include area code",
                 }
             ]
         }

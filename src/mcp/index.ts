@@ -4,7 +4,5 @@
 
 export {
   type MCPToolDefinition,
-  type MCPToolExecutor,
-  type TableMCPTools,
-  createMCPTools,
+  makeCreateTool,
 } from './tools.js';

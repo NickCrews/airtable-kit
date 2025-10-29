@@ -1,52 +1,40 @@
-import { BaseId } from "../schema/bases.js";
+import { BaseSchema } from "../schema/bases.js";
 import { TableSchema } from "../schema/tables.js";
 import { IntoFetcher } from "./fetcher.js";
 import { TableClient, tableClient } from "./table-client.js";
 
 type TableClients<T extends ReadonlyArray<TableSchema>> = {
-    [K in T[number] as K["name"]]: TableClient<K["fields"]>;
+    [K in T[number]as K["name"]]: TableClient<K>;
 };
 
-export interface BaseClient<
-    I extends BaseId,
-    T extends ReadonlyArray<TableSchema>,
-> {
-    baseId: I;
-    tables: TableClients<T>;
+export interface BaseClient<T extends BaseSchema> {
+    baseSchema: T;
+    tables: TableClients<T["tables"]>;
 }
 
-export type BaseClientOptions<
-    I extends BaseId,
-    T extends ReadonlyArray<TableSchema>,
-> = {
-    baseId: I;
-    tables: T;
+export type BaseClientOptions<T extends BaseSchema> = {
+    baseSchema: T;
     fetcher?: IntoFetcher;
 };
 
-export function baseClient<
-    I extends BaseId,
-    T extends ReadonlyArray<TableSchema>,
->(
+export function baseClient<T extends BaseSchema>(
     {
-        baseId,
-        tables: tableSchemas,
+        baseSchema,
         fetcher,
-    }: BaseClientOptions<I, T>,
-): BaseClient<I, T> {
+    }: BaseClientOptions<T>,
+): BaseClient<T> {
     const tables = Object.fromEntries(
-        tableSchemas.map((tableSchema) => {
+        baseSchema.tables.map((tableSchema) => {
             const client = tableClient({
-                baseId,
-                tableId: tableSchema.id,
-                fieldSpecs: tableSchema.fields,
+                baseId: baseSchema.id,
+                tableSchema,
                 fetcher,
             });
             return [tableSchema.name, client];
         }),
-    ) as TableClients<T>;
+    ) as TableClients<T["tables"]>;
     return {
-        baseId,
+        baseSchema,
         tables,
     };
 }

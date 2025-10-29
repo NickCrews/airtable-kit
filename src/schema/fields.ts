@@ -7,7 +7,9 @@ import { type BrightColor, type SelectColor } from "./colors.js";
 export type FieldId = `fld${string}`;
 interface FieldBase {
   id: FieldId;
-  name: string;
+  /** Any name you want to refer to the field in your code. The name "id" is not allowed, as that is reserved for the record's record ID */
+  name: Exclude<string, "id">;
+  description?: string;
 }
 
 export type SelectChoice<

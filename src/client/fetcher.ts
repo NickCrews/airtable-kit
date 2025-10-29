@@ -1,11 +1,14 @@
 import console from "node:console";
 import process from "node:process";
+
+type FetchArgs = {
+    path: string;
+    method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+    data?: unknown;
+}
+
 export type Fetcher = {
-    fetch: (args: {
-        path: string;
-        method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
-        data?: unknown;
-    }) => Promise<unknown>;
+    fetch: <T = unknown>(args: FetchArgs) => Promise<T>;
 };
 
 export type FetcherArgs = {
@@ -34,7 +37,7 @@ export function createFetcher(args?: IntoFetcher): Fetcher {
         apiKey = process.env.AIRTABLE_API_KEY;
     }
     return {
-        fetch: async ({ path, method = "GET", data }) => {
+        fetch: async <T = unknown>({ path, method = "GET", data }: FetchArgs) => {
             path = path.startsWith("/") ? path.slice(1) : path;
             const response = await fetch(`${baseUrl}/${path}`, {
                 method,
@@ -44,7 +47,7 @@ export function createFetcher(args?: IntoFetcher): Fetcher {
                 },
                 body: JSON.stringify(data),
             });
-            return response.json();
+            return response.json() as Promise<T>;
         },
     };
 }
@@ -56,15 +59,9 @@ export function createMockFetcher(): Fetcher & {
 } {
     let returnValue: unknown = undefined;
     let callHistory: unknown[] = [];
-    function mockFetch(
-        args: { path: string; method?: string; data?: unknown },
-    ): Promise<unknown> {
-        console.log(
-            "Mock fetch called with args:",
-            args,
-        );
+    function mockFetch<T = unknown>(args: FetchArgs) {
         callHistory.push(args);
-        return Promise.resolve(returnValue);
+        return Promise.resolve(returnValue as T);
     }
     return {
         fetch: mockFetch,

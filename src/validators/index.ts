@@ -8,6 +8,6 @@ export {
 } from './field-to-zod.js';
 
 export {
-  createRecordSchemaFromFields,
-  updateRecordSchemaFromFields,
+  makeZodForCreate as createRecordSchemaFromFields,
+  makeZodForUpdate as updateRecordSchemaFromFields,
 } from './schema-to-zod.js';

@@ -2,72 +2,71 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { createMockFetcher } from "./fetcher.js";
 import { tableClient } from "./table-client.js";
 
-const myFields = [
-    { name: "age", type: "number", id: "fldAge" },
-    { name: "fullName", type: "singleLineText", id: "fldFullName" },
-    { name: "dob", type: "date", id: "fldDob" },
-    {
-        name: "status",
-        type: "singleSelect",
-        id: "fldStatus",
-        options: {
-            choices: [
-                { id: "sel1", name: "New" },
-                { id: "sel2", name: "In Progress" },
-                { id: "sel3", name: "Done" },
-            ],
-        },
-    },
-] as const;
+import TaskBaseSchema from "../tests/taskBase.js";
+
+const TASK_TABLE_SCHEMA = TaskBaseSchema.tables.find((t) => t.name === "tasks")!;
 
 describe("TableClient", () => {
     const mockFetcher = createMockFetcher();
     const client = tableClient({
         baseId: "app123",
-        tableId: "tbl123",
+        tableSchema: TASK_TABLE_SCHEMA,
         fetcher: mockFetcher,
-        fieldSpecs: myFields,
     });
     beforeEach(() => {
         mockFetcher.reset();
     });
     it("can insert records", async () => {
-        await client.insert(
+        mockFetcher.setReturnValue({
+            records: [
+                {
+                    id: "rec123",
+                    createdTime: "2024-01-01T00:00:00.000Z",
+                    fields: {
+                        fldName: "Fold Laundry",
+                        fldAssignedTo: ["usrMe"],
+                        fldCompleted: false,
+                    },
+                }
+            ]
+        })
+        await client.create(
             [{
-                age: 30,
-                fldFullName: "John Doe",
-                dob: new Date("1990-01-01"),
+                Name: "Fold Laundry",
+                "Assigned To": ["usrMe"],
+                fldCompleted: false,
             }],
         );
         expect(mockFetcher.getCallHistory()).toEqual([{
-            path: "/app123/tbl123",
+            path: "/app123/tblTasks",
             method: "POST",
             data: {
                 records: [
                     {
                         fields: {
-                            fldAge: 30,
-                            fldFullName: "John Doe",
-                            fldDob: "1990-01-01",
+                            fldName: "Fold Laundry",
+                            fldAssignedTo: ["usrMe"],
+                            fldCompleted: false,
                         },
                     },
                 ],
+                returnFieldsByFieldId: true,
             },
         }]);
     });
     it("has typesafety on selects and multiselects", async () => {
         const f = async () =>
-            await client.insert(
+            await client.create(
                 [
                     {
-                        status: "In Progress",
+                        Status: "In Progress",
                     },
                     {
-                        status: "sel3",
+                        Status: "selDone",
                     },
                     {
                         // @ts-expect-error invalid select option
-                        status: "bogus",
+                        Status: "bogus",
                     },
                 ],
             );

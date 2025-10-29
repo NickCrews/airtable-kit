@@ -1,17 +1,15 @@
 import { BaseId } from "../schema/bases.js";
 import { FieldSchema } from "../schema/fields.js";
-import { TableId } from "../schema/tables.js";
+import { TableId, type TableSchema } from "../schema/tables.js";
 import { Fetcher, IntoFetcher } from "./fetcher.js";
 import {
-    type ReadRecord,
+    inferRead,
+    type ReadRecordByName,
+    type ReadRecordById,
     recordToAirtableRecord,
     type WriteRecord,
 } from "./converters.js";
 import { createFetcher } from "./fetcher.js";
-
-type InsertRecords<T extends ReadonlyArray<FieldSchema>> = Partial<
-    WriteRecord<T>
->[];
 
 /**
  * Options for listing records
@@ -122,31 +120,63 @@ export interface UploadAttachmentOptions {
     filename: string;
 }
 
+export type CreateArgs<T extends ReadonlyArray<FieldSchema>> = Partial<
+    WriteRecord<T>
+>[];
+
+type WithRecordId<T extends Record<string, any> = Record<string, any>> = T & { "id": `rec${string}` };
+// We could also consider using Symbols,
+// similar to how Drizzle-ORM uses a symbol to store metadata on their API objects,
+// such as the table name on a Table object:
+// https://github.com/drizzle-team/drizzle-orm/blob/ad4ddd444d066b339ffd5765cb6ec3bf49380189/drizzle-orm/src/table.ts#L20
+// const RecordId: unique symbol = Symbol.for("airtable-kit:RecordId");
+// But since we have control and can ensure no field is named "id",
+// we can use a simple string property for now.
+export type CreateResult<T extends ReadonlyArray<FieldSchema>> = Array<WithRecordId<ReadRecordByName<T>>>;
+
+// type WithRecordId<T extends BaseRecord = BaseRecord> = T & {
+//     [K in typeof RecordIdSymbol]: string;
+// };
+
+// const myRecord = {
+//     a: 123,
+//     b: "hello",
+//     recordId: "not actually the id",
+//     // [Symbol.for("airtable-kit:RecordId")]: "rec123",
+//     [RecordId]: "rec123",
+//     // [RECORD_ID]: "rec456",
+//     // } as const;
+// } as const satisfies WithRecordId;
+
+// const id1 = myRecord[Symbol.for("recordId")];
+// const id2 = myRecord[Symbol.for("wrong")];
+// const id3 = myRecord[RecordId];
+
 /**
  * A client to interact with a specific table within an Airtable base.
  */
-export interface TableClient<T extends ReadonlyArray<FieldSchema>> {
+export interface TableClient<T extends TableSchema> {
     baseId: BaseId;
-    tableId: TableId;
+    tableSchema: T;
 
     /** Insert records into the table */
-    insert(values: InsertRecords<T>): Promise<ReadRecord<T>>;
+    create(values: CreateArgs<T["fields"]>): Promise<CreateResult<T["fields"]>>;
 
     /** List records from the table with optional filtering and pagination */
-    list(options?: ListRecordsOptions): Promise<ListRecordsResponse<ReadRecord<T>>>;
+    list(options?: ListRecordsOptions): Promise<ListRecordsResponse<ReadRecordByName<T["fields"]>>>;
 
     /** Get a single record by ID */
     get(recordId: string, options?: GetRecordOptions): Promise<{
         id: string;
         createdTime: string;
-        fields: ReadRecord<T>;
+        fields: ReadRecordByName<T["fields"]>;
     }>;
 
     /** Update records (PATCH by default, PUT if destructive=true) */
     update(
-        records: Array<{ id?: string; fields: Partial<WriteRecord<T>> }>,
+        records: Array<{ id?: string; fields: Partial<WriteRecord<T["fields"]>> }>,
         options?: UpdateRecordsOptions
-    ): Promise<UpdateRecordsResponse<ReadRecord<T>>>;
+    ): Promise<UpdateRecordsResponse<ReadRecordByName<T["fields"]>>>;
 
     /** Delete records by IDs */
     delete(recordIds: string[]): Promise<DeleteRecordsResponse>;
@@ -166,30 +196,30 @@ export interface TableClient<T extends ReadonlyArray<FieldSchema>> {
 /**
  * Options for creating a {@link TableClient}.
  */
-export type TableClientOptions<T extends ReadonlyArray<FieldSchema>> = {
+export type TableClientOptions<T extends TableSchema> = {
     baseId: BaseId;
-    tableId: TableId;
-    fieldSpecs: T;
+    tableSchema: T;
     fetcher?: IntoFetcher;
 };
 
 /**
  * Create a {@link TableClient} for a specific table within an Airtable base.
  */
-export function tableClient<T extends ReadonlyArray<FieldSchema>>(
+export function tableClient<T extends TableSchema>(
     {
         baseId,
-        tableId,
-        fieldSpecs,
+        tableSchema,
         fetcher: intoFetcher,
     }: TableClientOptions<T>,
 ): TableClient<T> {
     const fetcher = createFetcher(intoFetcher);
+    const tableId = tableSchema.id;
+    const fieldSpecs = tableSchema.fields;
     return {
         baseId,
-        tableId,
-        insert(records: InsertRecords<T>) {
-            return insert<T>({
+        tableSchema,
+        create(records: CreateArgs<T["fields"]>) {
+            return create<T["fields"]>({
                 records,
                 fieldSpecs,
                 baseId,
@@ -198,7 +228,7 @@ export function tableClient<T extends ReadonlyArray<FieldSchema>>(
             });
         },
         list(options?: ListRecordsOptions) {
-            return list<T>({
+            return list<T["fields"]>({
                 options,
                 fieldSpecs,
                 baseId,
@@ -207,7 +237,7 @@ export function tableClient<T extends ReadonlyArray<FieldSchema>>(
             });
         },
         get(recordId: string, options?: GetRecordOptions) {
-            return getRecord<T>({
+            return getRecord<T["fields"]>({
                 recordId,
                 options,
                 baseId,
@@ -216,10 +246,10 @@ export function tableClient<T extends ReadonlyArray<FieldSchema>>(
             });
         },
         update(
-            records: Array<{ id?: string; fields: Partial<WriteRecord<T>> }>,
+            records: Array<{ id?: string; fields: Partial<WriteRecord<T["fields"]>> }>,
             options?: UpdateRecordsOptions
         ) {
-            return update<T>({
+            return update<T["fields"]>({
                 records,
                 options,
                 fieldSpecs,
@@ -253,7 +283,19 @@ export function tableClient<T extends ReadonlyArray<FieldSchema>>(
     };
 }
 
-export async function insert<T extends ReadonlyArray<FieldSchema>>(
+// https://airtable.com/developers/web/api/create-records
+type RawReadRecord<T extends ReadonlyArray<FieldSchema>> = {
+    [K in T[number]["id"]]: inferRead<Extract<T[number], { id: K }>>;
+}
+type CreateRawResponse<T extends ReadonlyArray<FieldSchema>> = {
+    records: Array<{
+        id: `rec${string}`;
+        createdTime: string;
+        fields: RawReadRecord<T>;
+    }>;
+};
+
+export async function create<T extends ReadonlyArray<FieldSchema>>(
     {
         records,
         fieldSpecs,
@@ -267,7 +309,7 @@ export async function insert<T extends ReadonlyArray<FieldSchema>>(
         tableId: TableId;
         fetcher: Fetcher;
     },
-): Promise<ReadRecord<T>> {
+): Promise<CreateResult<T>> {
     const convertedToAirtable = records.map((record) => {
         return {
             fields: recordToAirtableRecord(
@@ -276,15 +318,36 @@ export async function insert<T extends ReadonlyArray<FieldSchema>>(
             ),
         };
     });
-    const result = await fetcher.fetch({
+    const raw = await fetcher.fetch<CreateRawResponse<T>>({
         path: `/${baseId}/${tableId}`,
         method: "POST",
         data: {
             records: convertedToAirtable,
+            returnFieldsByFieldId: true,
         },
     });
-    return result as T extends ReadonlyArray<FieldSchema> ? ReadRecord<T>
-        : Record<string, unknown>;
+    const result = raw.records.map((record) => ({
+        id: record.id,
+        ...convertFieldIdKeysToNames(record.fields, fieldSpecs),
+    }));
+    return result;
+}
+
+function convertFieldIdKeysToNames<T extends ReadonlyArray<FieldSchema>>(
+    record: ReadRecordById<T>,
+    fieldSpecs: T,
+): ReadRecordByName<T> {
+    return Object.fromEntries(Object.entries(record).map(([fieldId, value]) => {
+        const fieldSchema = fieldSpecs.find((f) => f.id === fieldId);
+        if (!fieldSchema) {
+            throw new Error(`Unknown field ID in response: ${fieldId}`);
+        }
+        const fieldName = fieldSchema.name;
+        if (fieldName === 'id') {
+            throw new Error(`Field name "id" is not allowed`);
+        }
+        return [fieldName, value];
+    })) as ReadRecordByName<T>;
 }
 
 export async function list<T extends ReadonlyArray<FieldSchema>>(
@@ -301,7 +364,7 @@ export async function list<T extends ReadonlyArray<FieldSchema>>(
         tableId: TableId;
         fetcher: Fetcher;
     },
-): Promise<ListRecordsResponse<ReadRecord<T>>> {
+): Promise<ListRecordsResponse<ReadRecordByName<T>>> {
     const queryParams = new URLSearchParams();
 
     if (options?.timeZone) queryParams.append('timeZone', options.timeZone);
@@ -341,7 +404,7 @@ export async function list<T extends ReadonlyArray<FieldSchema>>(
         method: "GET",
     });
 
-    return result as ListRecordsResponse<ReadRecord<T>>;
+    return result as ListRecordsResponse<ReadRecordByName<T>>;
 }
 
 export async function getRecord<T extends ReadonlyArray<FieldSchema>>(
@@ -361,7 +424,7 @@ export async function getRecord<T extends ReadonlyArray<FieldSchema>>(
 ): Promise<{
     id: string;
     createdTime: string;
-    fields: ReadRecord<T>;
+    fields: ReadRecordByName<T>;
 }> {
     const queryParams = new URLSearchParams();
 
@@ -379,7 +442,7 @@ export async function getRecord<T extends ReadonlyArray<FieldSchema>>(
     return result as {
         id: string;
         createdTime: string;
-        fields: ReadRecord<T>;
+        fields: ReadRecordByName<T>;
     };
 }
 
@@ -399,7 +462,7 @@ export async function update<T extends ReadonlyArray<FieldSchema>>(
         tableId: TableId;
         fetcher: Fetcher;
     },
-): Promise<UpdateRecordsResponse<ReadRecord<T>>> {
+): Promise<UpdateRecordsResponse<ReadRecordByName<T>>> {
     const convertedToAirtable = records.map((record) => {
         const converted: any = {
             fields: recordToAirtableRecord(
@@ -436,7 +499,7 @@ export async function update<T extends ReadonlyArray<FieldSchema>>(
         data,
     });
 
-    return result as UpdateRecordsResponse<ReadRecord<T>>;
+    return result as UpdateRecordsResponse<ReadRecordByName<T>>;
 }
 
 export async function deleteRecords(
