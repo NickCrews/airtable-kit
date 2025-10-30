@@ -4,7 +4,6 @@
  * https://github.com/NickCrews/airtable-kit
  */
 
-export { fetchBaseSchema } from "./client/schema-fetcher.ts";
 export {
     type FieldId,
     type TableId,
@@ -18,14 +17,29 @@ export {
     type ViewType,
 } from "./types.ts";
 
+export {
+    makeTableClient,
+    makeBaseClient,
+    makeOrgClient,
+    type TableClient,
+    type TableClientOptions,
+    type BaseClient,
+    type BaseClientOptions,
+    type OrgClient,
+    type OrgClientOptions,
+    type Fetcher,
+    type IntoFetcher,
+    makeFetcher,
+    fetchBaseSchema,
+} from "./client/index.ts";
+
+export {
+    generateCode,
+    type CodegenOptions,
+} from "./codegen/index.ts";
+
 import * as validators from "./validators/index.ts";
 export { validators };
 
-import * as client from "./client/index.ts";
-export { client };
-
 import * as mcp from "./mcp/index.ts";
 export { mcp };
-
-import * as codegen from "./codegen/index.ts";
-export { codegen };

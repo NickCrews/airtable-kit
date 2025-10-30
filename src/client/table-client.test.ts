@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createMockFetcher } from "./fetcher.ts";
-import { tableClient } from "./table-client.ts";
+import { makeTableClient } from "./table-client.ts";
 
 import TaskBaseSchema from "../tests/taskBase.ts";
 
@@ -8,7 +8,7 @@ const TASK_TABLE_SCHEMA = TaskBaseSchema.tables.find((t) => t.name === "tasks")!
 
 describe("TableClient", () => {
     const mockFetcher = createMockFetcher();
-    const client = tableClient({
+    const client = makeTableClient({
         baseId: "app123",
         tableSchema: TASK_TABLE_SCHEMA,
         fetcher: mockFetcher,

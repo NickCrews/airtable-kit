@@ -6,8 +6,7 @@
 import { parseArgs } from 'node:util';
 import { BaseId, fetchBaseSchema } from "./index.ts";
 import { generateCode } from "./codegen/index.ts";
-import { promises as fs } from "node:fs";
-import * as path from "node:path";
+import path from "node:path";
 import { IntoFetcher } from './client/fetcher.ts';
 
 import * as packageJson from '../package.json';
@@ -33,20 +32,16 @@ async function doCodegen({
   console.log(`  Tables:\n${baseSchema.tables.map((t) => t.name).join("\n    - ")}`);
 
   const filetype = outPath.endsWith(".ts") ? "ts" : "js";
-  const code = generateCode(baseSchema, { filetype });
-
-  const outputDir = path.dirname(outPath);
-  await fs.mkdir(outputDir, { recursive: true });
-  await fs.writeFile(outPath, code, "utf-8");
+  await generateCode(baseSchema, { filetype, outPath });
 
   console.log(`\n✅ Generated schema at ${outPath}`);
   console.log("\n📚 Example usage:");
   const importPath = outPath.startsWith("/") ? outPath : outPath.startsWith(".") ? outPath : `./${outPath}`;
   console.log(
     `import myBaseSchema from '${importPath}';
-import { baseClient } from 'airtable-kit/client';
+import { makeBaseClient } from 'airtable-kit';
 
-const client = baseClient({
+const client = makeBaseClient({
   baseSchema: myBaseSchema,
   fetcher: 'YOUR_API_KEY',
 });

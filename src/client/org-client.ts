@@ -1,13 +1,15 @@
 import { type BaseSchema } from "../types.ts";
 import { IntoFetcher } from "./fetcher.ts";
-import { BaseClient, baseClient } from "./base-client.ts";
+import { BaseClient, makeBaseClient } from "./base-client.ts";
 
 type BaseClients<T extends ReadonlyArray<BaseSchema>> = {
     [K in T[number]as K["name"]]: BaseClient<K>;
 };
 
 /**
- * A client to interact with all the bases within an Airtable organization.
+ * A client to interact with multiple Airtable bases.
+ *
+ * This is usually created by passing {@link OrgClientOptions} to {@link makeOrgClient}.
  *
  * This contains a value, `bases`, which is an object
  * mapping base names to their respective {@link BaseClient}.
@@ -17,7 +19,7 @@ export interface OrgClient<T extends ReadonlyArray<BaseSchema>> {
 }
 
 /**
- * Options for creating an {@link OrgClient}.
+ * Options for creating an {@link OrgClient} using {@link makeOrgClient}.
  */
 export type OrgClientOptions<T extends ReadonlyArray<BaseSchema>> = {
     bases: T;
@@ -27,7 +29,7 @@ export type OrgClientOptions<T extends ReadonlyArray<BaseSchema>> = {
 /**
  * Create an {@link OrgClient} for an Airtable organization.
  */
-export function orgClient<T extends ReadonlyArray<BaseSchema>>(
+export function makeOrgClient<T extends ReadonlyArray<BaseSchema>>(
     {
         bases: baseSchemas,
         fetcher,
@@ -35,7 +37,7 @@ export function orgClient<T extends ReadonlyArray<BaseSchema>>(
 ): OrgClient<T> {
     const bases = Object.fromEntries(
         baseSchemas.map((baseSchema) => {
-            const client = baseClient({ baseSchema, fetcher });
+            const client = makeBaseClient({ baseSchema, fetcher });
             return [baseSchema.name, client];
         }),
     ) as BaseClients<T>;

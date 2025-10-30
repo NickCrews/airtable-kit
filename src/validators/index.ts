@@ -3,11 +3,11 @@
  */
 
 export {
-  type FieldToZod as FieldTypeHandler,
+  type FieldToZod,
   fieldSchemaToZod,
 } from './field-to-zod.ts';
 
 export {
-  makeZodForCreate as createRecordSchemaFromFields,
-  makeZodForUpdate as updateRecordSchemaFromFields,
+  makeZodForCreate,
+  makeZodForUpdate,
 } from './schema-to-zod.ts';

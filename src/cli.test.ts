@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import tasksSchema from './tests/taskBase.ts';
-import { Fetcher } from './client/fetcher.ts';
+import { type Fetcher } from './client/fetcher.ts';
 import { cli } from './cli.ts';
 import { makeInTmpDir } from './tests/inTmpDir.ts';
 

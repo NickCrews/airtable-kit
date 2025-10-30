@@ -4,11 +4,8 @@
 
 import { describe, expect, it } from "vitest";
 import { BarcodeValue, CONVERTERS, MultipleAttachment } from "./converters.ts";
-import type {
-  FieldSchema,
-  MultipleSelects,
-  SingleSelect,
-} from "../fields/index.ts";
+import type { FieldSchema } from "../types.ts";
+import { MultipleSelects, SingleSelect } from "../fields/index.ts";
 
 describe("Converters", () => {
   describe("Read-only fields (makeTo returns null)", () => {

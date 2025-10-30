@@ -1,15 +1,23 @@
 export {
     type OrgClient,
-    orgClient,
+    makeOrgClient,
     type OrgClientOptions,
 } from "./org-client.ts";
 export {
     type BaseClient,
-    baseClient,
+    makeBaseClient,
     type BaseClientOptions,
 } from "./base-client.ts";
 export {
     type TableClient,
-    tableClient,
+    makeTableClient,
     type TableClientOptions,
 } from "./table-client.ts";
+export {
+    type Fetcher,
+    type IntoFetcher,
+    makeFetcher,
+    type FetchArgs,
+    type FetchFunction,
+} from "./fetcher.ts";
+export { fetchBaseSchema } from "./schema-fetcher.ts";

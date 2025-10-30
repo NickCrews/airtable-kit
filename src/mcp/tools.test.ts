@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { makeCreateTool } from './index.ts';
 import taskBaseSchema from '../tests/taskBase.ts';
-import { baseClient } from '../client/base-client.ts';
+import { makeBaseClient } from '../client/base-client.ts';
 import { createMockFetcher } from "../client/fetcher.ts";
 
 describe('MCP Tool - Create Tool', () => {
   const mockFetcher = createMockFetcher();
-  const client = baseClient({ baseSchema: taskBaseSchema, fetcher: mockFetcher });
+  const client = makeBaseClient({ baseSchema: taskBaseSchema, fetcher: mockFetcher });
   const usersTableClient = client.tables.users;
   const createTool = makeCreateTool(usersTableClient);
   beforeEach(() => {

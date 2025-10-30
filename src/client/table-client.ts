@@ -7,7 +7,7 @@ import {
     recordToAirtableRecord,
     type WriteRecord,
 } from "./converters.ts";
-import { createFetcher } from "./fetcher.ts";
+import { makeFetcher } from "./fetcher.ts";
 
 /**
  * Options for listing records
@@ -152,6 +152,8 @@ export type CreateResult<T extends ReadonlyArray<FieldSchema>> = Array<WithRecor
 
 /**
  * A client to interact with a specific table within an Airtable base.
+ * 
+ * Usually created via {@link makeTableClient}.
  */
 export interface TableClient<T extends TableSchema> {
     baseId: BaseId;
@@ -192,7 +194,7 @@ export interface TableClient<T extends TableSchema> {
 }
 
 /**
- * Options for creating a {@link TableClient}.
+ * Options for creating a {@link TableClient} using {@link makeTableClient}.
  */
 export type TableClientOptions<T extends TableSchema> = {
     baseId: BaseId;
@@ -202,15 +204,32 @@ export type TableClientOptions<T extends TableSchema> = {
 
 /**
  * Create a {@link TableClient} for a specific table within an Airtable base.
+ * 
+ * Example usage:
+ * ```typescript
+ * import { makeTableClient } from 'airtable-kit';
+ * import myBaseSchema from './schemas/myBase';
+ * 
+ * const tableSchema = myBaseSchema.tables.find(t => t.name === 'tasks');
+ * if (!tableSchema) throw new Error('Table not found');
+ * 
+ * const tasksClient = makeTableClient({
+ *   baseId: myBaseSchema.id,
+ *   tableSchema,
+ *   fetcher: YOUR_API_KEY,
+ * });
+ * const tasks = await tasksClient.list();
+ * console.log(tasks);
+ * ```
  */
-export function tableClient<T extends TableSchema>(
+export function makeTableClient<T extends TableSchema>(
     {
         baseId,
         tableSchema,
         fetcher: intoFetcher,
     }: TableClientOptions<T>,
 ): TableClient<T> {
-    const fetcher = createFetcher(intoFetcher);
+    const fetcher = makeFetcher(intoFetcher);
     const tableId = tableSchema.id;
     const fieldSpecs = tableSchema.fields;
     return {

@@ -21,20 +21,10 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
-    "./client": {
-      "types": "./dist/client/index.d.cts",
-      "import": "./dist/client/index.js",
-      "require": "./dist/client/index.cjs"
-    },
     "./fields": {
       "types": "./dist/fields/index.d.cts",
       "import": "./dist/fields/index.js",
       "require": "./dist/fields/index.cjs"
-    },
-    "./codegen": {
-      "types": "./dist/codegen/index.d.cts",
-      "import": "./dist/codegen/index.js",
-      "require": "./dist/codegen/index.cjs"
     },
     "./mcp": {
       "types": "./dist/mcp/index.d.cts",
@@ -68,9 +58,7 @@
     "bin": "./src/cli.ts",
     "exports": {
       ".": "./src/index.ts",
-      "./client": "./src/client/index.ts",
       "./fields": "./src/fields/index.ts",
-      "./codegen": "./src/codegen/index.ts",
       "./mcp": "./src/mcp/index.ts"
     }
   },

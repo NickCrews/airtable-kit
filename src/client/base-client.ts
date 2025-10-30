@@ -1,22 +1,45 @@
 import { type BaseSchema, type TableSchema } from "../types.ts";
 import { IntoFetcher } from "./fetcher.ts";
-import { TableClient, tableClient } from "./table-client.ts";
+import { TableClient, makeTableClient } from "./table-client.ts";
 
 type TableClients<T extends ReadonlyArray<TableSchema>> = {
     [K in T[number]as K["name"]]: TableClient<K>;
 };
 
+/**
+ * A client to interact with an Airtable base.
+ *
+ * This contains a value, `tables`, which is an object
+ * mapping table names to their respective {@link TableClient}.
+ */
 export interface BaseClient<T extends BaseSchema> {
     baseSchema: T;
     tables: TableClients<T["tables"]>;
 }
 
+/**
+ * Options for creating a {@link BaseClient} using {@link makeBaseClient}.
+ */
 export type BaseClientOptions<T extends BaseSchema> = {
     baseSchema: T;
     fetcher?: IntoFetcher;
 };
 
-export function baseClient<T extends BaseSchema>(
+/**
+ * Create a {@link BaseClient} for an Airtable base.
+ *
+ * Example usage:
+ * ```typescript
+ * import { makeBaseClient } from 'airtable-kit';
+ * import myBaseSchema from './schemas/myBase';
+ * 
+ * const client = makeBaseClient({
+ *   baseSchema: myBaseSchema,
+ *   fetcher: YOUR_API_KEY,
+ * });
+ * ```
+ */
+export function makeBaseClient<T extends BaseSchema>(
     {
         baseSchema,
         fetcher,
@@ -24,7 +47,7 @@ export function baseClient<T extends BaseSchema>(
 ): BaseClient<T> {
     const tables = Object.fromEntries(
         baseSchema.tables.map((tableSchema) => {
-            const client = tableClient({
+            const client = makeTableClient({
                 baseId: baseSchema.id,
                 tableSchema,
                 fetcher,

@@ -102,10 +102,10 @@ Read the code to see how.
 Now, use the generated schema to create a type-safe Airtable client:
 
 ```typescript
-import { baseClient } from 'airtable-kit/client';
+import { makeBaseClient } from 'airtable-kit';
 import myBaseSchema from './schemas/myBase';
 
-const client = baseClient({
+const client = makeBaseClient({
   baseSchema: myBaseSchema,
   fetcher: YOUR_API_KEY,
 });
@@ -130,11 +130,11 @@ client.tables.tasks.insert([
 This also supports multi-base clients!
 
 ```typescript
-import { orgClient } from 'airtable-kit/client';
+import { makeOrgClient } from 'airtable-kit';
 import myBase from './schemas/myBase';
 import otherBase from './schemas/otherBase';
 
-const client = orgClient({
+const client = makeOrgClient({
   bases: [myBase, otherBase],
   fetcher: YOUR_API_KEY,
 });
@@ -146,8 +146,7 @@ client.bases.otherBase.tables.someTable.insert([ ... ]);
 ### Use Case 2: Dynamic Client for Unknown Bases, eg an MCP Tool
 
 ```typescript
-import { fetchBaseSchema } from 'airtable-kit';
-import { baseClient } from 'airtable-kit/client';
+import { fetchBaseSchema, makeBaseClient } from 'airtable-kit';
 
 const baseSchema = await fetchBaseSchema({
   baseId: 'appXXXXXXXXXXXXXX',
@@ -162,8 +161,6 @@ The package is organized into focused modules:
 
 - **Core** (`airtable-kit`): Basic types and utilities
 - **Fields Module** (`airtable-kit/fields`): Type definitions for all Airtable field schemas, eg 'singleSelect'
-- **Client Module** (`airtable-kit/client`): Unified HTTP client with optional validation
-- **Codegen Module** (`airtable-kit/codegen`): Generate schema files from Airtable bases
 - **Validators Module** (`airtable-kit/validators`): Generate Zod schemas for runtime validation
 - **MCP Module** (`airtable-kit/mcp`): MCP tools for LLM integration
 

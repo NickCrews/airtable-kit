@@ -1,5 +1,5 @@
 import { type TableSchema, type BaseSchema, type BaseId } from "../types.ts";
-import { type IntoFetcher, createFetcher } from "./fetcher.ts";
+import { type IntoFetcher, makeFetcher } from "./fetcher.ts";
 
 /**
  * Fetch the schema of a base by its ID.
@@ -16,7 +16,7 @@ export async function fetchBaseSchema({
 }
 ): Promise<BaseSchema> {
   const path = `/meta/bases/${baseId}/tables`;
-  const realFetcher = createFetcher(fetcher);
+  const realFetcher = makeFetcher(fetcher);
   const response = await realFetcher.fetch({ path });
 
   return {

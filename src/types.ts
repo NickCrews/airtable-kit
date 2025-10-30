@@ -8,13 +8,23 @@ export type TableId = `tbl${string}`;
 export type ViewId = `viw${string}`;
 export type BaseId = `app${string}`;
 
+/**
+ * Schema for an Airtable table.
+ * 
+ * @typeParam I - Table ID type
+ * @typeParam N - Table name type
+ * @typeParam F - Array of field schemas in the table
+ */
 export interface TableSchema<
     I extends TableId = TableId,
     N extends string = string,
     F extends ReadonlyArray<FieldSchema> = ReadonlyArray<FieldSchema>,
 > {
+    /** Table ID, eg 'tblXXXXXXXXXXXXXX' */
     id: I;
+    /** Friendly name to work with the table in your code */
     name: N;
+    /** Array of {@link FieldSchema} in the table */
     fields: F;
     primaryFieldId?: FieldId;
     description?: string;
