@@ -48,13 +48,28 @@ describe('CLI', () => {
     });
   });
 
-  describe('CLI integration', () => {
-    it('should display help text with --help', () => {
-      expect(true).toBe(true);
+  describe('version and help', () => {
+    it('should display help text with "codegen --help"', async () => {
+      await mockedCli(["codegen", "--help"]);
+      expect(mockConsole.log).toHaveBeenCalledWith(expect.stringContaining('Airtable Kit CLI'));
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it('should display version with --version', () => {
-      expect(true).toBe(true);
+    it('should display help text with "help"', async () => {
+      await mockedCli(["help"]);
+      expect(mockConsole.log).toHaveBeenCalledWith(expect.stringContaining('Airtable Kit CLI'));
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should display version with "codegen --version"', async () => {
+      await mockedCli(["codegen", "--version"]);
+      expect(mockConsole.log).toHaveBeenCalledWith(expect.stringMatching(/^\d+\.\d+\.\d+$/));
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+    it('should display version with "version"', async () => {
+      await mockedCli(["version"]);
+      expect(mockConsole.log).toHaveBeenCalledWith(expect.stringMatching(/^\d+\.\d+\.\d+$/));
+      expect(mockFetch).not.toHaveBeenCalled();
     });
   });
 

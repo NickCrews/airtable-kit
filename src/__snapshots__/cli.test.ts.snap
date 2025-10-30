@@ -8,7 +8,7 @@ exports[`CLI > codegen command > should create output directory 1`] = `
 
 export default {
   "id": "appTestBase",
-  "name": "appTestBase",
+  "name": "frEvents",
   "tables": [
     {
       "id": "tblTasks",
@@ -156,7 +156,7 @@ exports[`CLI > codegen command > should generate  js 1`] = `
 
 export default {
   "id": "appTestBase",
-  "name": "appTestBase",
+  "name": "frEvents",
   "tables": [
     {
       "id": "tblTasks",
