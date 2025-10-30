@@ -4,35 +4,25 @@ import { type IntoFetcher, createFetcher } from "../client/fetcher.js";
 
 /**
  * Fetch the schema of a base by its ID.
+ * 
+ * @param params.baseId The ID of the base to fetch the schema for.
+ * @param params.fetcher The fetcher to use for making API requests.
+ * @param params.baseName Optional name of the base; if not provided, the base ID will be used as the name.
+ * @returns A promise that resolves to the {@link BaseSchema} of the specified base.
  */
-export async function fetchBaseSchema(args: {
-  baseId: BaseId;
-  fetcher: IntoFetcher;
-  baseName: string;
-}): Promise<BaseSchema>;
-
-export async function fetchBaseSchema(args: {
-  baseId: BaseId;
-  fetcher: IntoFetcher;
-  baseName?: undefined;
-}): Promise<Omit<BaseSchema, "name">>;
-
 export async function fetchBaseSchema({
   baseId, fetcher, baseName,
 }: {
   baseId: BaseId, fetcher: IntoFetcher, baseName?: string | undefined,
 }
-): Promise<BaseSchema | Omit<BaseSchema, "name">> {
+): Promise<BaseSchema> {
   const path = `/meta/bases/${baseId}/tables`;
   const realFetcher = createFetcher(fetcher);
   const response = await realFetcher.fetch({ path });
 
-  const raw = {
+  return {
     id: baseId,
+    name: baseName ?? baseId,
     tables: (response as { tables: unknown[] }).tables as TableSchema[],
   };
-  if (baseName !== undefined) {
-    return { ...raw, name: baseName };
-  }
-  return raw;
 }

@@ -4,7 +4,7 @@
  */
 
 import { parseArgs } from 'node:util';
-import { fetchBaseSchema } from "./schema/index.js";
+import { BaseId, fetchBaseSchema } from "./schema/index.js";
 import { generateCode } from "./codegen/index.js";
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
@@ -14,26 +14,22 @@ async function doCodegen({
   baseId,
   fetcher,
   outPath,
-  baseName: rawBaseName,
+  baseName,
 }: {
-  baseId: string;
+  baseId: BaseId;
   outPath: string;
   baseName?: string;
   fetcher: IntoFetcher;
 }, console: Consolish = globalThis.console): Promise<void> {
   console.log("🔍 Fetching schema from Airtable...");
-  const baseName = rawBaseName ?? baseId;
+  const baseSchema = await fetchBaseSchema({ baseId, fetcher, baseName });
+  const firstTable = baseSchema.tables[0];
 
-  const { id, ...rest } = await fetchBaseSchema(baseId, fetcher);
-  // Get the order right just for ergonomics
-  const schemaWithName = { id, name: baseName, ...rest };
-  const firstTable = schemaWithName.tables[0];
-
-  console.log(`✓ Found base with ${schemaWithName.tables.length} tables`);
-  console.log(`  Tables: ${schemaWithName.tables.map((t) => t.name).join(", ")}`);
+  console.log(`✓ Found base with ${baseSchema.tables.length} tables`);
+  console.log(`  Tables: ${baseSchema.tables.map((t) => t.name).join(", ")}`);
 
   const filetype = outPath.endsWith(".ts") ? "ts" : "js";
-  const code = generateCode(schemaWithName, { filetype });
+  const code = generateCode(baseSchema, { filetype });
 
   const outputDir = path.dirname(outPath);
   await fs.mkdir(outputDir, { recursive: true });
@@ -108,7 +104,7 @@ export async function cli(args: string[], fetcher?: IntoFetcher, console: Consol
       throw new Error(err);
     }
     await doCodegen({
-      baseId: values["base-id"] as string,
+      baseId: values["base-id"] as BaseId,
       fetcher: fetcher ?? values["api-key"] as string,
       outPath: values.output as string,
       baseName: values["base-name"] as string | undefined,
