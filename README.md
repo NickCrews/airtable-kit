@@ -2,11 +2,23 @@
 
 A type-safe, fully-featured, and standards-centric Airtable API client for TypeScript and JavaScript.
 
-## Features
+## Motivation
 
-- **Standards-Centric**: Everything is derived from a Base's.tsON schema directly from the [Airtable API](https://airtable.com/developers/web/api/get-base-schema).
-- **Type-Safe**: Full TypeScript support is inferred from this schema: keep your API safe from field renames, and get full IDE type hints when working with records (eg the available select options for a select field)
-- **Also Dynamic at Runtime**: If instead you are building an API where you don't know which bases you'll be working with at compile time, this architecture means that you can just-in-time fetch the base's schema and still have pleasant type-mapping.
+There are other type-safe airtable clients out there (see the [Comparison section](#comparison-to-other-airtable-libraries)),
+but they all start from the premise of starting from typescript `interface`s to define the shape of records in each table.
+This package takes a different approach: everything is derived directly from the
+Airtable Base's JSON schema, as directly provided by the [Airtable API](https://airtable.com/developers/web/api/get-base-schema) with some complex
+generics and type-mapping magic.
+
+This has several advantages:
+- It is trivial to codegen the schema files from existing bases since you pretty much write the JSON directly to a file, instead of needing to translate it to typescript interfaces. This makes it easy to onboard existing bases and keep them in sync.
+- You can also get runtime validation and schemas for free. Most of these other libraries assume you know at compile time which bases you are working with. This package allows you to fetch a base's schema just-in-time at runtime, and still have type-mapping and runtime validation.
+- Since we preserve the full JSON schema, you can inspect and manipulate the base's schema at runtime, eg generate a Zod validator. This is useful for e.g. building MCP tools for AI agents, since now they can see the exact schema of the base they are working with.
+
+## Other Features
+
+- **Rename-Resistant**: When someone modifies the name of a field in airtable, your code won't break because the client always sends field IDs to the API under the hood.
+- **Complete Type-Safety**: Not just the basics. Eg get type safety on the valid options for single-select and multi-select fields, date formats, etc.
 - **Zero-Dependencies**: No required dependencies! `zod` is optional if you want runtime validation (eg for MCP tools).
 - **Portable**: Works in Node.js, Deno, and the browser, including in sandboxed environments, e.g. where `process.env` and `os.homedir()` are not available.
 - **Runtime Validation**: Optionally, dynamically generate Zod validators from the schema to validate all data sent to Airtable at runtime.
