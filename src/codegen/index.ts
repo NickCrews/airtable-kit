@@ -5,4 +5,4 @@
 export {
   type CodegenOptions,
   generateCode,
-} from './generator.js';
+} from './generator.ts';

@@ -5,9 +5,9 @@
 export {
   type FieldToZod as FieldTypeHandler,
   fieldSchemaToZod,
-} from './field-to-zod.js';
+} from './field-to-zod.ts';
 
 export {
   makeZodForCreate as createRecordSchemaFromFields,
   makeZodForUpdate as updateRecordSchemaFromFields,
-} from './schema-to-zod.js';
+} from './schema-to-zod.ts';

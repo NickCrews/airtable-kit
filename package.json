@@ -1,6 +1,6 @@
 {
   "name": "airtable-kit",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A better ts/js airtable toolkit",
   "license": "MIT",
   "author": "Nick Crews",
@@ -12,40 +12,43 @@
   "engines": {
     "node": ">=20"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "bin": {
-    "airtable-kit": "./dist/cli.js"
-  },
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.cts",
+  "bin": "./dist/cli.cjs",
   "exports": {
     ".": {
+      "types": "./dist/index.d.cts",
       "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./schema": {
-      "import": "./dist/schema/index.js",
-      "types": "./dist/schema/index.d.ts"
+      "require": "./dist/index.cjs"
     },
     "./client": {
+      "types": "./dist/client/index.d.cts",
       "import": "./dist/client/index.js",
-      "types": "./dist/client/index.d.ts"
+      "require": "./dist/client/index.cjs"
     },
     "./codegen": {
+      "types": "./dist/codegen/index.d.cts",
       "import": "./dist/codegen/index.js",
-      "types": "./dist/codegen/index.d.ts"
+      "require": "./dist/codegen/index.cjs"
     },
     "./mcp": {
+      "types": "./dist/mcp/index.d.cts",
       "import": "./dist/mcp/index.js",
-      "types": "./dist/mcp/index.d.ts"
+      "require": "./dist/mcp/index.cjs"
+    },
+    "./schema": {
+      "types": "./dist/schema/index.d.cts",
+      "import": "./dist/schema/index.js",
+      "require": "./dist/schema/index.cjs"
     }
   },
   "scripts": {
-    "build": "tsc && cp README.md dist/README.md && cp LICENSE dist/LICENSE",
+    "build2": "tsc && cp README.md dist/README.md && cp LICENSE dist/LICENSE",
+    "build": "zshy && cp README.md dist/README.md && cp LICENSE dist/LICENSE",
     "dev": "tsc --watch",
     "test": "vitest run",
     "test:watch": "vitest watch"
   },
-  "dependencies": {},
   "peerDependencies": {
     "zod": "^4"
   },
@@ -58,6 +61,21 @@
     "@types/node": "^22.10.5",
     "typescript": "^5.7.2",
     "vitest": "~2.1.9",
-    "zod": "^4"
-  }
+    "zod": "^4",
+    "zshy": "^0.4.4"
+  },
+  "zshy": {
+    "bin": "./src/cli.ts",
+    "exports": {
+      ".": "./src/index.ts",
+      "./client": "./src/client/index.ts",
+      "./codegen": "./src/codegen/index.ts",
+      "./mcp": "./src/mcp/index.ts",
+      "./schema": "./src/schema/index.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "module": "./dist/index.js"
 }

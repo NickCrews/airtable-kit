@@ -2,13 +2,13 @@
  * Schema module - fetch and manage Airtable base schemas
  */
 
-export * as fields from "./fields.js";
+export * as fields from "./fields.ts";
 export {
     type TableSchema,
     type TableId,
-} from "./tables.js";
+} from "./tables.ts";
 export {
     type BaseSchema,
     type BaseId,
-} from "./bases.js";
-export { fetchBaseSchema } from "./fetcher.js";
+} from "./bases.ts";
+export { fetchBaseSchema } from "./fetcher.ts";

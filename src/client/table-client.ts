@@ -1,15 +1,15 @@
-import { BaseId } from "../schema/bases.js";
-import { FieldSchema } from "../schema/fields.js";
-import { TableId, type TableSchema } from "../schema/tables.js";
-import { Fetcher, IntoFetcher } from "./fetcher.js";
+import { BaseId } from "../schema/bases.ts";
+import { FieldSchema } from "../schema/fields.ts";
+import { TableId, type TableSchema } from "../schema/tables.ts";
+import { Fetcher, IntoFetcher } from "./fetcher.ts";
 import {
     inferRead,
     type ReadRecordByName,
     type ReadRecordById,
     recordToAirtableRecord,
     type WriteRecord,
-} from "./converters.js";
-import { createFetcher } from "./fetcher.js";
+} from "./converters.ts";
+import { createFetcher } from "./fetcher.ts";
 
 /**
  * Options for listing records

@@ -1,6 +1,6 @@
-import { type TableSchema } from "./tables.js";
-import { type BaseSchema, type BaseId } from "./bases.js";
-import { type IntoFetcher, createFetcher } from "../client/fetcher.js";
+import { type TableSchema } from "./tables.ts";
+import { type BaseSchema, type BaseId } from "./bases.ts";
+import { type IntoFetcher, createFetcher } from "../client/fetcher.ts";
 
 /**
  * Fetch the schema of a base by its ID.

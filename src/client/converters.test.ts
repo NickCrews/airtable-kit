@@ -3,12 +3,12 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { BarcodeValue, CONVERTERS, MultipleAttachment } from "./converters.js";
+import { BarcodeValue, CONVERTERS, MultipleAttachment } from "./converters.ts";
 import type {
   FieldSchema,
   MultipleSelects,
   SingleSelect,
-} from "../schema/fields.js";
+} from "../schema/fields.ts";
 
 describe("Converters", () => {
   describe("Read-only fields (makeTo returns null)", () => {

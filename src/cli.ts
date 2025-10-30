@@ -4,11 +4,11 @@
  */
 
 import { parseArgs } from 'node:util';
-import { BaseId, fetchBaseSchema } from "./schema/index.js";
-import { generateCode } from "./codegen/index.js";
+import { BaseId, fetchBaseSchema } from "./schema/index.ts";
+import { generateCode } from "./codegen/index.ts";
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
-import { IntoFetcher } from './client/fetcher.js';
+import { IntoFetcher } from './client/fetcher.ts';
 
 async function doCodegen({
   baseId,
@@ -116,10 +116,8 @@ export async function cli(args: string[], fetcher?: IntoFetcher, console: Consol
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  try {
-    await cli(process.argv.slice(2));
-  } catch (error) {
+  cli(process.argv.slice(2)).catch((error) => {
     console.error("❌ Error:", (error as Error).message);
     process.exit(1);
-  }
+  });
 }

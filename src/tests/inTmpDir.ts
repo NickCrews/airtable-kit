@@ -11,7 +11,7 @@ import { afterEach } from 'node:test';
  * @example
  * ```ts
  * import { describe, expect, it } from 'vitest';
- * import { makeInTmpDir } from './inTmpDir.js';
+ * import { makeInTmpDir } from './inTmpDir.ts';
  * import fs from 'node:fs';
  * import os from 'node:os';
  * 

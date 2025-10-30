@@ -4,8 +4,8 @@
  */
 
 import { z } from "zod";
-import type { FieldSchema } from "../schema/fields.js";
-import { fieldSchemaToZod } from "./field-to-zod.js";
+import type { FieldSchema } from "../schema/fields.ts";
+import { fieldSchemaToZod } from "./field-to-zod.ts";
 
 /**
  * Create a Zod schema for record creation

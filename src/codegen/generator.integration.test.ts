@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { generateCode } from './index.js';
-import taskBase from '../tests/taskBase.js';
+import { generateCode } from './index.ts';
+import taskBase from '../tests/taskBase.ts';
 
 describe('Code Generator Integration', () => {
   it('should match snapshot with no options', () => {

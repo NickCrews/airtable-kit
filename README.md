@@ -4,7 +4,7 @@ A type-safe, fully-featured, and standards-centric Airtable API client for TypeS
 
 ## Features
 
-- **Standards-Centric**: Everything is derived from a Base's JSON schema directly from the [Airtable API](https://airtable.com/developers/web/api/get-base-schema).
+- **Standards-Centric**: Everything is derived from a Base's.tsON schema directly from the [Airtable API](https://airtable.com/developers/web/api/get-base-schema).
 - **Type-Safe**: Full TypeScript support is inferred from this schema: keep your API safe from field renames, and get full IDE type hints when working with records (eg the available select options for a select field)
 - **Also Dynamic at Runtime**: If instead you are building an API where you don't know which bases you'll be working with at compile time, this architecture means that you can just-in-time fetch the base's schema and still have pleasant type-mapping.
 - **Zero-Dependencies**: No required dependencies! `zod` is optional if you want runtime validation (eg for MCP tools).
@@ -82,7 +82,7 @@ which aren't present in the raw JSON.
 
 If you dropped the `as const` you would have a plain javascript file if you
 are working with javascript. You can get the CLI to do this simply by changing the
-output file extension from `.ts` to `.js`.
+output file extension from `.ts` to `.ts`.
 
 There is also a programmatic way to get and save the schema.
 Read the code to see how.

@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { createMockFetcher } from "./fetcher.js";
-import { baseClient } from "./index.js";
+import { createMockFetcher } from "./fetcher.ts";
+import { baseClient } from "./index.ts";
 
-import TaskSchema from "../tests/taskBase.js";
+import TaskSchema from "../tests/taskBase.ts";
 
 describe("BaseClient", () => {
     const mockFetcher = createMockFetcher();

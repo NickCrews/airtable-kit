@@ -1,5 +1,5 @@
-import { FieldId } from "./fields.js";
-import { FieldSchema } from "./fields.js";
+import { FieldId } from "./fields.ts";
+import { FieldSchema } from "./fields.ts";
 
 export type TableId = `tbl${string}`;
 export type ViewId = `viw${string}`;

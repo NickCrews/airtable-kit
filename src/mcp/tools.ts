@@ -2,14 +2,14 @@
  * MCP tools for Airtable operations - per-table typed tools
  */
 
-import type { TableSchema } from '../schema/tables.js';
-import { type TableClient, type CreateArgs, CreateResult } from '../client/table-client.js';
-import { type WriteRecord } from '../client/converters.js';
+import type { TableSchema } from '../schema/tables.ts';
+import { type TableClient, type CreateArgs, CreateResult } from '../client/table-client.ts';
+import { type WriteRecord } from '../client/converters.ts';
 import { z } from 'zod';
 import {
   makeZodForCreate,
   makeZodForUpdate,
-} from '../validators/schema-to-zod.js';
+} from '../validators/schema-to-zod.ts';
 
 export interface MCPToolDefinition<TInput, TOutput> {
   name: string;

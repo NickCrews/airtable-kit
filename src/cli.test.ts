@@ -4,10 +4,10 @@
 
 import fs from 'node:fs';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import tasksSchema from './tests/taskBase.js';
-import { Fetcher } from './client/fetcher.js';
-import { cli } from './cli.js';
-import { makeInTmpDir } from './tests/inTmpDir.js';
+import tasksSchema from './tests/taskBase.ts';
+import { Fetcher } from './client/fetcher.ts';
+import { cli } from './cli.ts';
+import { makeInTmpDir } from './tests/inTmpDir.ts';
 
 describe('CLI', () => {
   const mockFetch = vi.fn(async () => tasksSchema);

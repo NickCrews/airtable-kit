@@ -2,19 +2,19 @@
  * airtable-kit - Type-safe Airtable client with runtime validation and code generation
  */
 
-import * as schema from "./schema/index.js";
+import * as schema from "./schema/index.ts";
 export { schema };
 
-import * as validators from "./validators/index.js";
+import * as validators from "./validators/index.ts";
 export { validators };
 
-import * as client from "./client/index.js";
+import * as client from "./client/index.ts";
 export { client };
 
-import * as mcp from "./mcp/index.js";
+import * as mcp from "./mcp/index.ts";
 export { mcp };
 
-import * as codegen from "./codegen/index.js";
+import * as codegen from "./codegen/index.ts";
 export { codegen };
 
 /**

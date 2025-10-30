@@ -5,4 +5,4 @@
 export {
   type MCPToolDefinition,
   makeCreateTool,
-} from './tools.js';
+} from './tools.ts';
