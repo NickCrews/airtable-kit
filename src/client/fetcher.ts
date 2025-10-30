@@ -16,6 +16,15 @@ export type FetcherArgs = {
     baseUrl?: string;
 };
 
+/**
+ * Types that can be converted into a {@link Fetcher} instance.
+ * 
+ * Options include:
+ * - An already constructed {@link Fetcher}
+ * - An API key string
+ * - An object matching {@link FetcherArgs}
+ * - `undefined`, which will use environment variable `AIRTABLE_API_KEY` and default base URL
+ */
 export type IntoFetcher = Fetcher | string | FetcherArgs | undefined;
 
 /**
