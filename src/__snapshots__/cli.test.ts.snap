@@ -16,13 +16,13 @@ export default {
       "fields": [
         {
           "id": "fldName",
-          "name": "Name",
+          "name": "name",
           "type": "singleLineText",
           "description": "The name of the task"
         },
         {
           "id": "fldStatus",
-          "name": "Status",
+          "name": "status",
           "type": "singleSelect",
           "description": "The current status of the task",
           "options": {
@@ -47,7 +47,7 @@ export default {
         },
         {
           "id": "fldPriority",
-          "name": "Priority",
+          "name": "priority",
           "type": "number",
           "description": "The priority level of the task. Lower numbers indicate higher priority.",
           "options": {
@@ -56,25 +56,25 @@ export default {
         },
         {
           "id": "fldDueDate",
-          "name": "Due Date",
+          "name": "dueDate",
           "type": "date",
           "description": "The due date of the task"
         },
         {
           "id": "fldCompleted",
-          "name": "Completed",
+          "name": "completed",
           "type": "checkbox",
           "description": "Whether the task is completed"
         },
         {
           "id": "fldNotes",
-          "name": "Notes",
+          "name": "notes",
           "type": "multilineText",
           "description": "Additional notes about the task"
         },
         {
           "id": "fldTags",
-          "name": "Tags",
+          "name": "tags",
           "type": "multipleSelects",
           "description": "Tags associated with the task",
           "options": {
@@ -94,25 +94,25 @@ export default {
         },
         {
           "id": "fldAttachments",
-          "name": "Attachments",
+          "name": "attachments",
           "type": "multipleAttachments",
           "description": "Files attached to the task"
         },
         {
           "id": "fldCreatedAt",
-          "name": "Created At",
+          "name": "createdAt",
           "type": "createdTime",
           "description": "The time when the task was created"
         },
         {
           "id": "fldUpdatedAt",
-          "name": "Updated At",
+          "name": "updatedAt",
           "type": "lastModifiedTime",
           "description": "The time when the task was last updated"
         },
         {
           "id": "fldAssignedTo",
-          "name": "Assigned To",
+          "name": "assignedTo",
           "type": "multipleRecordLinks",
           "description": "Users assigned to the task",
           "options": {
@@ -127,17 +127,17 @@ export default {
       "fields": [
         {
           "id": "fldEmail",
-          "name": "Email",
+          "name": "email",
           "type": "email"
         },
         {
           "id": "fldFullName",
-          "name": "Full Name",
+          "name": "fullName",
           "type": "singleLineText"
         },
         {
           "id": "fldPhone",
-          "name": "Phone",
+          "name": "phone",
           "type": "phoneNumber",
           "description": "please include area code"
         }
@@ -164,13 +164,13 @@ export default {
       "fields": [
         {
           "id": "fldName",
-          "name": "Name",
+          "name": "name",
           "type": "singleLineText",
           "description": "The name of the task"
         },
         {
           "id": "fldStatus",
-          "name": "Status",
+          "name": "status",
           "type": "singleSelect",
           "description": "The current status of the task",
           "options": {
@@ -195,7 +195,7 @@ export default {
         },
         {
           "id": "fldPriority",
-          "name": "Priority",
+          "name": "priority",
           "type": "number",
           "description": "The priority level of the task. Lower numbers indicate higher priority.",
           "options": {
@@ -204,25 +204,25 @@ export default {
         },
         {
           "id": "fldDueDate",
-          "name": "Due Date",
+          "name": "dueDate",
           "type": "date",
           "description": "The due date of the task"
         },
         {
           "id": "fldCompleted",
-          "name": "Completed",
+          "name": "completed",
           "type": "checkbox",
           "description": "Whether the task is completed"
         },
         {
           "id": "fldNotes",
-          "name": "Notes",
+          "name": "notes",
           "type": "multilineText",
           "description": "Additional notes about the task"
         },
         {
           "id": "fldTags",
-          "name": "Tags",
+          "name": "tags",
           "type": "multipleSelects",
           "description": "Tags associated with the task",
           "options": {
@@ -242,25 +242,25 @@ export default {
         },
         {
           "id": "fldAttachments",
-          "name": "Attachments",
+          "name": "attachments",
           "type": "multipleAttachments",
           "description": "Files attached to the task"
         },
         {
           "id": "fldCreatedAt",
-          "name": "Created At",
+          "name": "createdAt",
           "type": "createdTime",
           "description": "The time when the task was created"
         },
         {
           "id": "fldUpdatedAt",
-          "name": "Updated At",
+          "name": "updatedAt",
           "type": "lastModifiedTime",
           "description": "The time when the task was last updated"
         },
         {
           "id": "fldAssignedTo",
-          "name": "Assigned To",
+          "name": "assignedTo",
           "type": "multipleRecordLinks",
           "description": "Users assigned to the task",
           "options": {
@@ -275,17 +275,17 @@ export default {
       "fields": [
         {
           "id": "fldEmail",
-          "name": "Email",
+          "name": "email",
           "type": "email"
         },
         {
           "id": "fldFullName",
-          "name": "Full Name",
+          "name": "fullName",
           "type": "singleLineText"
         },
         {
           "id": "fldPhone",
-          "name": "Phone",
+          "name": "phone",
           "type": "phoneNumber",
           "description": "please include area code"
         }
@@ -304,7 +304,7 @@ exports[`CLI > codegen command > should use custom --base-name 1`] = `
 
 export default {
   "id": "appTestBase",
-  "name": "My Custom Base",
+  "name": "myCustomBase",
   "tables": [
     {
       "id": "tblTasks",
@@ -312,13 +312,13 @@ export default {
       "fields": [
         {
           "id": "fldName",
-          "name": "Name",
+          "name": "name",
           "type": "singleLineText",
           "description": "The name of the task"
         },
         {
           "id": "fldStatus",
-          "name": "Status",
+          "name": "status",
           "type": "singleSelect",
           "description": "The current status of the task",
           "options": {
@@ -343,7 +343,7 @@ export default {
         },
         {
           "id": "fldPriority",
-          "name": "Priority",
+          "name": "priority",
           "type": "number",
           "description": "The priority level of the task. Lower numbers indicate higher priority.",
           "options": {
@@ -352,25 +352,25 @@ export default {
         },
         {
           "id": "fldDueDate",
-          "name": "Due Date",
+          "name": "dueDate",
           "type": "date",
           "description": "The due date of the task"
         },
         {
           "id": "fldCompleted",
-          "name": "Completed",
+          "name": "completed",
           "type": "checkbox",
           "description": "Whether the task is completed"
         },
         {
           "id": "fldNotes",
-          "name": "Notes",
+          "name": "notes",
           "type": "multilineText",
           "description": "Additional notes about the task"
         },
         {
           "id": "fldTags",
-          "name": "Tags",
+          "name": "tags",
           "type": "multipleSelects",
           "description": "Tags associated with the task",
           "options": {
@@ -390,25 +390,25 @@ export default {
         },
         {
           "id": "fldAttachments",
-          "name": "Attachments",
+          "name": "attachments",
           "type": "multipleAttachments",
           "description": "Files attached to the task"
         },
         {
           "id": "fldCreatedAt",
-          "name": "Created At",
+          "name": "createdAt",
           "type": "createdTime",
           "description": "The time when the task was created"
         },
         {
           "id": "fldUpdatedAt",
-          "name": "Updated At",
+          "name": "updatedAt",
           "type": "lastModifiedTime",
           "description": "The time when the task was last updated"
         },
         {
           "id": "fldAssignedTo",
-          "name": "Assigned To",
+          "name": "assignedTo",
           "type": "multipleRecordLinks",
           "description": "Users assigned to the task",
           "options": {
@@ -423,17 +423,17 @@ export default {
       "fields": [
         {
           "id": "fldEmail",
-          "name": "Email",
+          "name": "email",
           "type": "email"
         },
         {
           "id": "fldFullName",
-          "name": "Full Name",
+          "name": "fullName",
           "type": "singleLineText"
         },
         {
           "id": "fldPhone",
-          "name": "Phone",
+          "name": "phone",
           "type": "phoneNumber",
           "description": "please include area code"
         }

@@ -6,10 +6,12 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { type BaseSchema } from "../types.ts";
 import { fetchBaseSchema } from "../client/index.ts";
+import { toIdentifier } from "./identifiers.ts";
 
 export interface CodegenOptions {
     outPath?: string;
     filetype?: "ts" | "js";
+    escapeIdentifiers?: undefined | false | ((rawName: string) => string);
 }
 
 /**
@@ -21,17 +23,22 @@ export interface CodegenOptions {
  * @param options.filetype Output file type, either "ts" or "js".
  *                         If not provided, will be inferred from outPath if possible,
  *                         otherwise defaults to "ts".
+ * @param options.escapeIdentifiers Optional function to escape raw names to valid identifiers.
+ *                                  This will be used on base name, table names, and field names.
+ *                                  If not provided, a default function will be used.
+ *                                  If set to false, no escaping will be done.
  * @returns A Promise of the generated code as a string, eg to be written to a .ts or .js file.
  */
 export async function generateCode(schema: BaseSchema, options?: CodegenOptions) {
     const filetype = options?.filetype || (options?.outPath?.endsWith(".js") ? "js" : "ts") || "ts";
     const asConstModifier = filetype === "ts" ? " as const" : "";
+    const namesSafeSchema = namesToIdentifiers(schema, options?.escapeIdentifiers);
     const result = `/**
  * Auto-generated from Airtable schema
  * Do not edit manually
  */
 
-export default ${JSON.stringify(schema, null, 2)}${asConstModifier};
+export default ${JSON.stringify(namesSafeSchema, null, 2)}${asConstModifier};
 `;
     if (options?.outPath) {
         const outputDir = path.dirname(options.outPath);
@@ -39,4 +46,34 @@ export default ${JSON.stringify(schema, null, 2)}${asConstModifier};
         await fs.writeFile(options.outPath, result, "utf-8");
     }
     return result;
+}
+
+/**
+ * escape all of the
+ * - base name
+ * - table names
+ * - field names
+ */
+function namesToIdentifiers(schema: BaseSchema, escapeIdentifiers: CodegenOptions["escapeIdentifiers"]): BaseSchema {
+    let escape;
+    if (escapeIdentifiers === false) {
+        escape = (n: string) => n;
+        // if otherwise falsy, use default
+    } else if (!escapeIdentifiers) {
+        escape = toIdentifier;
+    } else {
+        escape = escapeIdentifiers;
+    }
+    return {
+        ...schema,
+        name: escape(schema.name),
+        tables: schema.tables.map((table) => ({
+            ...table,
+            name: escape(table.name),
+            fields: table.fields.map((field) => ({
+                ...field,
+                name: escape(field.name),
+            })),
+        })),
+    };
 }
