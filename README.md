@@ -94,8 +94,7 @@ import { baseClient } from 'airtable-kit/client';
 import myBaseSchema from './schemas/myBase';
 
 const client = baseClient({
-  baseId: myBaseSchema.id,
-  tables: myBaseSchema.tables,
+  baseSchema: myBaseSchema,
   fetcher: YOUR_API_KEY,
 });
 // if you tried `client.tables.nonExistentTable` you would get a type error here
@@ -135,12 +134,12 @@ client.bases.otherBase.tables.someTable.insert([ ... ]);
 ### Use Case 2: Dynamic Client for Unknown Bases, eg an MCP Tool
 
 ```typescript
+import { fetchBaseSchema } from 'airtable-kit';
 import { baseClient } from 'airtable-kit/client';
-import { fetchBaseSchema } from 'airtable-kit/schema';
 
 const baseSchema = await fetchBaseSchema({
-  apiKey: YOUR_API_KEY,
   baseId: 'appXXXXXXXXXXXXXX',
+  fetcher: YOUR_API_KEY,
 });
 
 // TODO: actually flesh this out with an example
@@ -149,7 +148,8 @@ const baseSchema = await fetchBaseSchema({
 
 The package is organized into focused modules:
 
-- **Schema Module** (`airtable-kit/schema`): Fetch and persist Airtable base schemas
+- **Core** (`airtable-kit`): Basic types and utilities
+- **Fields Module** (`airtable-kit/fields`): Type definitions for all Airtable field schemas, eg 'singleSelect'
 - **Client Module** (`airtable-kit/client`): Unified HTTP client with optional validation
 - **Codegen Module** (`airtable-kit/codegen`): Generate schema files from Airtable bases
 - **Validators Module** (`airtable-kit/validators`): Generate Zod schemas for runtime validation
