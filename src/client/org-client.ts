@@ -1,4 +1,4 @@
-import { BaseSchema } from "../schema/bases.ts";
+import { type BaseSchema } from "../types.ts";
 import { IntoFetcher } from "./fetcher.ts";
 import { BaseClient, baseClient } from "./base-client.ts";
 

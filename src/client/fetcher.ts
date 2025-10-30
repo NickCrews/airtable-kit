@@ -1,4 +1,3 @@
-import console from "node:console";
 import process from "node:process";
 
 type FetchArgs = {

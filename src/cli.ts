@@ -4,7 +4,7 @@
  */
 
 import { parseArgs } from 'node:util';
-import { BaseId, fetchBaseSchema } from "./schema/index.ts";
+import { BaseId, fetchBaseSchema } from "./index.ts";
 import { generateCode } from "./codegen/index.ts";
 import { promises as fs } from "node:fs";
 import * as path from "node:path";

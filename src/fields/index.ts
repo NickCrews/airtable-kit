@@ -1,12 +1,21 @@
 /**
  * Airtable field type definitions
  */
+
+// This should ONLY export the individual field schemas,
+// so users can do
+// ```
+// import * as fields from 'airtable/fields';
+// type MyField = fields.SingleSelect;
+// ```
+// If we export other stuff here, the namespace will be polluted,
+// and we lose the semantics of "everything in fields is a field schema".
 import { type Timezone } from "./timezones.ts";
 import { type BrightColor, type SelectColor } from "./colors.ts";
+import { type FieldSchema } from "./types.ts";
 
-export type FieldId = `fld${string}`;
 interface FieldBase {
-  id: FieldId;
+  id: `fld${string}`;
   /** Any name you want to refer to the field in your code. The name "id" is not allowed, as that is reserved for the record's record ID */
   name: Exclude<string, "id">;
   description?: string;
@@ -234,50 +243,3 @@ export interface SingleSelect<C extends SelectChoice = SelectChoice>
 export interface Url extends FieldBase {
   type: "url";
 }
-
-/**
- * Field namespace for type constructors
- */
-export const Field = {
-  AiText: null as unknown as AiText,
-  AutoNumber: null as unknown as AutoNumber,
-  Barcode: null as unknown as Barcode,
-  Button: null as unknown as Button,
-  Checkbox: null as unknown as Checkbox,
-  Count: null as unknown as Count,
-  CreatedBy: null as unknown as CreatedBy,
-  CreatedTime: null as unknown as CreatedTime,
-  Currency: null as unknown as Currency,
-  Date: null as unknown as Date,
-  DateTime: null as unknown as DateTime,
-  Duration: null as unknown as Duration,
-  Email: null as unknown as Email,
-  ExternalSyncSource: null as unknown as ExternalSyncSource,
-  Formula: null as unknown as Formula,
-  LastModifiedBy: null as unknown as LastModifiedBy,
-  LastModifiedTime: null as unknown as LastModifiedTime,
-  MultilineText: null as unknown as MultilineText,
-  MultipleAttachments: null as unknown as MultipleAttachments,
-  MultipleCollaborators: null as unknown as MultipleCollaborators,
-  MultipleLookupValues: null as unknown as MultipleLookupValues,
-  MultipleRecordLinks: null as unknown as MultipleRecordLinks,
-  MultipleSelects: null as unknown as MultipleSelects,
-  Number: null as unknown as Number,
-  Percent: null as unknown as Percent,
-  PhoneNumber: null as unknown as PhoneNumber,
-  Rating: null as unknown as Rating,
-  RichText: null as unknown as RichText,
-  Rollup: null as unknown as Rollup,
-  SingleCollaborator: null as unknown as SingleCollaborator,
-  SingleLineText: null as unknown as SingleLineText,
-  SingleSelect: null as unknown as SingleSelect,
-  Url: null as unknown as Url,
-};
-/**
- * Union of all field schemas
- */
-export type FieldSchema = typeof Field[keyof typeof Field];
-/**
- * Field type code (just the string type)
- */
-export type FieldType = FieldSchema["type"];

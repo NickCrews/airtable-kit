@@ -2,7 +2,7 @@
  * Code generator - generate static TypeScript code from Airtable schema
  */
 
-import { type BaseSchema } from "../schema/bases.ts";
+import { type BaseSchema } from "../types.ts";
 
 export interface CodegenOptions {
     filetype?: "ts" | "js";

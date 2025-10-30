@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import type { FieldSchema } from "../schema/fields.ts";
+import { type FieldSchema } from "../types.ts";
 import { fieldSchemaToZod } from "./field-to-zod.ts";
 
 /**

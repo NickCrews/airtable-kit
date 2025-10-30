@@ -1,6 +1,4 @@
-import { BaseId } from "../schema/bases.ts";
-import { FieldSchema } from "../schema/fields.ts";
-import { TableId, type TableSchema } from "../schema/tables.ts";
+import { type BaseId, type TableId, type TableSchema, type FieldSchema } from "../types.ts";
 import { Fetcher, IntoFetcher } from "./fetcher.ts";
 import {
     inferRead,

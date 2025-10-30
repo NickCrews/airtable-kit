@@ -8,7 +8,7 @@ import type {
   FieldSchema,
   MultipleSelects,
   SingleSelect,
-} from "../schema/fields.ts";
+} from "../fields/index.ts";
 
 describe("Converters", () => {
   describe("Read-only fields (makeTo returns null)", () => {

@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { fieldSchemaToZod } from './field-to-zod.ts';
-import type { FieldSchema } from '../schema/fields.ts';
+import type { FieldSchema } from '../fields/index.ts';
 
 describe('Field to Zod Conversion', () => {
   describe('fieldTypeToZod', () => {

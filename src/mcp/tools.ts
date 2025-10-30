@@ -2,7 +2,7 @@
  * MCP tools for Airtable operations - per-table typed tools
  */
 
-import type { TableSchema } from '../schema/tables.ts';
+import type { TableSchema } from '../types.ts';
 import { type TableClient, type CreateArgs, CreateResult } from '../client/table-client.ts';
 import { type WriteRecord } from '../client/converters.ts';
 import { z } from 'zod';

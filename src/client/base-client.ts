@@ -1,5 +1,4 @@
-import { BaseSchema } from "../schema/bases.ts";
-import { TableSchema } from "../schema/tables.ts";
+import { type BaseSchema, type TableSchema } from "../types.ts";
 import { IntoFetcher } from "./fetcher.ts";
 import { TableClient, tableClient } from "./table-client.ts";
 

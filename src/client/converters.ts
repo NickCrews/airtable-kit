@@ -1,10 +1,9 @@
 import {
-    FieldSchema,
-    FieldType,
     MultipleSelects,
     SelectChoice,
     SingleSelect,
-} from "../schema/fields.ts";
+} from "../fields/index.ts";
+import { type FieldSchema, type FieldType } from "../types.ts";
 
 type ToAirtableConverter<T> = (value: T) => unknown;
 type FromAirtableConverter<T> = (value: unknown) => T;

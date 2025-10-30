@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod';
-import { type FieldSchema, type FieldType } from '../schema/fields.ts';
+import { type FieldSchema, type FieldType } from '../index.ts';
 
 
 const CollaboratorSchema = z.object({

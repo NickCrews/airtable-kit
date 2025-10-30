@@ -1,8 +1,12 @@
-import { FieldId } from "./fields.ts";
-import { FieldSchema } from "./fields.ts";
+import { type FieldSchema } from "./fields/types.ts";
 
+export { FieldSchema };
+export { type FieldType } from "./fields/types.ts";
+
+export type FieldId = `fld${string}`;
 export type TableId = `tbl${string}`;
 export type ViewId = `viw${string}`;
+export type BaseId = `app${string}`;
 
 export interface TableSchema<
     I extends TableId = TableId,
@@ -30,4 +34,10 @@ export interface ViewSchema {
     id: ViewId;
     name: string;
     type: ViewType;
+}
+
+export interface BaseSchema<I extends BaseId = BaseId> {
+    id: I;
+    name: string;
+    tables: ReadonlyArray<TableSchema>;
 }
