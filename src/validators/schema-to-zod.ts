@@ -15,7 +15,7 @@ export function makeZodForCreate(fields: readonly FieldSchema[]) {
   for (const field of fields) {
     shape[field.name] = fieldSchemaToZod(field).optional();
   }
-  return z.array(z.object(shape));
+  return z.array(z.strictObject(shape));
 }
 
 /**
@@ -26,5 +26,5 @@ export function makeZodForUpdate(fields: readonly FieldSchema[]) {
   for (const field of fields) {
     shape[field.name] = fieldSchemaToZod(field).optional();
   }
-  return z.array(z.object(shape));
+  return z.array(z.strictObject(shape));
 }
