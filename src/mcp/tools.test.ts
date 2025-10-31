@@ -13,8 +13,16 @@ describe('MCP Tool - Create Tool', () => {
     mockFetcher.reset();
   });
   it('should create a create tool with the correct metadata', () => {
-    expect(createTool.name).toBe('Insert into users');
-    expect(createTool.description).toBe('Insert new records into the users table.');
+    expect(createTool.name).toBe('create-records-in-users');
+    expect(createTool.description).toMatchInlineSnapshot(`
+      "Insert new records into the users table.
+
+      Note that the input does NOT use the same format as the Airtable API.
+      Look carefully at the input schema to see how to structure the records to create.
+
+      If you use this, consider giving the user the URLs of the created records in your final answer.
+      "
+    `);
     expect(createTool.inputJsonSchema).toMatchInlineSnapshot(`
           {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -88,10 +96,13 @@ describe('MCP Tool - Create Tool', () => {
     expect(mockFetcher.getCallHistory()).toEqual([{ method: 'POST', path: '/appTaskBase/tblUsers', data: expectedAPIInput }]);
     expect(result).toMatchObject([
       {
-        "Email": "alice.smith@example.com",
-        "Full Name": "alice smith",
-        "Phone": "907-555-1234",
-        "id": "rec123",
+        record: {
+          "Email": "alice.smith@example.com",
+          "Full Name": "alice smith",
+          "Phone": "907-555-1234",
+          "id": "rec123",
+        },
+        url: 'https://airtable.com/appTaskBase/tblUsers/rec123',
       },
     ]
     );
