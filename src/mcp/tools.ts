@@ -31,11 +31,9 @@ export interface MCPToolDefinition<TInput, TOutput> {
 type CreateInput<T extends TableSchema> = {
   records: CreateArgs<T["fields"]>;
 };
-
 type CreateToolResult<T extends TableSchema["fields"]> = Array<
   CreateResult<T>[number] & { url: string; }
 >;
-
 export function makeCreateTool<
   T extends TableSchema,
 >(client: TableClient<T>): MCPToolDefinition<CreateInput<T>, CreateToolResult<T["fields"]>> {
@@ -76,7 +74,6 @@ type UpdateInput<T extends TableSchema> = {
   }>;
   options?: UpdateRecordsOptions;
 };
-
 export function makeUpdateTool<
   T extends TableSchema,
 >(client: TableClient<T>): MCPToolDefinition<UpdateInput<T>, UpdateRecordsResponse<T["fields"]>> {
@@ -110,29 +107,25 @@ export function makeUpdateTool<
   };
 }
 
-type GetInput = {
-  recordId: string;
-  options?: GetRecordOptions;
-};
+const GetInput = z4.object({
+  recordId: RecordIdSchema,
+  options: z4.object({
+    cellFormat: z4.enum(['json', 'string']).optional(),
+    returnFieldsByFieldId: z4.boolean().optional(),
+  }).optional(),
+});
+type GetInput = z4.infer<typeof GetInput>;
 type GetToolResult<T extends TableSchema["fields"]> = {
   id: string;
   createdTime: string;
   fields: ReadRecordByName<T>;
   url: string;
 };
-
 export function makeGetTool<
   T extends TableSchema,
 >(client: TableClient<T>): MCPToolDefinition<GetInput, GetToolResult<T["fields"]>> {
-  const zodInputValidator = z4.object({
-    recordId: RecordIdSchema,
-    options: z4.object({
-      cellFormat: z4.enum(['json', 'string']).optional(),
-      returnFieldsByFieldId: z4.boolean().optional(),
-    }).optional(),
-  });
   async function execute(input: GetInput) {
-    const validated = zodInputValidator.parse(input);
+    const validated = GetInput.parse(input);
     const raw = await client.get(validated.recordId, validated.options);
     return {
       ...raw,
@@ -142,8 +135,8 @@ export function makeGetTool<
   return {
     name: `Get from ${client.tableSchema.name}`,
     description: `Get a single record by ID from the ${client.tableSchema.name} table.`,
-    zodInputValidator: zodInputValidator as any,
-    inputJsonSchema: z4.toJSONSchema(zodInputValidator),
+    zodInputValidator: GetInput as any,
+    inputJsonSchema: z4.toJSONSchema(GetInput),
     execute,
   };
 }
@@ -151,7 +144,6 @@ export function makeGetTool<
 type ListInput<T extends TableSchema> = {
   options?: ListRecordsOptions<T["fields"]>;
 };
-
 export function makeListTool<
   T extends TableSchema,
 >(client: TableClient<T>): MCPToolDefinition<ListInput<T>, ListRecordsResponse<T["fields"]>> {
@@ -196,21 +188,16 @@ export function makeListTool<
   };
 }
 
-
-
-type DeleteInput = {
-  recordIds: ReadonlyArray<RecordId>;
-};
+const DeleteInput = z4.object({
+  recordIds: z4.array(RecordIdSchema).min(1).max(10),
+});
+type DeleteInput = z4.infer<typeof DeleteInput>;
 type DeleteToolResult = RecordId[];
-
 export function makeDeleteTool<
   T extends TableSchema,
 >(client: TableClient<T>): MCPToolDefinition<DeleteInput, DeleteToolResult> {
-  const zodInputValidator = z4.object({
-    recordIds: z4.array(RecordIdSchema).min(1).max(10),
-  });
   async function execute(input: DeleteInput) {
-    const validated = zodInputValidator.parse(input);
+    const validated = DeleteInput.parse(input);
     const raw = await client.delete(validated.recordIds);
     return raw.records.map((r) => r.id);
   }
@@ -221,8 +208,8 @@ export function makeDeleteTool<
     You can delete up to 10 records at a time.
     
     Returns the list of deleted record IDs.`,
-    zodInputValidator: zodInputValidator as any,
-    inputJsonSchema: z4.toJSONSchema(zodInputValidator),
+    zodInputValidator: DeleteInput as any,
+    inputJsonSchema: z4.toJSONSchema(DeleteInput),
     execute,
   };
 }
