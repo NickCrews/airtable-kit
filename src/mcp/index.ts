@@ -5,4 +5,8 @@
 export {
   type MCPToolDefinition,
   makeCreateTool,
+  makeUpdateTool,
+  makeGetTool,
+  makeListTool,
+  makeDeleteTool,
 } from './tools.ts';

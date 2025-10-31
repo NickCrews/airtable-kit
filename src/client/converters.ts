@@ -587,17 +587,15 @@ export type ReadRecordById<T extends ReadonlyArray<FieldSchema>> = {
     [K in T[number]["id"]]: inferRead<Extract<T[number], { id: K }>>;
 };
 
-type FieldValue<F extends FieldSchema> = inferWrite<F>;
-
 export type WriteRecord<T extends ReadonlyArray<FieldSchema>> = {
     [K in T[number]["name"] | T[number]["id"]]?: K extends T[number]["name"]
     ? Extract<T[number], { name: K }> extends infer F
-    ? F extends FieldSchema ? FieldValue<F>
+    ? F extends FieldSchema ? inferWrite<F>
     : never
     : never
     : K extends T[number]["id"]
     ? Extract<T[number], { id: K }> extends infer F
-    ? F extends FieldSchema ? FieldValue<F>
+    ? F extends FieldSchema ? inferWrite<F>
     : never
     : never
     : never;
