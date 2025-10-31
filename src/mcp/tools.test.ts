@@ -19,7 +19,7 @@ describe('MCP Tool - Create Tool', () => {
     mockFetcher.reset();
   });
   it('should create a create tool with the correct metadata', () => {
-    expect(createTool.name).toBe('create-records-in-users');
+    expect(createTool.name).toBe('create-records-in-users-table');
     expect(createTool.description).toMatchInlineSnapshot(`
       "Insert new records into the users table.
 

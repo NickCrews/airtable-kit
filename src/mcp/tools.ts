@@ -83,7 +83,6 @@ export function makeUpdateTool<
 >(client: TableClient<T>): MCPToolDefinition<UpdateInput<T>, UpdateRecordsResponse<ReadRecordByName<T["fields"]>>> {
   const fieldsZod = makeZodForWrite(client.tableSchema.fields);
   const validated = fieldsZod.parse([])
-  validated[0].idasd
   const recordZod = z4.object({
     id: z4.string().optional(),
     fields: fieldsZod.element,
