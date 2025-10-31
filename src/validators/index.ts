@@ -8,6 +8,5 @@ export {
 } from './field-to-zod.ts';
 
 export {
-  makeZodForCreate,
-  makeZodForUpdate,
+  makeZodForWrite,
 } from './schema-to-zod.ts';

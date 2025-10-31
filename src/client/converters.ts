@@ -506,6 +506,7 @@ export const CONVERTERS = {
 
 export type Converters = typeof CONVERTERS[keyof typeof CONVERTERS];
 
+/** Given a FieldSchema, return the typescript type will be returned when you read from it */
 export type inferRead<F extends FieldSchema> = F extends FieldOfType<"aiText">
     ? string
     : F extends FieldOfType<"autoNumber"> ? number
@@ -542,6 +543,7 @@ export type inferRead<F extends FieldSchema> = F extends FieldOfType<"aiText">
     : F extends FieldOfType<"url"> ? string
     : never;
 
+/** Given a FieldSchema, return the typescript type that can be written to it */
 export type inferWrite<F extends FieldSchema> = F extends FieldOfType<"aiText">
     ? never
     : F extends FieldOfType<"autoNumber"> ? never
