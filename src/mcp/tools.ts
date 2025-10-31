@@ -189,7 +189,7 @@ export function makeListTool<
 }
 
 const DeleteInput = z4.object({
-  recordIds: z4.array(RecordIdSchema).min(1).max(10),
+  recordIds: z4.array(RecordIdSchema).min(1).max(10).readonly(),
 });
 type DeleteInput = z4.infer<typeof DeleteInput>;
 type DeleteToolResult = RecordId[];

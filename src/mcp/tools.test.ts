@@ -312,7 +312,7 @@ describe('MCP Tool - Get Tool', () => {
   it('should work for valid input', async () => {
     const validInput = {
       recordId: 'rec1234567890ABCD',
-    };
+    } as const;
     mockFetcher.setReturnValue({
       "id": "rec1234567890ABCD",
       "fields": {
@@ -378,6 +378,11 @@ describe('MCP Tool - List Tool', () => {
                 "type": "array",
               },
               "filterByFormula": {
+                "description": "A formula used to filter records. The formula will be evaluated for each record, and if the result is not 0, false, "", NaN, [], or #Error! the record will be included in the response.
+
+      If combined with the view parameter, only records in that view which satisfy the formula will be returned.
+
+      Formulas should reference fields by their names in braces, eg '{Number of Guests} > 3'",
                 "type": "string",
               },
               "maxRecords": {
@@ -386,6 +391,7 @@ describe('MCP Tool - List Tool', () => {
                 "type": "integer",
               },
               "offset": {
+                "description": "If the previous response contained an "offset" field, use that value here to continue from where the last response left off.",
                 "type": "string",
               },
               "pageSize": {
@@ -995,7 +1001,7 @@ describe('MCP Tool - Delete Tool', () => {
   });
   it('should work for valid input', async () => {
     const validInput = {
-      recordIds: ['rec1234567890ABCD', 'rec1234567890ABCE'] as const,
+      recordIds: ['rec1234567890ABCD', 'rec1234567890ABCE'],
     } as const;
     mockFetcher.setReturnValue({
       "records": [

@@ -157,7 +157,7 @@ export interface TableClient<T extends TableSchema> {
     ): Promise<UpdateRecordsResponse<T["fields"]>>;
 
     /** Delete records by IDs */
-    delete(recordIds: RecordId[]): Promise<DeleteRecordsResponse>;
+    delete(recordIds: ReadonlyArray<RecordId>): Promise<DeleteRecordsResponse>;
 
     /** Upload an attachment to a record */
     uploadAttachment(
@@ -254,7 +254,7 @@ export function makeTableClient<T extends TableSchema>(
                 fetcher,
             });
         },
-        delete(recordIds: string[]) {
+        delete(recordIds: ReadonlyArray<RecordId>) {
             return deleteRecords({
                 recordIds,
                 baseId,
@@ -566,7 +566,7 @@ export async function deleteRecords(
         baseId,
         tableId,
     }: {
-        recordIds: string[];
+        recordIds: ReadonlyArray<RecordId>;
         baseId: BaseId;
         tableId: TableId;
         fetcher: Fetcher;
