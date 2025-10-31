@@ -26,14 +26,3 @@ export function makeZodForWrite<T extends readonly FieldSchema[]>(fields: T): z4
   const validator = z4.array(z4.strictObject(shape));
   return validator as z4.ZodArray<ZodForWriteRecord<T>>;
 }
-
-// const exampleFields = [
-//   testFields.DATE,
-//   testFields.SINGLE_SELECT,
-//   testFields.NUMBER,
-//   testFields.CREATED_TIME,
-// ] as const;
-
-// type ExampleZodForWriteRecord = ZodForWriteRecord<typeof exampleFields>;
-// type WriteRecordType = z4.infer<ExampleZodForWriteRecord>;
-
