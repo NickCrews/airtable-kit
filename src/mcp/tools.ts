@@ -2,7 +2,7 @@
  * MCP tools for Airtable operations - per-table typed tools
  */
 
-import type { TableSchema } from '../types.ts';
+import type { RecordId, TableSchema } from '../types.ts';
 import {
   type TableClient,
   type CreateArgs,
@@ -12,7 +12,6 @@ import {
   type ListRecordsOptions,
   type ListRecordsResponse,
   type GetRecordOptions,
-  type DeleteRecordsResponse,
 } from '../client/table-client.ts';
 import { type WriteRecord, type ReadRecordByName } from '../client/converters.ts';
 import * as z4 from 'zod/v4';
@@ -115,10 +114,16 @@ type GetInput = {
   recordId: string;
   options?: GetRecordOptions;
 };
+type GetToolResult<T extends TableSchema["fields"]> = {
+  id: string;
+  createdTime: string;
+  fields: ReadRecordByName<T>;
+  url: string;
+};
 
 export function makeGetTool<
   T extends TableSchema,
->(client: TableClient<T>): MCPToolDefinition<GetInput, { id: string; createdTime: string; fields: ReadRecordByName<T["fields"]> }> {
+>(client: TableClient<T>): MCPToolDefinition<GetInput, GetToolResult<T["fields"]>> {
   const zodInputValidator = z4.object({
     recordId: RecordIdSchema,
     options: z4.object({
@@ -128,8 +133,11 @@ export function makeGetTool<
   });
   async function execute(input: GetInput) {
     const validated = zodInputValidator.parse(input);
-    const result = await client.get(validated.recordId, validated.options);
-    return result;
+    const raw = await client.get(validated.recordId, validated.options);
+    return {
+      ...raw,
+      url: `https://airtable.com/${client.baseId}/${client.tableSchema.id}/${raw.id}`,
+    };
   }
   return {
     name: `Get from ${client.tableSchema.name}`,
@@ -147,29 +155,37 @@ type ListInput<T extends TableSchema> = {
 export function makeListTool<
   T extends TableSchema,
 >(client: TableClient<T>): MCPToolDefinition<ListInput<T>, ListRecordsResponse<T["fields"]>> {
+  const availableFieldNames = client.tableSchema.fields.map((f) => f.name);
   const zodInputValidator = z4.object({
     options: z4.object({
       timeZone: z4.enum(TIMEZONES).optional(),
       userLocale: z4.string().optional(),
-      pageSize: z4.number().int().min(1).max(100).optional(),
-      maxRecords: z4.number().int().min(1).optional(),
-      offset: z4.string().optional(),
+      pageSize: z4.int().min(1).max(100).optional(),
+      maxRecords: z4.int().min(1).optional(),
+      offset: z4.string().optional().describe('If the previous response contained an "offset" field, use that value here to continue from where the last response left off.'),
       view: z4.string().optional(),
       sort: z4.array(z4.object({
-        field: z4.string(),
+        field: z4.enum(availableFieldNames),
         direction: z4.enum(['asc', 'desc']).optional(),
       })).optional(),
-      filterByFormula: z4.string().optional(),
+      filterByFormula: z4.string().optional().describe(filterFormulaDescription),
       cellFormat: z4.enum(['json', 'string']).optional(),
-      fields: z4.array(z4.string()).optional(),
-      returnFieldsByFieldId: z4.boolean().optional(),
+      fields: z4.array(z4.enum(availableFieldNames)).optional().describe(
+        'If provided, only these fields will be included in the returned records.'
+      ),
       recordMetadata: z4.array(z4.enum(['commentCount'])).optional(),
     }).optional(),
   });
   async function execute(input: ListInput<T>) {
     const validated = zodInputValidator.parse(input);
-    const result = await client.list(validated.options);
-    return result;
+    const raw = await client.list(validated.options);
+    return {
+      ...raw,
+      records: raw.records.map((r) => ({
+        ...r,
+        url: `https://airtable.com/${client.baseId}/${client.tableSchema.id}/${r.id}`,
+      })),
+    };
   }
   return {
     name: `List ${client.tableSchema.name}`,
@@ -180,26 +196,39 @@ export function makeListTool<
   };
 }
 
+
+
 type DeleteInput = {
-  recordIds: string[];
+  recordIds: ReadonlyArray<RecordId>;
 };
+type DeleteToolResult = RecordId[];
 
 export function makeDeleteTool<
   T extends TableSchema,
->(client: TableClient<T>): MCPToolDefinition<DeleteInput, DeleteRecordsResponse> {
+>(client: TableClient<T>): MCPToolDefinition<DeleteInput, DeleteToolResult> {
   const zodInputValidator = z4.object({
     recordIds: z4.array(RecordIdSchema).min(1).max(10),
   });
   async function execute(input: DeleteInput) {
     const validated = zodInputValidator.parse(input);
-    const result = await client.delete(validated.recordIds);
-    return result;
+    const raw = await client.delete(validated.recordIds);
+    return raw.records.map((r) => r.id);
   }
   return {
     name: `Delete from ${client.tableSchema.name}`,
-    description: `Delete records by ID from the ${client.tableSchema.name} table.`,
+    description: `Delete records by ID from the ${client.tableSchema.name} table.
+
+    You can delete up to 10 records at a time.
+    
+    Returns the list of deleted record IDs.`,
     zodInputValidator: zodInputValidator as any,
     inputJsonSchema: z4.toJSONSchema(zodInputValidator),
     execute,
   };
 }
+
+const filterFormulaDescription = `A formula used to filter records. The formula will be evaluated for each record, and if the result is not 0, false, "", NaN, [], or #Error! the record will be included in the response.
+
+If combined with the view parameter, only records in that view which satisfy the formula will be returned.
+
+Formulas should reference fields by their names in braces, eg '{Number of Guests} > 3'`

@@ -366,7 +366,13 @@ describe('MCP Tool - List Tool', () => {
                 "type": "string",
               },
               "fields": {
+                "description": "If provided, only these fields will be included in the returned records.",
                 "items": {
+                  "enum": [
+                    "Email",
+                    "Full Name",
+                    "Phone",
+                  ],
                   "type": "string",
                 },
                 "type": "array",
@@ -396,9 +402,6 @@ describe('MCP Tool - List Tool', () => {
                 },
                 "type": "array",
               },
-              "returnFieldsByFieldId": {
-                "type": "boolean",
-              },
               "sort": {
                 "items": {
                   "additionalProperties": false,
@@ -411,6 +414,11 @@ describe('MCP Tool - List Tool', () => {
                       "type": "string",
                     },
                     "field": {
+                      "enum": [
+                        "Email",
+                        "Full Name",
+                        "Phone",
+                      ],
                       "type": "string",
                     },
                   },
@@ -957,7 +965,13 @@ describe('MCP Tool - Delete Tool', () => {
   });
   it('should create a delete tool with the correct metadata', () => {
     expect(deleteTool.name).toBe('Delete from users');
-    expect(deleteTool.description).toBe('Delete records by ID from the users table.');
+    expect(deleteTool.description).toMatchInlineSnapshot(`
+      "Delete records by ID from the users table.
+
+          You can delete up to 10 records at a time.
+          
+          Returns the list of deleted record IDs."
+    `);
     expect(deleteTool.inputJsonSchema).toMatchObject(
       {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -981,8 +995,8 @@ describe('MCP Tool - Delete Tool', () => {
   });
   it('should work for valid input', async () => {
     const validInput = {
-      recordIds: ['rec1234567890ABCD', 'rec1234567890ABCE'],
-    };
+      recordIds: ['rec1234567890ABCD', 'rec1234567890ABCE'] as const,
+    } as const;
     mockFetcher.setReturnValue({
       "records": [
         {
@@ -1000,17 +1014,6 @@ describe('MCP Tool - Delete Tool', () => {
       method: 'DELETE',
       path: '/appTaskBase/tblUsers?records%5B%5D=rec1234567890ABCD&records%5B%5D=rec1234567890ABCE',
     }]);
-    expect(result).toMatchObject({
-      records: [
-        {
-          "id": "rec1234567890ABCD",
-          "deleted": true,
-        },
-        {
-          "id": "rec1234567890ABCE",
-          "deleted": true,
-        }
-      ]
-    });
+    expect(result).toMatchObject(["rec1234567890ABCD", "rec1234567890ABCE"]);
   });
 });

@@ -30,7 +30,7 @@ export interface ListRecordsOptions<T extends ReadonlyArray<FieldSchema>> {
     /** View name or ID to filter by */
     view?: string;
     /** Sort configuration */
-    sort?: Array<{ field: string; direction?: 'asc' | 'desc' }>;
+    sort?: Array<{ field: FieldNameOrId<T>; direction?: 'asc' | 'desc' }>;
     /** Formula to filter records */
     filterByFormula?: string;
     /** Cell value format: "json" (default) or "string" */
