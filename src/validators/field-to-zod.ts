@@ -16,7 +16,7 @@ const ANY_VALIDATOR = z.any();
 const BARCODE_TYPES = [
   'barcode',
 ] as const satisfies FieldType[];
-const BARCODE_VALIDATOR = z.object({
+const BARCODE_VALIDATOR = z.strictObject({
   text: z.string(),
   type: z.string().optional(),
 });
@@ -29,7 +29,7 @@ const BOOLEAN_VALIDATOR = z.boolean();
 const COLLABORATOR_TYPES = [
   'singleCollaborator',
 ] as const satisfies FieldType[];
-const COLLABORATOR_VALIDATOR = z.object({
+const COLLABORATOR_VALIDATOR = z.strictObject({
   id: z.string(),
   email: z.email(),
   name: z.string().optional(),
@@ -53,7 +53,7 @@ const EMAIL_VALIDATOR = z.email();
 const MULTIPLE_ATTACHMENT_TYPES = [
   'multipleAttachments',
 ] as const satisfies FieldType[];
-const MULTIPLE_ATTACHMENT_VALIDATOR = z.array(z.object({
+const MULTIPLE_ATTACHMENT_VALIDATOR = z.array(z.strictObject({
   url: z.url(),
   filename: z.string(),
 }));
@@ -121,22 +121,22 @@ function makeMultipleSelectValidator<T extends fields.MultipleSelects>(field: T)
 
 /** Given a {@link FieldSchema}, infer the type of the Zod validator. */
 export type inferZod<F extends FieldSchema> =
-  F['type'] extends typeof ANY_TYPES[number] ? typeof ANY_VALIDATOR
-  : F['type'] extends typeof BARCODE_TYPES[number] ? typeof BARCODE_VALIDATOR
-  : F['type'] extends typeof BOOLEAN_TYPES[number] ? typeof BOOLEAN_VALIDATOR
-  : F['type'] extends typeof COLLABORATOR_TYPES[number] ? typeof COLLABORATOR_VALIDATOR
-  : F['type'] extends typeof DATE_TYPES[number] ? typeof DATE_VALIDATOR
-  : F['type'] extends typeof DATE_TIME_TYPES[number] ? typeof DATE_TIME_VALIDATOR
-  : F['type'] extends typeof EMAIL_TYPES[number] ? typeof EMAIL_VALIDATOR
-  : F['type'] extends typeof NUMBER_TYPES[number] ? typeof NUMBER_VALIDATOR
-  : F['type'] extends typeof MULTIPLE_COLLABORATOR_TYPES[number] ? typeof MULTIPLE_COLLABORATOR_VALIDATOR
-  : F['type'] extends typeof MULTIPLE_ATTACHMENT_TYPES[number] ? typeof MULTIPLE_ATTACHMENT_VALIDATOR
-  : F['type'] extends typeof MULTIPLE_RECORD_LINK_TYPES[number] ? typeof MULTIPLE_RECORD_LINK_VALIDATOR
-  : F['type'] extends typeof READONLY_TYPES[number] ? typeof READONLY_VALIDATOR
-  : F['type'] extends typeof STRING_TYPES[number] ? typeof STRING_VALIDATOR
-  : F['type'] extends typeof URL_TYPES[number] ? typeof URL_VALIDATOR
-  : F['type'] extends 'singleSelect' ? SingleSelectValidator<Extract<F, { type: 'singleSelect' }>>
-  : F['type'] extends 'multipleSelects' ? MultipleSelectValidator<Extract<F, { type: 'multipleSelects' }>>
+  F extends { type: typeof ANY_TYPES[number] } ? typeof ANY_VALIDATOR
+  : F extends { type: typeof BARCODE_TYPES[number] } ? typeof BARCODE_VALIDATOR
+  : F extends { type: typeof BOOLEAN_TYPES[number] } ? typeof BOOLEAN_VALIDATOR
+  : F extends { type: typeof COLLABORATOR_TYPES[number] } ? typeof COLLABORATOR_VALIDATOR
+  : F extends { type: typeof DATE_TYPES[number] } ? typeof DATE_VALIDATOR
+  : F extends { type: typeof DATE_TIME_TYPES[number] } ? typeof DATE_TIME_VALIDATOR
+  : F extends { type: typeof EMAIL_TYPES[number] } ? typeof EMAIL_VALIDATOR
+  : F extends { type: typeof NUMBER_TYPES[number] } ? typeof NUMBER_VALIDATOR
+  : F extends { type: typeof MULTIPLE_COLLABORATOR_TYPES[number] } ? typeof MULTIPLE_COLLABORATOR_VALIDATOR
+  : F extends { type: typeof MULTIPLE_ATTACHMENT_TYPES[number] } ? typeof MULTIPLE_ATTACHMENT_VALIDATOR
+  : F extends { type: typeof MULTIPLE_RECORD_LINK_TYPES[number] } ? typeof MULTIPLE_RECORD_LINK_VALIDATOR
+  : F extends { type: typeof READONLY_TYPES[number] } ? typeof READONLY_VALIDATOR
+  : F extends { type: typeof STRING_TYPES[number] } ? typeof STRING_VALIDATOR
+  : F extends { type: typeof URL_TYPES[number] } ? typeof URL_VALIDATOR
+  : F extends fields.SingleSelect ? SingleSelectValidator<Extract<F, fields.SingleSelect>>
+  : F extends fields.MultipleSelects ? MultipleSelectValidator<Extract<F, fields.MultipleSelects>>
   : never;
 
 type AiZod = inferZod<typeof testFields.AI_TEXT>;

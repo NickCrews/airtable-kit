@@ -15,14 +15,14 @@ export type ZodForWriteRecord<T extends readonly FieldSchema[]> = z4.ZodObject<
 >;
 
 /**
- * Create a Zod schema for writing (creating/updating) records
+ * Create a Zod schema for writing (creating/updating) a single record.
  */
-export function makeZodForWrite<T extends readonly FieldSchema[]>(fields: T): z4.ZodArray<ZodForWriteRecord<T>> {
+export function makeZodForWriteRecord<T extends readonly FieldSchema[]>(fields: T): ZodForWriteRecord<T> {
   const shape = Object.fromEntries(
-    fields.map((field) => {
-      return [field.name, fieldSchemaToZod(field).optional()];
-    })
-  );
-  const validator = z4.array(z4.strictObject(shape));
-  return validator as z4.ZodArray<ZodForWriteRecord<T>>;
+    fields.map((field) => [field.name, fieldSchemaToZod(field).optional()] as const)
+  ) as unknown as {
+      [K in T[number]as K["name"]]: z4.core.$ZodOptional<inferZod<K>>;
+    };
+  const validator = z4.strictObject(shape);
+  return validator;
 }
