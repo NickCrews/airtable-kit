@@ -586,6 +586,9 @@ export type ReadRecordByName<T extends ReadonlyArray<FieldSchema>> = {
 export type ReadRecordById<T extends ReadonlyArray<FieldSchema>> = {
     [K in T[number]["id"]]: inferRead<Extract<T[number], { id: K }>>;
 };
+export type WriteRecordById<T extends ReadonlyArray<FieldSchema>> = {
+    [K in T[number]["id"]]?: inferWrite<Extract<T[number], { id: K }>>;
+};
 
 export type WriteRecord<T extends ReadonlyArray<FieldSchema>> = {
     [K in T[number]["name"] | T[number]["id"]]?: K extends T[number]["name"]
@@ -622,17 +625,13 @@ function toAirtableValue<F extends FieldSchema>(
     return converter(value);
 }
 
-export type AirtableNativeRecord<T extends ReadonlyArray<FieldSchema>> = {
-    [K in T[number]["id"]]: inferWrite<Extract<T[number], { id: K }>>;
-};
-
 export function recordToAirtableRecord<
     V extends Partial<WriteRecord<F>>,
     F extends ReadonlyArray<FieldSchema>,
 >(
     record: V,
     fieldSchemas: F,
-): Partial<AirtableNativeRecord<F>> {
+): Partial<WriteRecordById<F>> {
     const result: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(record)) {
         const fieldSchema = lookupFieldSchema(k, fieldSchemas);
@@ -642,7 +641,7 @@ export function recordToAirtableRecord<
         );
         result[fieldSchema.id] = airtableValue;
     }
-    return result as Partial<AirtableNativeRecord<F>>;
+    return result as Partial<WriteRecordById<F>>;
 }
 
 function lookupFieldSchema(k: string, fieldSchemas: readonly FieldSchema[]) {

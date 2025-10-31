@@ -3,10 +3,12 @@ import { type FieldSchema } from "./fields/types.ts";
 export { FieldSchema };
 export { type FieldType } from "./fields/types.ts";
 
-export type FieldId = `fld${string}`;
+export type RecordId = `rec${string}`;
+export type FieldId<T extends FieldSchema = FieldSchema> = T["id"];
 export type TableId = `tbl${string}`;
 export type ViewId = `viw${string}`;
 export type BaseId = `app${string}`;
+export type AttachmentId = `att${string}`;
 
 /**
  * Schema for an Airtable table.

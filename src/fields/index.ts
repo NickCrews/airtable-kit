@@ -13,6 +13,7 @@
 import { type Timezone } from "./timezones.ts";
 import { type BrightColor, type SelectColor } from "./colors.ts";
 import { type FieldSchema } from "./types.ts";
+import { FieldId, TableId } from "../types.ts";
 
 interface FieldBase {
   id: `fld${string}`;
@@ -32,7 +33,7 @@ export type SelectChoice<
 
 export interface AiText extends FieldBase {
   type: "aiText";
-  options:
+  options?:
   | {
     state: "empty" | "loading" | "generated";
     isStale: boolean;
@@ -71,7 +72,7 @@ export interface Checkbox extends FieldBase {
 export interface Count extends FieldBase {
   type: "count";
   options?: {
-    recordLinkFieldId?: string;
+    recordLinkFieldId?: FieldId;
   };
 }
 export interface CreatedBy extends FieldBase {
@@ -142,7 +143,7 @@ export interface Formula extends FieldBase {
   options?: {
     isValid?: boolean;
     formula?: string;
-    referencedFieldIds?: readonly string[];
+    referencedFieldIds?: readonly FieldId[];
     result?: Omit<FieldSchema, "id" | "name">;
   };
 }
@@ -169,18 +170,18 @@ export interface MultipleLookupValues extends FieldBase {
   options?: {
     /** Is the field currently valid (e.g. false if the linked record field has been deleted) */
     isValid?: boolean;
-    recordLinkFieldId?: string;
-    fieldIdInLinkedTable?: string;
+    recordLinkFieldId?: FieldId;
+    fieldIdInLinkedTable?: FieldId;
     result?: Omit<FieldSchema, "id" | "name">;
   };
 }
 export interface MultipleRecordLinks extends FieldBase {
   type: "multipleRecordLinks";
   options?: {
-    linkedTableId?: string;
+    linkedTableId?: TableId;
     isReversed?: boolean;
     prefersSingleRecordLink?: boolean;
-    inverseLinkFieldId?: string;
+    inverseLinkFieldId?: FieldId;
   };
 }
 export interface MultipleSelects<C extends SelectChoice = SelectChoice>
@@ -223,8 +224,8 @@ export interface RichText extends FieldBase {
 export interface Rollup extends FieldBase {
   type: "rollup";
   options?: {
-    recordLinkFieldId?: string;
-    fieldIdInLinkedTable?: string;
+    recordLinkFieldId?: FieldId;
+    fieldIdInLinkedTable?: FieldId;
   };
 }
 export interface SingleCollaborator extends FieldBase {

@@ -1,4 +1,4 @@
-import { type BaseId, type TableId, type TableSchema, type FieldSchema } from "../types.ts";
+import { type RecordId, type BaseId, type TableId, type TableSchema, type FieldSchema, FieldId, AttachmentId } from "../types.ts";
 import { Fetcher, IntoFetcher } from "./fetcher.ts";
 import {
     inferRead,
@@ -6,15 +6,19 @@ import {
     type ReadRecordById,
     recordToAirtableRecord,
     type WriteRecord,
+    WriteRecordById,
 } from "./converters.ts";
 import { makeFetcher } from "./fetcher.ts";
+import { Timezone } from "../fields/timezones.ts";
+
+type FieldNameOrId<T extends ReadonlyArray<FieldSchema>> = T[number]['name'] | T[number]['id'];
 
 /**
  * Options for listing records
  */
-export interface ListRecordsOptions {
+export interface ListRecordsOptions<T extends ReadonlyArray<FieldSchema>> {
     /** Time zone for formatting dates when using cellFormat: "string" */
-    timeZone?: string;
+    timeZone?: Timezone;
     /** User locale for formatting dates when using cellFormat: "string" */
     userLocale?: string;
     /** Number of records per page (max 100, default 100) */
@@ -32,9 +36,7 @@ export interface ListRecordsOptions {
     /** Cell value format: "json" (default) or "string" */
     cellFormat?: 'json' | 'string';
     /** Fields to include (names or IDs) */
-    fields?: string[];
-    /** Return fields keyed by field ID instead of name */
-    returnFieldsByFieldId?: boolean;
+    fields?: FieldNameOrId<T>[];
     /** Include metadata like comment count */
     recordMetadata?: Array<'commentCount'>;
 }
@@ -42,14 +44,14 @@ export interface ListRecordsOptions {
 /**
  * Response from listing records
  */
-export interface ListRecordsResponse<T> {
+export interface ListRecordsResponse<T extends ReadonlyArray<FieldSchema>> {
     records: Array<{
-        id: string;
-        createdTime: string;
-        fields: T;
+        id: RecordId;
+        createdTime: Timestamp;
+        fields: ReadRecordByName<T>;
         commentCount?: number;
     }>;
-    offset?: string;
+    offset?: RecordId;
 }
 
 /**
@@ -58,8 +60,12 @@ export interface ListRecordsResponse<T> {
 export interface GetRecordOptions {
     /** Cell value format: "json" (default) or "string" */
     cellFormat?: 'json' | 'string';
-    /** Return fields keyed by field ID instead of name */
-    returnFieldsByFieldId?: boolean;
+}
+
+export interface GetRecordResponse<T extends ReadonlyArray<FieldSchema>> {
+    id: RecordId;
+    createdTime: Timestamp;
+    fields: ReadRecordByName<T>;
 }
 
 /**
@@ -71,8 +77,6 @@ export interface UpdateRecordsOptions {
         /** Fields to use as external ID for matching (1-3 fields) */
         fieldsToMergeOn: string[];
     };
-    /** Return fields keyed by field ID instead of name */
-    returnFieldsByFieldId?: boolean;
     /** Enable typecasting for string values */
     typecast?: boolean;
     /** Use destructive update (PUT) instead of partial update (PATCH) */
@@ -82,18 +86,18 @@ export interface UpdateRecordsOptions {
 /**
  * Response from updating records
  */
-export interface UpdateRecordsResponse<T> {
+export interface UpdateRecordsResponse<T extends ReadonlyArray<FieldSchema>> {
     records: Array<{
-        id: string;
-        createdTime: string;
-        fields: T;
+        id: RecordId;
+        createdTime: Timestamp;
+        fields: ReadRecordByName<T>;
     }>;
     details?: {
         message: 'partialSuccess';
         reasons: Array<'attachmentsFailedUploading' | 'attachmentUploadRateIsTooHigh'>;
     };
-    createdRecords?: string[];
-    updatedRecords?: string[];
+    createdRecords?: RecordId[];
+    updatedRecords?: RecordId[];
 }
 
 /**
@@ -101,7 +105,7 @@ export interface UpdateRecordsResponse<T> {
  */
 export interface DeleteRecordsResponse {
     records: Array<{
-        id: string;
+        id: RecordId;
         deleted: true;
     }>;
 }
@@ -118,37 +122,13 @@ export interface UploadAttachmentOptions {
     filename: string;
 }
 
-export type CreateArgs<T extends ReadonlyArray<FieldSchema>> = Partial<
-    WriteRecord<T>
->[];
+export type CreateArgs<T extends ReadonlyArray<FieldSchema>> = Array<Partial<WriteRecord<T>>>;
 
-type WithRecordId<T extends Record<string, any> = Record<string, any>> = T & { "id": `rec${string}` };
-// We could also consider using Symbols,
-// similar to how Drizzle-ORM uses a symbol to store metadata on their API objects,
-// such as the table name on a Table object:
-// https://github.com/drizzle-team/drizzle-orm/blob/ad4ddd444d066b339ffd5765cb6ec3bf49380189/drizzle-orm/src/table.ts#L20
-// const RecordId: unique symbol = Symbol.for("airtable-kit:RecordId");
-// But since we have control and can ensure no field is named "id",
-// we can use a simple string property for now.
-export type CreateResult<T extends ReadonlyArray<FieldSchema>> = Array<WithRecordId<ReadRecordByName<T>>>;
-
-// type WithRecordId<T extends BaseRecord = BaseRecord> = T & {
-//     [K in typeof RecordIdSymbol]: string;
-// };
-
-// const myRecord = {
-//     a: 123,
-//     b: "hello",
-//     recordId: "not actually the id",
-//     // [Symbol.for("airtable-kit:RecordId")]: "rec123",
-//     [RecordId]: "rec123",
-//     // [RECORD_ID]: "rec456",
-//     // } as const;
-// } as const satisfies WithRecordId;
-
-// const id1 = myRecord[Symbol.for("recordId")];
-// const id2 = myRecord[Symbol.for("wrong")];
-// const id3 = myRecord[RecordId];
+export type CreateResult<T extends ReadonlyArray<FieldSchema>> = {
+    id: RecordId,
+    fields: ReadRecordByName<T>,
+    createdTime: Timestamp,
+}[];
 
 /**
  * A client to interact with a specific table within an Airtable base.
@@ -156,39 +136,37 @@ export type CreateResult<T extends ReadonlyArray<FieldSchema>> = Array<WithRecor
  * Usually created via {@link makeTableClient}.
  */
 export interface TableClient<T extends TableSchema> {
+    /** The ID of the base this table belongs to, e.g. "appXXXXXXXXXXXXXXX" */
     baseId: BaseId;
+    /** The {@link TableSchema} of the table this client interacts with */
     tableSchema: T;
 
     /** Insert records into the table */
     create(values: CreateArgs<T["fields"]>): Promise<CreateResult<T["fields"]>>;
 
     /** List records from the table with optional filtering and pagination */
-    list(options?: ListRecordsOptions): Promise<ListRecordsResponse<ReadRecordByName<T["fields"]>>>;
+    list(options?: ListRecordsOptions<T["fields"]>): Promise<ListRecordsResponse<T["fields"]>>;
 
     /** Get a single record by ID */
-    get(recordId: string, options?: GetRecordOptions): Promise<{
-        id: string;
-        createdTime: string;
-        fields: ReadRecordByName<T["fields"]>;
-    }>;
+    get(recordId: RecordId, options?: GetRecordOptions): Promise<GetRecordResponse<T["fields"]>>;
 
     /** Update records (PATCH by default, PUT if destructive=true) */
     update(
         records: Array<{ id?: string; fields: Partial<WriteRecord<T["fields"]>> }>,
         options?: UpdateRecordsOptions
-    ): Promise<UpdateRecordsResponse<ReadRecordByName<T["fields"]>>>;
+    ): Promise<UpdateRecordsResponse<T["fields"]>>;
 
     /** Delete records by IDs */
-    delete(recordIds: string[]): Promise<DeleteRecordsResponse>;
+    delete(recordIds: RecordId[]): Promise<DeleteRecordsResponse>;
 
     /** Upload an attachment to a record */
     uploadAttachment(
-        recordId: string,
+        recordId: RecordId,
         attachmentFieldIdOrName: string,
         options: UploadAttachmentOptions
     ): Promise<{
-        id: string;
-        createdTime: string;
+        id: RecordId;
+        createdTime: Timestamp;
         fields: Record<string, unknown>;
     }>;
 }
@@ -244,7 +222,7 @@ export function makeTableClient<T extends TableSchema>(
                 fetcher,
             });
         },
-        list(options?: ListRecordsOptions) {
+        list(options?: ListRecordsOptions<T["fields"]>) {
             return list<T["fields"]>({
                 options,
                 fieldSpecs,
@@ -253,9 +231,10 @@ export function makeTableClient<T extends TableSchema>(
                 fetcher,
             });
         },
-        get(recordId: string, options?: GetRecordOptions) {
+        get(recordId: RecordId, options?: GetRecordOptions) {
             return getRecord<T["fields"]>({
                 recordId,
+                fieldSpecs,
                 options,
                 baseId,
                 tableId,
@@ -284,8 +263,8 @@ export function makeTableClient<T extends TableSchema>(
             });
         },
         uploadAttachment(
-            recordId: string,
-            attachmentFieldIdOrName: string,
+            recordId: RecordId,
+            attachmentFieldIdOrName: FieldId | string,
             options: UploadAttachmentOptions
         ) {
             return uploadAttachment({
@@ -345,7 +324,8 @@ export async function create<T extends ReadonlyArray<FieldSchema>>(
     });
     const result = raw.records.map((record) => ({
         id: record.id,
-        ...convertFieldIdKeysToNames(record.fields, fieldSpecs),
+        fields: convertFieldIdKeysToNames(record.fields, fieldSpecs),
+        createdTime: record.createdTime,
     }));
     return result;
 }
@@ -367,6 +347,18 @@ function convertFieldIdKeysToNames<T extends ReadonlyArray<FieldSchema>>(
     })) as ReadRecordByName<T>;
 }
 
+/** ISO 8601 format, eg `2024-01-01T12:00:00.000Z` */
+type Timestamp = string;
+type ListRawResponse<T extends ReadonlyArray<FieldSchema>> = {
+    records: Array<{
+        id: RecordId;
+        createdTime: Timestamp;
+        fields: RawReadRecord<T>;
+        commentCount: number;
+    }>;
+    offset?: RecordId;
+};
+
 export async function list<T extends ReadonlyArray<FieldSchema>>(
     {
         options,
@@ -375,14 +367,15 @@ export async function list<T extends ReadonlyArray<FieldSchema>>(
         baseId,
         tableId,
     }: {
-        options?: ListRecordsOptions;
+        options?: ListRecordsOptions<T>;
         fieldSpecs: T;
         baseId: BaseId;
         tableId: TableId;
         fetcher: Fetcher;
     },
-): Promise<ListRecordsResponse<ReadRecordByName<T>>> {
+): Promise<ListRecordsResponse<T>> {
     const queryParams = new URLSearchParams();
+    queryParams.append('returnFieldsByFieldId', 'true');
 
     if (options?.timeZone) queryParams.append('timeZone', options.timeZone);
     if (options?.userLocale) queryParams.append('userLocale', options.userLocale);
@@ -392,7 +385,6 @@ export async function list<T extends ReadonlyArray<FieldSchema>>(
     if (options?.view) queryParams.append('view', options.view);
     if (options?.filterByFormula) queryParams.append('filterByFormula', options.filterByFormula);
     if (options?.cellFormat) queryParams.append('cellFormat', options.cellFormat);
-    if (options?.returnFieldsByFieldId) queryParams.append('returnFieldsByFieldId', 'true');
 
     if (options?.sort) {
         options.sort.forEach((s, i) => {
@@ -416,53 +408,95 @@ export async function list<T extends ReadonlyArray<FieldSchema>>(
     const query = queryParams.toString();
     const path = `/${baseId}/${tableId}${query ? `?${query}` : ''}`;
 
-    const result = await fetcher.fetch({
+    const raw = await fetcher.fetch<ListRawResponse<T>>({
         path,
         method: "GET",
     });
 
-    return result as ListRecordsResponse<ReadRecordByName<T>>;
+    return {
+        records: raw.records.map((record) => {
+            return {
+                id: record.id,
+                createdTime: record.createdTime,
+                fields: convertFieldIdKeysToNames(record.fields, fieldSpecs),
+                commentCount: record.commentCount,
+            };
+        }),
+    } as ListRecordsResponse<T>;
 }
+
+type GetRawResponse<T extends ReadonlyArray<FieldSchema>> = {
+    id: RecordId;
+    createdTime: Timestamp;
+    fields: RawReadRecord<T>;
+};
 
 export async function getRecord<T extends ReadonlyArray<FieldSchema>>(
     {
         recordId,
+        fieldSpecs,
         options,
         fetcher,
         baseId,
         tableId,
     }: {
-        recordId: string;
+        recordId: RecordId;
+        fieldSpecs: T;
         options?: GetRecordOptions;
         baseId: BaseId;
         tableId: TableId;
         fetcher: Fetcher;
     },
 ): Promise<{
-    id: string;
-    createdTime: string;
+    id: RecordId;
+    createdTime: Timestamp;
     fields: ReadRecordByName<T>;
 }> {
     const queryParams = new URLSearchParams();
+    queryParams.append('returnFieldsByFieldId', 'true');
 
     if (options?.cellFormat) queryParams.append('cellFormat', options.cellFormat);
-    if (options?.returnFieldsByFieldId) queryParams.append('returnFieldsByFieldId', 'true');
 
     const query = queryParams.toString();
     const path = `/${baseId}/${tableId}/${recordId}${query ? `?${query}` : ''}`;
 
-    const result = await fetcher.fetch({
+    const result = await fetcher.fetch<GetRawResponse<T>>({
         path,
         method: "GET",
     });
 
-    return result as {
-        id: string;
-        createdTime: string;
-        fields: ReadRecordByName<T>;
-    };
+    return {
+        id: result.id,
+        createdTime: result.createdTime,
+        fields: convertFieldIdKeysToNames(result.fields, fieldSpecs),
+    }
 }
 
+// https://airtable.com/developers/web/api/update-multiple-records
+type UpdateRawRequestBody<T extends ReadonlyArray<FieldSchema>> = {
+    records: Array<{
+        id?: string;
+        fields: Partial<WriteRecordById<T>>;
+    }>;
+    performUpsert?: {
+        fieldsToMergeOn: string[];
+    };
+    returnFieldsByFieldId?: boolean;
+    typecast?: boolean;
+};
+type UpdateRawResponse<T extends ReadonlyArray<FieldSchema>> = {
+    records: Array<{
+        id: RecordId;
+        createdTime: Timestamp;
+        fields: RawReadRecord<T>;
+    }>;
+    details?: {
+        message: 'partialSuccess';
+        reasons: Array<'attachmentsFailedUploading' | 'attachmentUploadRateIsTooHigh'>;
+    };
+    createdRecords?: RecordId[];
+    updatedRecords?: RecordId[];
+};
 export async function update<T extends ReadonlyArray<FieldSchema>>(
     {
         records,
@@ -479,46 +513,52 @@ export async function update<T extends ReadonlyArray<FieldSchema>>(
         tableId: TableId;
         fetcher: Fetcher;
     },
-): Promise<UpdateRecordsResponse<ReadRecordByName<T>>> {
-    const convertedToAirtable = records.map((record) => {
-        const converted: any = {
-            fields: recordToAirtableRecord(
-                record.fields as Partial<WriteRecord<T>>,
-                fieldSpecs,
-            ),
-        };
-        if (record.id) {
-            converted.id = record.id;
-        }
-        return converted;
-    });
-
-    const queryParams = new URLSearchParams();
-    if (options?.returnFieldsByFieldId) queryParams.append('returnFieldsByFieldId', 'true');
-    if (options?.typecast) queryParams.append('typecast', 'true');
-
-    const query = queryParams.toString();
-    const path = `/${baseId}/${tableId}${query ? `?${query}` : ''}`;
-
-    const data: any = { records: convertedToAirtable };
-
+): Promise<UpdateRecordsResponse<T>> {
+    const rawRequestBody: UpdateRawRequestBody<T> = {
+        records: records.map((record) => {
+            const converted: UpdateRawRequestBody<T>['records'][number] = {
+                fields: recordToAirtableRecord(
+                    record.fields as Partial<WriteRecord<T>>,
+                    fieldSpecs,
+                ),
+            };
+            if (record.id) {
+                converted.id = record.id;
+            }
+            return converted;
+        }),
+        returnFieldsByFieldId: true,
+    };
+    if (options?.typecast) rawRequestBody.typecast = true;
     if (options?.performUpsert) {
-        data.performUpsert = {
+        rawRequestBody.performUpsert = {
             fieldsToMergeOn: options.performUpsert.fieldsToMergeOn,
         };
     }
 
+    const path = `/${baseId}/${tableId}`;
     const method = options?.destructive ? "PUT" : "PATCH";
-
-    const result = await fetcher.fetch({
+    const rawResponse = await fetcher.fetch<UpdateRawResponse<T>>({
         path,
         method,
-        data,
+        data: rawRequestBody,
     });
 
-    return result as UpdateRecordsResponse<ReadRecordByName<T>>;
+    return {
+        records: rawResponse.records.map((record: any) => {
+            return {
+                id: record.id,
+                createdTime: record.createdTime,
+                fields: convertFieldIdKeysToNames(record.fields, fieldSpecs),
+            };
+        }),
+        details: rawResponse.details,
+        createdRecords: rawResponse.createdRecords,
+        updatedRecords: rawResponse.updatedRecords,
+    } as UpdateRecordsResponse<T>;
 }
 
+type DeleteRawResponse = DeleteRecordsResponse;
 export async function deleteRecords(
     {
         recordIds,
@@ -540,15 +580,15 @@ export async function deleteRecords(
     const query = queryParams.toString();
     const path = `/${baseId}/${tableId}${query ? `?${query}` : ''}`;
 
-    const result = await fetcher.fetch({
+    const result = await fetcher.fetch<DeleteRawResponse>({
         path,
         method: "DELETE",
     });
 
-    return result as DeleteRecordsResponse;
+    return result;
 }
 
-export async function uploadAttachment(
+export async function uploadAttachment<T extends FieldId | string>(
     {
         recordId,
         attachmentFieldIdOrName,
@@ -557,17 +597,17 @@ export async function uploadAttachment(
         baseId,
         tableId,
     }: {
-        recordId: string;
-        attachmentFieldIdOrName: string;
+        recordId: RecordId;
+        attachmentFieldIdOrName: T;
         options: UploadAttachmentOptions;
         baseId: BaseId;
         tableId: TableId;
         fetcher: Fetcher;
     },
 ): Promise<{
-    id: string;
-    createdTime: string;
-    fields: Record<string, unknown>;
+    id: RecordId;
+    createdTime: Timestamp;
+    fields: { FieldId: [AttachmentDetails] };
 }> {
     const path = `/${baseId}/${tableId}/${recordId}/${attachmentFieldIdOrName}/uploadAttachment`;
 
@@ -582,8 +622,23 @@ export async function uploadAttachment(
     });
 
     return result as {
-        id: string;
-        createdTime: string;
-        fields: Record<string, unknown>;
+        id: RecordId;
+        createdTime: Timestamp;
+        fields: { FieldId: [AttachmentDetails] };
     };
+}
+
+// {
+// "filename": "sample.txt",
+// "id": "att00000000000000",
+// "size": 11,
+// "type": "text/plain",
+// "url": "https://v5.airtableusercontent.com/v3/u/29/29/1716940800000/ffhiecnieIwxisnIBDSAln/foDeknw_G5CdkdPW1j-U0yUCX9YSaE1EJft3wvXb85pnTY1sKZdYeFvKpsM-fqOa6Bnu5MQVPA_ApINEUXL_E3SAZn6z01VN9Pn9SluhSy4NoakZGapcvl4tuN3jktO2Dt7Ck_gh4oMdsrcV8J-t_A/53m17XmDDHsNtIqzM1PQVnRKutK6damFgNNS5WCaTbI"
+// }
+type AttachmentDetails = {
+    filename: string;
+    id: AttachmentId;
+    size: number;
+    type: string;
+    url: string;
 }

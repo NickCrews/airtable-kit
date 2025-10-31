@@ -5,6 +5,7 @@
  */
 
 export {
+    type RecordId,
     type FieldId,
     type TableId,
     type ViewId,

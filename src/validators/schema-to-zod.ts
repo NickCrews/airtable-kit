@@ -5,18 +5,35 @@
 
 import * as z4 from "zod/v4";
 import { type FieldSchema } from "../types.ts";
-import { fieldSchemaToZod } from "./field-to-zod.ts";
-import { CreateArgs } from "../client/table-client.ts";
-import { inferWrite } from "../client/converters.ts";
+import { fieldSchemaToZod, type inferZod } from "./field-to-zod.ts";
+
+export type ZodForWriteRecord<T extends readonly FieldSchema[]> = z4.ZodObject<
+  {
+    [K in T[number]as K["name"]]: z4.core.$ZodOptional<inferZod<K>>;
+  },
+  z4.core.$strict
+>;
 
 /**
  * Create a Zod schema for writing (creating/updating) records
  */
-export function makeZodForWrite<T extends readonly FieldSchema[]>(fields: T) {
-  const shape: Record<T[number]["name"], z4.ZodType<inferWrite<T[number]>>> = Object.fromEntries(
+export function makeZodForWrite<T extends readonly FieldSchema[]>(fields: T): z4.ZodArray<ZodForWriteRecord<T>> {
+  const shape = Object.fromEntries(
     fields.map((field) => {
-      return [field.name as inferWrite<typeof field>, fieldSchemaToZod(field).optional()] as const;
+      return [field.name, fieldSchemaToZod(field).optional()];
     })
   );
-  return z4.array(z4.strictObject(shape)) as z4.ZodType<CreateArgs<T>>;
+  const validator = z4.array(z4.strictObject(shape));
+  return validator as z4.ZodArray<ZodForWriteRecord<T>>;
 }
+
+// const exampleFields = [
+//   testFields.DATE,
+//   testFields.SINGLE_SELECT,
+//   testFields.NUMBER,
+//   testFields.CREATED_TIME,
+// ] as const;
+
+// type ExampleZodForWriteRecord = ZodForWriteRecord<typeof exampleFields>;
+// type WriteRecordType = z4.infer<ExampleZodForWriteRecord>;
+
