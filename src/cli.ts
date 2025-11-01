@@ -159,7 +159,7 @@ export async function cli(args: string[], fetcher?: IntoFetcher, console: Consol
       const providedFormat = values.format as "ts" | "js" | undefined;
       const finalBaseName = values["base-name"] ?? (providedOut ? getBaseName(providedOut) : baseId);
       const finalFormat = providedFormat ?? (providedOut?.endsWith('.js') ? 'js' : providedOut?.endsWith('.ts') ? 'ts' : undefined) ?? 'ts';
-      const outPath = providedOut ?? `./${finalBaseName}-schema.${finalFormat}`;
+      const outPath = providedOut ?? `./${finalBaseName}.${finalFormat}`;
       await doCodegenBase({
         baseId: baseId as BaseId,
         fetcher: fetcher ?? apiKey,
@@ -209,7 +209,6 @@ function getApiKey(apiKeyRaw: string | undefined): string {
     const envFileContent = fs.readFileSync('.env', 'utf-8');
     const parsed = parseEnv(envFileContent);
     const fromEnvFile = parsed.AIRTABLE_API_KEY;
-    console.log('Loaded AIRTABLE_API_KEY from .env file');
     if (fromEnvFile) {
       return fromEnvFile;
     }

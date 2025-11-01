@@ -40,7 +40,7 @@ Run the codegen CLI to fetch and save all your base schemas to local files:
 npx airtable-kit codegen all --api-key YOUR_API_KEY
 ```
 
-This will create a files under `./schemas/`, one per base.
+This will fetch all the bases that the API key has access for, and create files under `./schemas/`, one per base.
 (If you instead wanted to just generate a single base schema, see `npx airtable-kit codegen base --help`.)
 Here is an example generated schema file for a base called `Project Tracker`, saved as `schemas/projectTracker.ts`:
 
@@ -91,14 +91,13 @@ Note how this is almost a direct 1:1 correspondence with the raw JSON from the
 `GET https://api.airtable.com/v0/meta/bases/{baseId}/tables` endpoint.
 There are a few minor differences, such as table and field names are converted
 to camelCase for easier consumption in javascript/TypeScript,
-and we add the top-level `id: "appXXXXXXXXXXXXXX"` and `name: "myBase"` fields,
+and we add the top-level `id: "appXXXXXXXXXXXXXX"` and `name: "projectTracker"` fields,
 which aren't present in the raw JSON.
 
 If you dropped the `as const` you would have a plain javascript file if you
-are working with javascript. You can get the CLI to do this simply by changing the
-output file extension from `.ts` to `.ts`.
+are working with javascript. You can get the CLI to do this with the `--format js` flag.
 
-There is also a programmatic way to get and save the schema.
+There is also a typescript API to get and save the schema.
 Read the code to see how.
 
 Now, use the generated schema to create a type-safe Airtable client:
