@@ -156,7 +156,7 @@ export async function cli(args: string[], fetcher?: IntoFetcher, console: Consol
         throw new Error(err);
       }
       const providedOut = values.outfile;
-      const providedFormat = values.format as "ts" | "js" | undefined;
+      const providedFormat = getFormat(values.format);
       const finalBaseName = values["base-name"] ?? (providedOut ? getBaseName(providedOut) : baseId);
       const finalFormat = providedFormat ?? (providedOut?.endsWith('.js') ? 'js' : providedOut?.endsWith('.ts') ? 'ts' : undefined) ?? 'ts';
       const outPath = providedOut ?? `./${finalBaseName}.${finalFormat}`;
@@ -170,12 +170,10 @@ export async function cli(args: string[], fetcher?: IntoFetcher, console: Consol
       return;
     }
     if (sub === 'all') {
-      const outDir = values.outdir ?? './schemas/';
-      const providedFormat = values.format as "ts" | "js" | undefined;
       await doCodegenAll({
         fetcher: fetcher ?? apiKey,
-        outDir,
-        format: providedFormat,
+        outDir: values.outdir ?? './schemas/',
+        format: getFormat(values.format),
       }, console);
       return;
     }
@@ -216,4 +214,17 @@ function getApiKey(apiKeyRaw: string | undefined): string {
     // ignore
   }
   throw new Error('No Airtable API key provided. Please provide via --api-key or AIRTABLE_API_KEY env var (also supported in .env file).');
+}
+
+function getFormat(formatRaw: string | undefined): "ts" | "js" | undefined {
+  if (formatRaw === "ts") {
+    return "ts";
+  }
+  if (formatRaw === "js") {
+    return "js";
+  }
+  if (formatRaw === undefined) {
+    return undefined;
+  }
+  throw new Error(`Invalid format: ${formatRaw}. Must be "ts" or "js".`);
 }

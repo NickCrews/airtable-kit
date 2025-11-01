@@ -63,18 +63,18 @@ describe('CLI', () => {
       expect(fs.readFileSync(`${tmpDir}/schemas/frEvents.js`, 'utf-8')).toMatchSnapshot();
     });
 
-    it('should default outfile to ./<BASE_NAME>-schema.ts when omitted', async (ctx) => {
+    it('should default outfile to ./<BASE_NAME>.ts when omitted', async (ctx) => {
       const tmpDir = inTmpDir(ctx);
       await mockedCli(["codegen", "base", "appTestBase", "--api-key", "patTest123"]);
       expect(mockFetch).toHaveBeenCalledWith({ path: '/meta/bases/appTestBase/tables' });
-      expect(fs.readFileSync(`${tmpDir}/appTestBase-schema.ts`, 'utf-8')).toMatchSnapshot();
+      expect(fs.readFileSync(`${tmpDir}/appTestBase.ts`, 'utf-8')).toMatchSnapshot();
     });
 
     it('should generate all base schemas into outdir', async (ctx) => {
       const tmpDir = inTmpDir(ctx);
       await mockedCli(["codegen", "all", "--api-key", "patTest123", "--outdir", "schemas", "--format", "ts"]);
-      expect(fs.readFileSync(`${tmpDir}/schemas/taskBase-schema.ts`, 'utf-8')).toMatchSnapshot();
-      expect(fs.existsSync(`${tmpDir}/schemas/otherBase-schema.ts`)).toBe(true);
+      expect(fs.readFileSync(`${tmpDir}/schemas/taskBase.ts`, 'utf-8')).toMatchSnapshot();
+      expect(fs.existsSync(`${tmpDir}/schemas/otherBase.ts`)).toBe(true);
     });
   });
 
@@ -113,6 +113,12 @@ describe('CLI', () => {
     it('should require api-key for codegen base command', async () => {
       await expect(
         async () => await mockedCli(["codegen", "base", "appTestBase"])
+      ).rejects.toThrow();
+    });
+
+    it('should error for bogus --format', async () => {
+      await expect(
+        async () => await mockedCli(["codegen", "base", "appTestBase", "--api-key", "patTest123", "--format", "py"])
       ).rejects.toThrow();
     });
   });
