@@ -68,7 +68,7 @@ async function doCodegenAll({
   const finalFormat = format ?? "ts";
   for (const baseSchema of baseSchemas) {
     const safeName = toIdentifier(baseSchema.name) || baseSchema.name;
-    const outPath = path.join(outDir, `${safeName}-schema.${finalFormat}`);
+    const outPath = path.join(outDir, `${safeName}.${finalFormat}`);
     await generateCode(baseSchema, { format: finalFormat, outPath });
     console.log(`  • Generated ${outPath}`);
   }
