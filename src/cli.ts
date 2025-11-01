@@ -54,23 +54,31 @@ function getHelp() {
   return `Airtable Kit CLI
 
 Usage:
-  npx airtable-kit codegen --base-id <BASE_ID> --api-key <API_KEY> --output <OUTPUT_PATH> [--base-name <BASE_NAME>]
+  npx airtable-kit codegen base <BASE_ID> --api-key <API_KEY> [--format <ts|js>] [--outfile <OUTPUT_FILE>] [--base-name <BASE_NAME>] 
+  npx airtable-kit codegen all            --api-key <API_KEY> [--format <ts|js>] [--outdir <OUTPUT_DIR>] 
   npx airtable-kit --help
   npx airtable-kit --version
 
 Commands:
-  codegen          Generate TypeScript or JavaScript schema file for an Airtable base.
+  codegen base    Generate a ts/js schema file for a specific Airtable base.
+  codegen all     Generate ts/js schema files for all Airtable bases.
 
-Options:
-  --base-id       The ID of the Airtable base to generate the schema from. (required)
+Global Options:
   --api-key       Your Airtable API key or a custom fetcher to use for fetching the schema. (required)
-  --output        The output path for the generated schema file (e.g., schemas/myBase.ts). (required)
-                  Can be a .ts or .js file, and the output format will be inferred accordingly.
-  --base-name     Optional custom name for the base in the generated schema.
-                  If not provided, will be inferred from the output filename.
-  
+  --format        The output format: "ts" for TypeScript or "js" for JavaScript.
+                  Default is to infer from the output filename extension if provided, otherwise "ts".
   --help          Show this help message.
   --version       Show the version number.
+
+Options for "codegen base" command:
+  <BASE_ID>       The ID of the Airtable base to generate the schema from.
+  --base-name     Optional custom name for the base in the generated schema.
+                  If not provided, will be inferred from the output filename,
+                  if provided, or else the base ID.
+  --outfile       The output file path for the generated schema file. (default: ./<BASE_NAME>-schema.ts or .js)
+
+Options for "codegen all" command:
+  --outdir       The output directory for the generated schema files (default: ./schemas/).
 `.trim();
 }
 

@@ -20,4 +20,4 @@ export {
     type FetchArgs,
     type FetchFunction,
 } from "./fetcher.ts";
-export { fetchBaseSchema } from "./schema-fetcher.ts";
+export { fetchBaseSchema, fetchAllSchemas } from "./schema-fetcher.ts";

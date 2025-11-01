@@ -16,7 +16,11 @@ export type FetchArgs = {
 export type FetchFunction = <T = unknown>(args: FetchArgs) => Promise<T>;
 
 /**
- * A Fetcher is an object with a `fetch` matching the {@link FetchFunction} type.
+ * A Fetcher is an interface for actually making calls to the airtable web API.
+ *
+ * This is provided for injecting custom fetch behavior, and for mocking in tests.
+ *
+ * This is simply an object with a `fetch` matching the {@link FetchFunction} type.
  */
 export type Fetcher = {
     fetch: FetchFunction;
