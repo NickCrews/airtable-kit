@@ -6,10 +6,10 @@
 import { parseArgs, parseEnv } from 'node:util';
 import path from "node:path";
 import process from 'node:process';
-import fs, { glob } from 'node:fs';
+import fs from 'node:fs';
 
-import { BaseId, fetchBaseSchema } from "./index.ts";
-import { fetchAllSchemas } from "./client/index.ts";
+import { BaseId } from "./types.ts";
+import { fetchAllSchemas, fetchBaseSchema } from "./client/index.ts";
 import { generateCode } from "./codegen/index.ts";
 import { IntoFetcher } from './client/fetcher.ts';
 import { toIdentifier } from './codegen/identifiers.ts';
