@@ -1,8 +1,3 @@
-#!/usr/bin/env node
-/**
- * CLI for airtable-kit
- */
-
 import { parseArgs, parseEnv } from 'node:util';
 import path from "node:path";
 import process from 'node:process';
@@ -222,11 +217,4 @@ function getApiKey(apiKeyRaw: string | undefined): string {
     // ignore
   }
   throw new Error('No Airtable API key provided. Please provide via --api-key or AIRTABLE_API_KEY env var (also supported in .env file).');
-}
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  cli(process.argv.slice(2)).catch((error) => {
-    console.error("❌ Error:", (error as Error).message);
-    process.exit(1);
-  });
 }

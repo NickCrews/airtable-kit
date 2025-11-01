@@ -14,7 +14,7 @@
   },
   "main": "./dist/index.cjs",
   "types": "./dist/index.d.cts",
-  "bin": "./dist/cli.cjs",
+  "bin": "./dist/bin.cjs",
   "exports": {
     ".": {
       "types": "./dist/index.d.cts",
@@ -55,7 +55,7 @@
     "zshy": "^0.4.4"
   },
   "zshy": {
-    "bin": "./src/cli.ts",
+    "bin": "./src/bin.ts",
     "exports": {
       ".": "./src/index.ts",
       "./fields": "./src/fields/index.ts",
