@@ -20,7 +20,8 @@ import { toIdentifier } from '../codegen/identifiers.ts';
 import { RecordIdSchema } from '../validators/index.ts';
 import { TIMEZONES } from '../fields/timezones.ts';
 
-export interface MCPToolDefinition<TInput, TOutput> {
+export interface MCPToolDefinition<TInput = any, TOutput = any> {
+  /**Must start with a letter or an underscore. Must be alphameric (a-z, A-Z, 0-9), underscores (_), dots (.), colons (:), or dashes (-), with a maximum length of 64 */
   name: string;
   description: string;
   zodInputValidator: z4.ZodType<TInput>;
@@ -99,7 +100,7 @@ export function makeUpdateTool<
     return result;
   }
   return {
-    name: `Update ${client.tableSchema.name}`,
+    name: `update-records-in-${toIdentifier(client.tableSchema.name)}-table`,
     description: `Update existing records in the ${client.tableSchema.name} table.`,
     zodInputValidator: zodInputValidator as any,
     inputJsonSchema: z4.toJSONSchema(zodInputValidator),
@@ -133,7 +134,7 @@ export function makeGetTool<
     };
   }
   return {
-    name: `Get from ${client.tableSchema.name}`,
+    name: `get-record-from-${toIdentifier(client.tableSchema.name)}-table`,
     description: `Get a single record by ID from the ${client.tableSchema.name} table.`,
     zodInputValidator: GetInput as any,
     inputJsonSchema: z4.toJSONSchema(GetInput),
@@ -180,7 +181,7 @@ export function makeListTool<
     };
   }
   return {
-    name: `List ${client.tableSchema.name}`,
+    name: `list-records-from-${toIdentifier(client.tableSchema.name)}-table`,
     description: `List records from the ${client.tableSchema.name} table with optional filtering and pagination.`,
     zodInputValidator: zodInputValidator as any,
     inputJsonSchema: z4.toJSONSchema(zodInputValidator),
@@ -202,7 +203,7 @@ export function makeDeleteTool<
     return raw.records.map((r) => r.id);
   }
   return {
-    name: `Delete from ${client.tableSchema.name}`,
+    name: `delete-records-from-${toIdentifier(client.tableSchema.name)}-table`,
     description: `Delete records by ID from the ${client.tableSchema.name} table.
 
     You can delete up to 10 records at a time.

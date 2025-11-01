@@ -19,7 +19,7 @@ describe('MCP Tool - Create Tool', () => {
     mockFetcher.reset();
   });
   it('should create a create tool with the correct metadata', () => {
-    expect(createTool.name).toBe('create-records-in-users-table');
+    expect(createTool.name).toMatchInlineSnapshot(`"create-records-in-users-table"`);
     expect(createTool.description).toMatchInlineSnapshot(`
       "Insert new records into the users table.
 
@@ -125,7 +125,7 @@ describe('MCP Tool - Update Tool', () => {
     mockFetcher.reset();
   });
   it('should create an update tool with the correct metadata', () => {
-    expect(updateTool.name).toBe('Update users');
+    expect(updateTool.name).toMatchInlineSnapshot(`"update-records-in-users-table"`);
     expect(updateTool.description).toBe('Update existing records in the users table.');
     expect(updateTool.inputJsonSchema).toMatchObject({
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -273,7 +273,7 @@ describe('MCP Tool - Get Tool', () => {
     mockFetcher.reset();
   });
   it('should create a get tool with the correct metadata', () => {
-    expect(getTool.name).toBe('Get from users');
+    expect(getTool.name).toMatchInlineSnapshot(`"get-record-from-users-table"`);
     expect(getTool.description).toBe('Get a single record by ID from the users table.');
     expect(getTool.inputJsonSchema).toMatchInlineSnapshot(`
       {
@@ -348,7 +348,7 @@ describe('MCP Tool - List Tool', () => {
     mockFetcher.reset();
   });
   it('should create a list tool with the correct metadata', () => {
-    expect(listTool.name).toBe('List users');
+    expect(listTool.name).toMatchInlineSnapshot(`"list-records-from-users-table"`);
     expect(listTool.description).toBe('List records from the users table with optional filtering and pagination.');
     expect(listTool.inputJsonSchema).toMatchInlineSnapshot(`
       {
@@ -970,7 +970,7 @@ describe('MCP Tool - Delete Tool', () => {
     mockFetcher.reset();
   });
   it('should create a delete tool with the correct metadata', () => {
-    expect(deleteTool.name).toBe('Delete from users');
+    expect(deleteTool.name).toMatchInlineSnapshot(`"delete-records-from-users-table"`);
     expect(deleteTool.description).toMatchInlineSnapshot(`
       "Delete records by ID from the users table.
 
