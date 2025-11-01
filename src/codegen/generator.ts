@@ -10,7 +10,7 @@ import { toIdentifier } from "./identifiers.ts";
 
 export interface CodegenOptions {
     outPath?: string;
-    filetype?: "ts" | "js";
+    format?: "ts" | "js";
     escapeIdentifiers?: undefined | false | ((rawName: string) => string);
 }
 
@@ -20,9 +20,9 @@ export interface CodegenOptions {
  * @param schema The {@link BaseSchema} to generate code for. eg obtained from {@link fetchBaseSchema}
  * @param options.outPath Optional output path to write the generated code to a file.
  *                        If not provided, the code will only be returned as a string.
- * @param options.filetype Output file type, either "ts" or "js".
- *                         If not provided, will be inferred from outPath if possible,
- *                         otherwise defaults to "ts".
+ * @param options.format Output file type, either "ts" or "js".
+ *                       If not provided, will be inferred from outPath if possible,
+ *                       otherwise defaults to "ts".
  * @param options.escapeIdentifiers Optional function to escape raw names to valid identifiers.
  *                                  This will be used on base name, table names, and field names.
  *                                  If not provided, a default function will be used.
@@ -30,8 +30,8 @@ export interface CodegenOptions {
  * @returns A Promise of the generated code as a string, eg to be written to a .ts or .js file.
  */
 export async function generateCode(schema: BaseSchema, options?: CodegenOptions) {
-    const filetype = options?.filetype || (options?.outPath?.endsWith(".js") ? "js" : "ts") || "ts";
-    const asConstModifier = filetype === "ts" ? " as const" : "";
+    const format = options?.format || (options?.outPath?.endsWith(".js") ? "js" : "ts") || "ts";
+    const asConstModifier = format === "ts" ? " as const" : "";
     const namesSafeSchema = namesToIdentifiers(schema, options?.escapeIdentifiers);
     const result = `/**
  * Auto-generated from Airtable schema

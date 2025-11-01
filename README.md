@@ -34,18 +34,20 @@ pnpm add airtable-kit
 
 ### Use Case 1: Statically Typed Client for a Known Base
 
-Run the codegen CLI to fetch and save your base schema to a local file:
+Run the codegen CLI to fetch and save all your base schemas to local files:
 
 ```bash
-npx airtable-kit codegen --api-key YOUR_API_KEY --base-id appXXXXXXXXXXXXXX --output ./schemas/myBase.ts
+npx airtable-kit codegen all --api-key YOUR_API_KEY
 ```
 
-This will create a file at `./schemas/myBase.ts` with the very simple contents of
+This will create a files under `./schemas/`, one per base.
+(If you instead wanted to just generate a single base schema, see `npx airtable-kit codegen base --help`.)
+Here is an example generated schema file for a base called `Project Tracker`, saved as `schemas/projectTracker.ts`:
 
 ```typescript
 export default {
   "id": "appXXXXXXXXXXXXXX",
-  "name": "myBase",
+  "name": "projectTracker",
   "tables": [
     {
       "id": "tblXXXXXXXXXXXXXX",
@@ -103,10 +105,10 @@ Now, use the generated schema to create a type-safe Airtable client:
 
 ```typescript
 import { makeBaseClient } from 'airtable-kit';
-import myBaseSchema from './schemas/myBase';
+import projectTrackerSchema from './schemas/projectTracker.ts';
 
 const client = makeBaseClient({
-  baseSchema: myBaseSchema,
+  baseSchema: projectTrackerSchema,
   fetcher: YOUR_API_KEY,
 });
 // if you tried `client.tables.nonExistentTable` you would get a type error here
@@ -131,11 +133,11 @@ This also supports multi-base clients!
 
 ```typescript
 import { makeOrgClient } from 'airtable-kit';
-import myBase from './schemas/myBase';
-import otherBase from './schemas/otherBase';
+import projectTrackerSchema from './schemas/projectTracker.ts';
+import otherBase from './schemas/otherBase.ts';
 
 const client = makeOrgClient({
-  bases: [myBase, otherBase],
+  bases: [projectTrackerSchema, otherBase],
   fetcher: YOUR_API_KEY,
 });
 client.bases.otherBase.tables.someTable.insert([ ... ]);

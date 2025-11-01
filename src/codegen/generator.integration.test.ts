@@ -14,13 +14,13 @@ describe('Code Generator Integration', () => {
     expect(code).toMatchSnapshot();
   });
 
-  it('should match snapshot with filetype=js', async () => {
-    const code = await generateCode(taskBase, { filetype: 'js' });
+  it('should match snapshot with format=js', async () => {
+    const code = await generateCode(taskBase, { format: 'js' });
     expect(code).toMatchSnapshot();
   });
 
-  it('should match snapshot with filetype=ts', async () => {
-    const code = await generateCode(taskBase, { filetype: 'ts' });
+  it('should match snapshot with format=ts', async () => {
+    const code = await generateCode(taskBase, { format: 'ts' });
     expect(code).toMatchSnapshot();
   });
 
@@ -42,7 +42,7 @@ describe('Code Generator Integration', () => {
       ],
     };
     it('should work by default', async () => {
-      const code = await generateCode(baseWithBadNames, { filetype: 'ts' });
+      const code = await generateCode(baseWithBadNames, { format: 'ts' });
       expect(code).toMatchInlineSnapshot(`
       "/**
        * Auto-generated from Airtable schema
@@ -72,7 +72,7 @@ describe('Code Generator Integration', () => {
     });
     it('should work with custom escape function', async () => {
       const escapeFn = (name: string) => `_${name.replace(/\\W/g, '')}_`;
-      const code = await generateCode(baseWithBadNames, { filetype: 'ts', escapeIdentifiers: escapeFn });
+      const code = await generateCode(baseWithBadNames, { format: 'ts', escapeIdentifiers: escapeFn });
       expect(code).toMatchInlineSnapshot(`
       "/**
        * Auto-generated from Airtable schema
@@ -101,7 +101,7 @@ describe('Code Generator Integration', () => {
     `);
     });
     it('should work with escapeIdentifiers=false', async () => {
-      const code = await generateCode(baseWithBadNames, { filetype: 'ts', escapeIdentifiers: false });
+      const code = await generateCode(baseWithBadNames, { format: 'ts', escapeIdentifiers: false });
       expect(code).toMatchInlineSnapshot(`
       "/**
        * Auto-generated from Airtable schema

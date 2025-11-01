@@ -148,6 +148,154 @@ export default {
 "
 `;
 
+exports[`CLI > codegen command > should default outfile to ./<BASE_NAME>-schema.ts when omitted 1`] = `
+"/**
+ * Auto-generated from Airtable schema
+ * Do not edit manually
+ */
+
+export default {
+  "id": "appTestBase",
+  "name": "appTestBase",
+  "tables": [
+    {
+      "id": "tblTasks",
+      "name": "tasks",
+      "fields": [
+        {
+          "id": "fldName",
+          "name": "name",
+          "type": "singleLineText",
+          "description": "The name of the task"
+        },
+        {
+          "id": "fldStatus",
+          "name": "status",
+          "type": "singleSelect",
+          "description": "The current status of the task",
+          "options": {
+            "choices": [
+              {
+                "id": "selTodo",
+                "name": "Todo",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selInProgress",
+                "name": "In Progress",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selDone",
+                "name": "Done",
+                "color": "greenLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldPriority",
+          "name": "priority",
+          "type": "number",
+          "description": "The priority level of the task. Lower numbers indicate higher priority.",
+          "options": {
+            "precision": 0
+          }
+        },
+        {
+          "id": "fldDueDate",
+          "name": "dueDate",
+          "type": "date",
+          "description": "The due date of the task"
+        },
+        {
+          "id": "fldCompleted",
+          "name": "completed",
+          "type": "checkbox",
+          "description": "Whether the task is completed"
+        },
+        {
+          "id": "fldNotes",
+          "name": "notes",
+          "type": "multilineText",
+          "description": "Additional notes about the task"
+        },
+        {
+          "id": "fldTags",
+          "name": "tags",
+          "type": "multipleSelects",
+          "description": "Tags associated with the task",
+          "options": {
+            "choices": [
+              {
+                "id": "selUrgent",
+                "name": "Urgent",
+                "color": "redLight2"
+              },
+              {
+                "id": "selImportant",
+                "name": "Important",
+                "color": "orangeLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldAttachments",
+          "name": "attachments",
+          "type": "multipleAttachments",
+          "description": "Files attached to the task"
+        },
+        {
+          "id": "fldCreatedAt",
+          "name": "createdAt",
+          "type": "createdTime",
+          "description": "The time when the task was created"
+        },
+        {
+          "id": "fldUpdatedAt",
+          "name": "updatedAt",
+          "type": "lastModifiedTime",
+          "description": "The time when the task was last updated"
+        },
+        {
+          "id": "fldAssignedTo",
+          "name": "assignedTo",
+          "type": "multipleRecordLinks",
+          "description": "Users assigned to the task",
+          "options": {
+            "linkedTableId": "tblUsers"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tblUsers",
+      "name": "users",
+      "fields": [
+        {
+          "id": "fldEmail",
+          "name": "email",
+          "type": "email"
+        },
+        {
+          "id": "fldFullName",
+          "name": "fullName",
+          "type": "singleLineText"
+        },
+        {
+          "id": "fldPhone",
+          "name": "phone",
+          "type": "phoneNumber",
+          "description": "please include area code"
+        }
+      ]
+    }
+  ]
+} as const;
+"
+`;
+
 exports[`CLI > codegen command > should generate  js 1`] = `
 "/**
  * Auto-generated from Airtable schema
@@ -293,6 +441,154 @@ export default {
     }
   ]
 };
+"
+`;
+
+exports[`CLI > codegen command > should generate all base schemas into outdir 1`] = `
+"/**
+ * Auto-generated from Airtable schema
+ * Do not edit manually
+ */
+
+export default {
+  "id": "appOne",
+  "name": "taskBase",
+  "tables": [
+    {
+      "id": "tblTasks",
+      "name": "tasks",
+      "fields": [
+        {
+          "id": "fldName",
+          "name": "name",
+          "type": "singleLineText",
+          "description": "The name of the task"
+        },
+        {
+          "id": "fldStatus",
+          "name": "status",
+          "type": "singleSelect",
+          "description": "The current status of the task",
+          "options": {
+            "choices": [
+              {
+                "id": "selTodo",
+                "name": "Todo",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selInProgress",
+                "name": "In Progress",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selDone",
+                "name": "Done",
+                "color": "greenLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldPriority",
+          "name": "priority",
+          "type": "number",
+          "description": "The priority level of the task. Lower numbers indicate higher priority.",
+          "options": {
+            "precision": 0
+          }
+        },
+        {
+          "id": "fldDueDate",
+          "name": "dueDate",
+          "type": "date",
+          "description": "The due date of the task"
+        },
+        {
+          "id": "fldCompleted",
+          "name": "completed",
+          "type": "checkbox",
+          "description": "Whether the task is completed"
+        },
+        {
+          "id": "fldNotes",
+          "name": "notes",
+          "type": "multilineText",
+          "description": "Additional notes about the task"
+        },
+        {
+          "id": "fldTags",
+          "name": "tags",
+          "type": "multipleSelects",
+          "description": "Tags associated with the task",
+          "options": {
+            "choices": [
+              {
+                "id": "selUrgent",
+                "name": "Urgent",
+                "color": "redLight2"
+              },
+              {
+                "id": "selImportant",
+                "name": "Important",
+                "color": "orangeLight2"
+              }
+            ]
+          }
+        },
+        {
+          "id": "fldAttachments",
+          "name": "attachments",
+          "type": "multipleAttachments",
+          "description": "Files attached to the task"
+        },
+        {
+          "id": "fldCreatedAt",
+          "name": "createdAt",
+          "type": "createdTime",
+          "description": "The time when the task was created"
+        },
+        {
+          "id": "fldUpdatedAt",
+          "name": "updatedAt",
+          "type": "lastModifiedTime",
+          "description": "The time when the task was last updated"
+        },
+        {
+          "id": "fldAssignedTo",
+          "name": "assignedTo",
+          "type": "multipleRecordLinks",
+          "description": "Users assigned to the task",
+          "options": {
+            "linkedTableId": "tblUsers"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tblUsers",
+      "name": "users",
+      "fields": [
+        {
+          "id": "fldEmail",
+          "name": "email",
+          "type": "email"
+        },
+        {
+          "id": "fldFullName",
+          "name": "fullName",
+          "type": "singleLineText"
+        },
+        {
+          "id": "fldPhone",
+          "name": "phone",
+          "type": "phoneNumber",
+          "description": "please include area code"
+        }
+      ]
+    }
+  ]
+} as const;
 "
 `;
 
