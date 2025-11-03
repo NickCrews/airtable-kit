@@ -150,4 +150,46 @@ describe("TableClient", () => {
                 });
         });
     });
+    describe("formulaToString", () => {
+        it("can convert formula objects to strings", () => {
+            const formulaStr = client.formulaToString([
+                "AND",
+                [">=", { field: "Due Date" }, ["TODAY"]],
+                ["<=", { field: "Due Date" }, ["DATEADD", ["TODAY"], 7, "days"]],
+                ["=", { field: "Status" }, "In Progress"],
+                ["!=", { field: "Name" }, null],
+            ]);
+            expect(formulaStr).toBe('AND({fldDueDate} >= TODAY(), {fldDueDate} <= DATEADD(TODAY(), 7, "days"), {fldStatus} = "In Progress", {fldName} != BLANK())');
+        });
+    });
+    describe("list", () => {
+        it("can list records with filterByFormula as string", async () => {
+            mockFetcher.setReturnValue({
+                records: [],
+            });
+            await client.list({
+                filterByFormula: '{fldCompleted} = TRUE()',
+            });
+            expect(mockFetcher.getCallHistory()).toEqual([{
+                path: "/app123/tblTasks?returnFieldsByFieldId=true&filterByFormula=%7BfldCompleted%7D+%3D+TRUE%28%29",
+                method: "GET",
+            }]);
+        });
+        it("can list records with filterByFormula as Formula object", async () => {
+            mockFetcher.setReturnValue({
+                records: [],
+            });
+            await client.list({
+                filterByFormula: [
+                    "AND",
+                    ["=", { field: "Status" }, "Done"],
+                    ["=", { field: "Completed" }, true],
+                ],
+            });
+            expect(mockFetcher.getCallHistory()).toEqual([{
+                path: "/app123/tblTasks?returnFieldsByFieldId=true&filterByFormula=AND%28%7BfldStatus%7D+%3D+%22Done%22%2C+%7BfldCompleted%7D+%3D+TRUE%28%29%29",
+                method: "GET",
+            }]);
+        });
+    });
 });

@@ -127,6 +127,29 @@ client.tables.tasks.insert([
     // dueBy: "2024-12-31"
   },
 ]);
+const response = await client.tables.tasks.list({
+  // You can build formulas programmatically with type-safety
+  // All tasks due in the next 7 days that are not done.
+  // Is compiled to the string:
+  // AND(
+  //   {fldZZZZZZZZZZZZZZ} >= TODAY(),
+  //   {fldZZZZZZZZZZZZZZ} <= DATEADD(TODAY(), 7, "days"),
+  //   OR(
+  //     {fldYYYYYYYYYYYYYY} = "To Do",
+  //     {fldYYYYYYYYYYYYYY} = "In Progress"
+  //   )
+  // )
+  filterByFormula: [
+    "AND",
+    [">=", { field: "dueDate" }, ["TODAY"]],
+    ["<=", { field: "dueDate" }, ["DATEADD", ["TODAY"], 7, "days"]],
+    ["OR",
+      ["=", { field: "status" }, "To Do"],
+      ["=", { field: "status" }, "In Progress"],
+    ],
+  ],
+});
+console.log(response.records);
 ```
 
 This also supports multi-base clients!

@@ -10,6 +10,7 @@ import {
 } from "./converters.ts";
 import { makeFetcher } from "./fetcher.ts";
 import { Timezone } from "../fields/timezones.ts";
+import { Formula, formulaToString } from "../formula/formula.ts";
 
 type FieldNameOrId<T extends ReadonlyArray<FieldSchema>> = T[number]['name'] | T[number]['id'];
 
@@ -31,8 +32,8 @@ export interface ListRecordsOptions<T extends ReadonlyArray<FieldSchema>> {
     view?: string;
     /** Sort configuration */
     sort?: Array<{ field: FieldNameOrId<T>; direction?: 'asc' | 'desc' }>;
-    /** Formula to filter records */
-    filterByFormula?: string;
+    /** Formula to filter records, either a string or a {@link Formula} object */
+    filterByFormula?: string | Formula<T>;
     /** Cell value format: "json" (default) or "string" */
     cellFormat?: 'json' | 'string';
     /** Fields to include (names or IDs) */
@@ -189,6 +190,9 @@ export interface TableClient<T extends TableSchema> {
         createdTime: Timestamp;
         fields: Record<string, unknown>;
     }>;
+
+    /** Convert a {@link Formula} object for this table to a string */
+    formulaToString(formula: Formula<T["fields"]>): string;
 }
 
 /**
@@ -296,6 +300,9 @@ export function makeTableClient<T extends TableSchema>(
                 fetcher,
             });
         },
+        formulaToString(formula: Formula<T["fields"]>): string {
+            return formulaToString(tableSchema.fields, formula);
+        }
     };
 }
 
@@ -411,7 +418,7 @@ export async function list<T extends ReadonlyArray<FieldSchema>>(
     if (options?.maxRecords) queryParams.append('maxRecords', String(options.maxRecords));
     if (options?.offset) queryParams.append('offset', options.offset);
     if (options?.view) queryParams.append('view', options.view);
-    if (options?.filterByFormula) queryParams.append('filterByFormula', options.filterByFormula);
+    if (options?.filterByFormula) queryParams.append('filterByFormula', typeof options.filterByFormula === 'string' ? options.filterByFormula : formulaToString(fieldSpecs, options.filterByFormula));
     if (options?.cellFormat) queryParams.append('cellFormat', options.cellFormat);
 
     if (options?.sort) {
