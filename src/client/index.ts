@@ -1,4 +1,8 @@
 export {
+    type ReadRecord,
+    type WriteRecord,
+} from "./converters.ts";
+export {
     type OrgClient,
     makeOrgClient,
     type OrgClientOptions,
@@ -20,4 +24,7 @@ export {
     type FetchArgs,
     type FetchFunction,
 } from "./fetcher.ts";
-export { fetchBaseSchema, fetchAllSchemas } from "./schema-fetcher.ts";
+export {
+    fetchBaseSchema,
+    fetchAllSchemas
+} from "./schema-fetcher.ts";

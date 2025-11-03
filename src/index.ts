@@ -27,6 +27,8 @@ export {
     makeTableClient,
     makeBaseClient,
     makeOrgClient,
+    type ReadRecord,
+    type WriteRecord,
     type TableClient,
     type TableClientOptions,
     type BaseClient,

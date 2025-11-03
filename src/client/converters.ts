@@ -606,6 +606,11 @@ export type WriteRecordById<T extends ReadonlyArray<FieldSchema>> = {
     [K in T[number]["id"]]?: inferWrite<Extract<T[number], { id: K }>>;
 };
 
+/**
+ * The format of a record a {@link TableClient} accepts for writing, eg for creating or updating records.
+ * 
+ * Each key can be either the field name or field ID, and the value is the appropriate type for writing to that field.
+ */
 export type WriteRecord<T extends ReadonlyArray<FieldSchema>> = {
     [K in T[number]["name"] | T[number]["id"]]?: K extends T[number]["name"]
     ? Extract<T[number], { name: K }> extends infer F
@@ -618,6 +623,15 @@ export type WriteRecord<T extends ReadonlyArray<FieldSchema>> = {
     : never
     : never
     : never;
+};
+
+/**
+ * The format of a record a {@link TableClient} returns when reading records.
+ * 
+ * Each key is the field name, and the value is the appropriate type for reading from that field.
+ */
+export type ReadRecord<T extends ReadonlyArray<FieldSchema>> = {
+    [K in T[number]["name"]]: inferRead<Extract<T[number], { name: K }>>;
 };
 
 export function convertForWrite<F extends FieldSchema>(
