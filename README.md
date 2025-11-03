@@ -7,12 +7,12 @@ A type-safe, fully-featured, and standards-centric Airtable API client for TypeS
 There are other type-safe airtable clients out there (see the [Comparison section](#comparison-to-other-airtable-libraries)),
 but they all start from the premise of starting from typescript `interface`s to define the shape of records in each table.
 This package takes a different approach: everything is derived directly from the
-Airtable Base's JSON schema, as directly provided by the [Airtable API](https://airtable.com/developers/web/api/get-base-schema) with some complex
-generics and type-mapping magic.
+Airtable Base's JSON schema, as directly provided by the [Airtable API](https://airtable.com/developers/web/api/get-base-schema). We then provide some typescript generic magic so that we infer that e.g.
+a `singleSelect` field with options "To Do", "In Progress", and "Done" maps to the union type `"To Do" | "In Progress" | "Done"` in typescript.
 
 This has several advantages:
-- It is trivial to codegen the schema files from existing bases since you pretty much write the JSON directly to a file, instead of needing to translate it to typescript interfaces. This makes it easy to onboard existing bases and keep them in sync.
-- You can also get runtime validation and schemas for free. Most of these other libraries assume you know at compile time which bases you are working with. This package allows you to fetch a base's schema just-in-time at runtime, and still have type-mapping and runtime validation.
+- It is trivial to codegen the schema files from existing bases since you pretty much write the JSON directly to a file, instead of needing to translate it to typescript interfaces. This makes it easy to create/update base schemas.
+- You get runtime validation and JSONschema (eg for API docs/MCP servers/etc) for free. Most of these other libraries assume you know at compile time which bases you are working with. This package allows you to fetch a base's schema just-in-time at runtime, and still have type-mapping and runtime validation.
 - Since we preserve the full JSON schema, you can inspect and manipulate the base's schema at runtime, eg generate a Zod validator. This is useful for e.g. building MCP tools for AI agents, since now they can see the exact schema of the base they are working with.
 
 ## Other Features
@@ -22,7 +22,7 @@ This has several advantages:
 - **Zero-Dependencies**: No required dependencies! `zod` is optional if you want runtime validation (eg for MCP tools).
 - **Portable**: Works in Node.js, Deno, and the browser, including in sandboxed environments, e.g. where `process.env` and `os.homedir()` are not available.
 - **Runtime Validation**: Optionally, dynamically generate Zod validators from the schema to validate all data sent to Airtable at runtime.
-- **MCP Tools**: Ready-to-use MCP tools for LLM integration
+- **MCP Tools**: Ready-to-use MCP tools for LLM integration.
 
 ## Installation
 
@@ -174,9 +174,14 @@ I was using this before building this library, and it is a great library.
   This loses some type-safety, eg for supplying valid select options.
   This is how most typescript airtable libraries work.
   There is a separate `airtable-ts-codegen` package to generate these interfaces.
+- Requires doing [two fetches](https://github.com/domdomegg/airtable-ts/blob/c1963b522cf0f955068bdfaaaa79c6c28bcb2f3a/src/AirtableTs.ts#L37-L38) for all operations:
+  one to get the tables schema so that it can map field types and names,
+  and another to do the actual operation (eg insert records).
+  This package, since it operates directly from the base schema, therefore
+  only needs to do one fetch per operation after the initial schema fetch.
 - You can only work with bases known at compile-time, you can't dynamically
   fetch a base schema at runtime and make a client for it.
-- No runtime validation support.
+- No zod schema generation for JSONschema generation.
 
 ### [airtable-mcp-server](https://github.com/domdomegg/airtable-mcp-server)
 - Single purpose MCP server.
