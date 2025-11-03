@@ -15,7 +15,7 @@ import {
 } from '../client/table-client.ts';
 import { type WriteRecord, type ReadRecordByName } from '../client/converters.ts';
 import * as z4 from 'zod/v4';
-import { makeZodForWriteRecord } from '../validators/schema-to-zod.ts';
+import { makeRecordWriteValidator } from '../validators/schema-to-zod.ts';
 import { toIdentifier } from '../codegen/identifiers.ts';
 import { RecordIdSchema } from '../validators/index.ts';
 import { TIMEZONES } from '../fields/timezones.ts';
@@ -38,7 +38,7 @@ type CreateToolResult<T extends TableSchema["fields"]> = Array<
 export function makeCreateTool<
   T extends TableSchema,
 >(client: TableClient<T>): MCPToolDefinition<CreateInput<T>, CreateToolResult<T["fields"]>> {
-  const recordSchema = makeZodForWriteRecord(client.tableSchema.fields);
+  const recordSchema = makeRecordWriteValidator(client.tableSchema.fields);
   const zodInputValidator = z4.object({ records: z4.array(recordSchema) });
   async function execute(input: CreateInput<T>) {
     const validated = zodInputValidator.parse(input);
@@ -78,7 +78,7 @@ type UpdateInput<T extends TableSchema> = {
 export function makeUpdateTool<
   T extends TableSchema,
 >(client: TableClient<T>): MCPToolDefinition<UpdateInput<T>, UpdateRecordsResponse<T["fields"]>> {
-  const fieldsZod = makeZodForWriteRecord(client.tableSchema.fields);
+  const fieldsZod = makeRecordWriteValidator(client.tableSchema.fields);
   const recordZod = z4.object({
     id: RecordIdSchema.optional(),
     fields: fieldsZod,

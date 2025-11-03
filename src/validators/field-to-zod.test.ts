@@ -3,14 +3,14 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { fieldSchemaToZod } from './field-to-zod.ts';
+import { makeFieldWriteValidator } from './field-to-zod.ts';
 import { type FieldSchema } from '../types.ts';
 
 describe('Field to Zod Conversion', () => {
   describe('fieldTypeToZod', () => {
     it('should convert singleLineText to z.string()', () => {
       const field: FieldSchema = { id: 'fld1', name: 'Text', type: 'singleLineText' };
-      const schema = fieldSchemaToZod(field);
+      const schema = makeFieldWriteValidator(field);
       expect(schema.type).toBe('string');
       expect(() => schema.parse('test')).not.toThrow();
       expect(() => schema.parse(123)).toThrow();
@@ -21,7 +21,7 @@ describe('Field to Zod Conversion', () => {
 
     it('should convert email to z.email()', () => {
       const field: FieldSchema = { id: 'fld1', name: 'Email', type: 'email' };
-      const schema = fieldSchemaToZod(field);
+      const schema = makeFieldWriteValidator(field);
       expect(schema.type).toBe('string');
       expect(schema.def.format).toBe('email');
       expect(() => schema.parse('test@example.com')).not.toThrow();
@@ -33,7 +33,7 @@ describe('Field to Zod Conversion', () => {
 
     it('should convert number to z.number()', () => {
       const field: FieldSchema = { id: 'fld1', name: 'Number', type: 'number' };
-      const schema = fieldSchemaToZod(field);
+      const schema = makeFieldWriteValidator(field);
       expect(() => schema.parse(123)).not.toThrow();
       expect(() => schema.parse('123')).toThrow();
       // verify that our type infers correctly
@@ -43,7 +43,7 @@ describe('Field to Zod Conversion', () => {
 
     it('should convert checkbox to z.boolean()', () => {
       const field: FieldSchema = { id: 'fld1', name: 'Checkbox', type: 'checkbox' };
-      const schema = fieldSchemaToZod(field);
+      const schema = makeFieldWriteValidator(field);
       expect(() => schema.parse(true)).not.toThrow();
       expect(() => schema.parse('true')).toThrow();
       // verify that our type infers correctly
@@ -63,7 +63,7 @@ describe('Field to Zod Conversion', () => {
           ],
         },
       };
-      const schema = fieldSchemaToZod(field);
+      const schema = makeFieldWriteValidator(field);
       expect(() => schema.parse('Todo')).not.toThrow();
       expect(() => schema.parse('Invalid')).toThrow();
       expect(() => schema.parse('sel1')).toThrow();
@@ -84,7 +84,7 @@ describe('Field to Zod Conversion', () => {
           ],
         },
       };
-      const schema = fieldSchemaToZod(field);
+      const schema = makeFieldWriteValidator(field);
       expect(schema.type).toBe('array');
       expect(schema.def.element.type).toBe('enum');
       expect(() => schema.parse(['Tag1', 'Tag2'])).not.toThrow();
@@ -96,7 +96,7 @@ describe('Field to Zod Conversion', () => {
 
     it('should convert date to regex pattern', () => {
       const field: FieldSchema = { id: 'fld1', name: 'Date', type: 'date' };
-      const schema = fieldSchemaToZod(field);
+      const schema = makeFieldWriteValidator(field);
       expect(schema.type).toBe('string');
       expect(schema.format).toBe('date');
       expect(schema.parse('2024-01-15')).toBe('2024-01-15');
@@ -109,7 +109,7 @@ describe('Field to Zod Conversion', () => {
 
     it('should throw error for rollup (read-only)', () => {
       const field: FieldSchema = { id: 'fld1', name: 'Rollup', type: 'rollup' };
-      const schema = fieldSchemaToZod(field);
+      const schema = makeFieldWriteValidator(field);
       expect(schema.type).toBe('never');
       expect(() => schema.parse('any value')).toThrow();
       // verify that our type infers correctly
@@ -119,7 +119,7 @@ describe('Field to Zod Conversion', () => {
 
     it('should throw error for button (read-only)', () => {
       const field: FieldSchema = { id: 'fld1', name: 'Button', type: 'button' };
-      const schema = fieldSchemaToZod(field);
+      const schema = makeFieldWriteValidator(field);
       expect(schema.type).toBe('never');
       expect(() => schema.parse('any value')).toThrow();
       // verify that our type infers correctly

@@ -3,106 +3,33 @@
  */
 
 import { z } from 'zod';
-import { type FieldSchema, type FieldType } from '../types.ts';
+import { type FieldSchema } from '../types.ts';
 import { RecordIdSchema } from './index.ts';
 import * as fields from '../fields/index.ts';
 import * as testFields from '../fields/_example-fields.ts';
 
-const ANY_TYPES = [
-  'externalSyncSource',
-] as const satisfies FieldType[];
-const ANY_VALIDATOR = z.any();
-
-const BARCODE_TYPES = [
-  'barcode',
-] as const satisfies FieldType[];
 const BARCODE_VALIDATOR = z.strictObject({
   text: z.string(),
   type: z.string().optional(),
 });
-
-const BOOLEAN_TYPES = [
-  'checkbox',
-] as const satisfies FieldType[];
 const BOOLEAN_VALIDATOR = z.boolean();
-
-const COLLABORATOR_TYPES = [
-  'singleCollaborator',
-] as const satisfies FieldType[];
-const COLLABORATOR_VALIDATOR = z.strictObject({
+const SINGLE_COLLABORATOR_VALIDATOR = z.strictObject({
   id: z.string(),
   email: z.email(),
   name: z.string().optional(),
 });
-
-const DATE_TYPES = [
-  'date',
-] as const satisfies FieldType[];
 const DATE_VALIDATOR = z.iso.date();
-
-const DATE_TIME_TYPES = [
-  'dateTime',
-] as const satisfies FieldType[];
 const DATE_TIME_VALIDATOR = z.iso.datetime({ local: true });
-
-const EMAIL_TYPES = [
-  'email',
-] as const satisfies FieldType[];
 const EMAIL_VALIDATOR = z.email();
-
-const MULTIPLE_ATTACHMENT_TYPES = [
-  'multipleAttachments',
-] as const satisfies FieldType[];
-const MULTIPLE_ATTACHMENT_VALIDATOR = z.array(z.strictObject({
+const MULTIPLE_ATTACHMENTS_VALIDATOR = z.array(z.strictObject({
   url: z.url(),
   filename: z.string(),
 }));
-
-const MULTIPLE_COLLABORATOR_TYPES = [
-  'multipleCollaborators',
-] as const satisfies FieldType[];
-const MULTIPLE_COLLABORATOR_VALIDATOR = z.array(COLLABORATOR_VALIDATOR);
-
-const MULTIPLE_RECORD_LINK_TYPES = [
-  'multipleRecordLinks',
-] as const satisfies FieldType[];
-const MULTIPLE_RECORD_LINK_VALIDATOR = z.array(RecordIdSchema);
-
-const NUMBER_TYPES = [
-  'number',
-  'percent',
-  'currency',
-  'duration',
-  'rating',
-] as const satisfies FieldType[];
+const MULTIPLE_COLLABORATORS_VALIDATOR = z.array(SINGLE_COLLABORATOR_VALIDATOR);
+const MULTIPLE_RECORD_LINKS_VALIDATOR = z.array(RecordIdSchema);
 const NUMBER_VALIDATOR = z.number();
-
-const READONLY_TYPES = [
-  'aiText',
-  'autoNumber',
-  'button',
-  'count',
-  'createdBy',
-  'createdTime',
-  'formula',
-  'lastModifiedBy',
-  'lastModifiedTime',
-  'multipleLookupValues',
-  'rollup',
-] as const satisfies FieldType[];
 const READONLY_VALIDATOR = z.never();
-
-const STRING_TYPES = [
-  'singleLineText',
-  'multilineText',
-  'richText',
-  'phoneNumber',
-] as const satisfies FieldType[];
 const STRING_VALIDATOR = z.string();
-
-const URL_TYPES = [
-  'url',
-] as const satisfies FieldType[];
 const URL_VALIDATOR = z.url();
 
 type SelectChoiceName<T extends fields.SingleSelect | fields.MultipleSelects> = T extends (fields.SingleSelect<infer C> | fields.MultipleSelects<infer C>) ? C["name"] : never;
@@ -119,125 +46,156 @@ function makeMultipleSelectValidator<T extends fields.MultipleSelects>(field: T)
   return z.array(z.enum(values)) as MultipleSelectValidator<T>;
 }
 
-/** Given a {@link FieldSchema}, infer the type of the Zod validator. */
-export type inferZod<F extends FieldSchema> =
-  F extends { type: typeof ANY_TYPES[number] } ? typeof ANY_VALIDATOR
-  : F extends { type: typeof BARCODE_TYPES[number] } ? typeof BARCODE_VALIDATOR
-  : F extends { type: typeof BOOLEAN_TYPES[number] } ? typeof BOOLEAN_VALIDATOR
-  : F extends { type: typeof COLLABORATOR_TYPES[number] } ? typeof COLLABORATOR_VALIDATOR
-  : F extends { type: typeof DATE_TYPES[number] } ? typeof DATE_VALIDATOR
-  : F extends { type: typeof DATE_TIME_TYPES[number] } ? typeof DATE_TIME_VALIDATOR
-  : F extends { type: typeof EMAIL_TYPES[number] } ? typeof EMAIL_VALIDATOR
-  : F extends { type: typeof NUMBER_TYPES[number] } ? typeof NUMBER_VALIDATOR
-  : F extends { type: typeof MULTIPLE_COLLABORATOR_TYPES[number] } ? typeof MULTIPLE_COLLABORATOR_VALIDATOR
-  : F extends { type: typeof MULTIPLE_ATTACHMENT_TYPES[number] } ? typeof MULTIPLE_ATTACHMENT_VALIDATOR
-  : F extends { type: typeof MULTIPLE_RECORD_LINK_TYPES[number] } ? typeof MULTIPLE_RECORD_LINK_VALIDATOR
-  : F extends { type: typeof READONLY_TYPES[number] } ? typeof READONLY_VALIDATOR
-  : F extends { type: typeof STRING_TYPES[number] } ? typeof STRING_VALIDATOR
-  : F extends { type: typeof URL_TYPES[number] } ? typeof URL_VALIDATOR
-  : F extends fields.SingleSelect ? SingleSelectValidator<Extract<F, fields.SingleSelect>>
-  : F extends fields.MultipleSelects ? MultipleSelectValidator<Extract<F, fields.MultipleSelects>>
-  : never;
+const writeValidators = {
+  aiText: <T extends fields.AiText>(fieldSchema: T) => READONLY_VALIDATOR,
+  autoNumber: <T extends fields.AutoNumber>(fieldSchema: T) => READONLY_VALIDATOR,
+  barcode: <T extends fields.Barcode>(fieldSchema: T) => BARCODE_VALIDATOR,
+  button: <T extends fields.Button>(fieldSchema: T) => READONLY_VALIDATOR,
+  checkbox: <T extends fields.Checkbox>(fieldSchema: T) => BOOLEAN_VALIDATOR,
+  count: <T extends fields.Count>(fieldSchema: T) => READONLY_VALIDATOR,
+  createdBy: <T extends fields.CreatedBy>(fieldSchema: T) => READONLY_VALIDATOR,
+  createdTime: <T extends fields.CreatedTime>(fieldSchema: T) => READONLY_VALIDATOR,
+  currency: <T extends fields.Currency>(fieldSchema: T) => NUMBER_VALIDATOR,
+  date: <T extends fields.Date>(fieldSchema: T) => DATE_VALIDATOR,
+  dateTime: <T extends fields.DateTime>(fieldSchema: T) => DATE_TIME_VALIDATOR,
+  duration: <T extends fields.Duration>(fieldSchema: T) => NUMBER_VALIDATOR,
+  email: <T extends fields.Email>(fieldSchema: T) => EMAIL_VALIDATOR,
+  externalSyncSource: <T extends fields.ExternalSyncSource>(fieldSchema: T) => z.any(), // todo
+  formula: <T extends fields.Formula>(fieldSchema: T) => READONLY_VALIDATOR,
+  lastModifiedBy: <T extends fields.LastModifiedBy>(fieldSchema: T) => READONLY_VALIDATOR,
+  lastModifiedTime: <T extends fields.LastModifiedTime>(fieldSchema: T) => READONLY_VALIDATOR,
+  multilineText: <T extends fields.MultilineText>(fieldSchema: T) => STRING_VALIDATOR,
+  multipleAttachments: <T extends fields.MultipleAttachments>(fieldSchema: T) => MULTIPLE_ATTACHMENTS_VALIDATOR,
+  multipleCollaborators: <T extends fields.MultipleCollaborators>(fieldSchema: T) => MULTIPLE_COLLABORATORS_VALIDATOR,
+  multipleLookupValues: <T extends fields.MultipleLookupValues>(fieldSchema: T) => READONLY_VALIDATOR,
+  multipleRecordLinks: <T extends fields.MultipleRecordLinks>(fieldSchema: T) => MULTIPLE_RECORD_LINKS_VALIDATOR,
+  multipleSelects: makeMultipleSelectValidator,
+  number: <T extends fields.Number>(fieldSchema: T) => NUMBER_VALIDATOR,
+  percent: <T extends fields.Percent>(fieldSchema: T) => NUMBER_VALIDATOR,
+  phoneNumber: <T extends fields.PhoneNumber>(fieldSchema: T) => STRING_VALIDATOR,
+  rating: <T extends fields.Rating>(fieldSchema: T) => NUMBER_VALIDATOR,
+  richText: <T extends fields.RichText>(fieldSchema: T) => STRING_VALIDATOR,
+  rollup: <T extends fields.Rollup>(fieldSchema: T) => READONLY_VALIDATOR,
+  singleCollaborator: <T extends fields.SingleCollaborator>(fieldSchema: T) => SINGLE_COLLABORATOR_VALIDATOR,
+  singleLineText: <T extends fields.SingleLineText>(fieldSchema: T) => STRING_VALIDATOR,
+  singleSelect: makeSingleSelectValidator,
+  url: <T extends fields.Url>(fieldSchema: T) => URL_VALIDATOR,
+} as const;
 
-type AiZod = inferZod<typeof testFields.AI_TEXT>;
-type AutoNumberZod = inferZod<typeof testFields.AUTO_NUMBER>;
-type BarcodeZod = inferZod<typeof testFields.BARCODE>;
-type ButtonZod = inferZod<typeof testFields.BUTTON>;
-type CheckboxZod = inferZod<typeof testFields.CHECKBOX>;
-type CountZod = inferZod<typeof testFields.COUNT>;
-type CreatedByZod = inferZod<typeof testFields.CREATED_BY>;
-type CreatedTimeZod = inferZod<typeof testFields.CREATED_TIME>;
-type CurrencyZod = inferZod<typeof testFields.CURRENCY>;
-type DateZod = inferZod<typeof testFields.DATE>;
-type DateTimeZod = inferZod<typeof testFields.DATE_TIME>;
-type DurationZod = inferZod<typeof testFields.DURATION>;
-type EmailZod = inferZod<typeof testFields.EMAIL>;
-type ExternalSyncSourceZod = inferZod<typeof testFields.EXTERNAL_SYNC_SOURCE>;
-type FormulaZod = inferZod<typeof testFields.FORMULA>;
-type LastModifiedByZod = inferZod<typeof testFields.LAST_MODIFIED_BY>;
-type LastModifiedTimeZod = inferZod<typeof testFields.LAST_MODIFIED_TIME>;
-type MultilineTextZod = inferZod<typeof testFields.MULTILINE_TEXT>;
-type MultipleAttachmentsZod = inferZod<typeof testFields.MULTIPLE_ATTACHMENTS>;
-type MultipleCollaboratorsZod = inferZod<typeof testFields.MULTIPLE_COLLABORATORS>;
-type MultipleLookupValuesZod = inferZod<typeof testFields.MULTIPLE_LOOKUP_VALUES>;
-type MultipleRecordLinksZod = inferZod<typeof testFields.MULTIPLE_RECORD_LINKS>;
-type MultipleSelectsZod = inferZod<typeof testFields.MULTIPLE_SELECTS>;
-type NumberZod = inferZod<typeof testFields.NUMBER>;
-type PercentZod = inferZod<typeof testFields.PERCENT>;
-type PhoneNumberZod = inferZod<typeof testFields.PHONE_NUMBER>;
-type RatingZod = inferZod<typeof testFields.RATING>;
-type RichTextZod = inferZod<typeof testFields.RICH_TEXT>;
-type RollupZod = inferZod<typeof testFields.ROLLUP>;
-type SingleCollaboratorZod = inferZod<typeof testFields.SINGLE_COLLABORATOR>;
-type SingleLineTextZod = inferZod<typeof testFields.SINGLE_LINE_TEXT>;
-type SingleSelectZod = inferZod<typeof testFields.SINGLE_SELECT>;
-type UrlZod = inferZod<typeof testFields.URL>;
+export type inferFieldWriteValidator<F extends FieldSchema> =
+  F extends fields.AiText ? ReturnType<typeof writeValidators.aiText<F>> :
+  F extends fields.AutoNumber ? ReturnType<typeof writeValidators.autoNumber<F>> :
+  F extends fields.Barcode ? ReturnType<typeof writeValidators.barcode<F>> :
+  F extends fields.Button ? ReturnType<typeof writeValidators.button<F>> :
+  F extends fields.Checkbox ? ReturnType<typeof writeValidators.checkbox<F>> :
+  F extends fields.Count ? ReturnType<typeof writeValidators.count<F>> :
+  F extends fields.CreatedBy ? ReturnType<typeof writeValidators.createdBy<F>> :
+  F extends fields.CreatedTime ? ReturnType<typeof writeValidators.createdTime<F>> :
+  F extends fields.Currency ? ReturnType<typeof writeValidators.currency<F>> :
+  F extends fields.Date ? ReturnType<typeof writeValidators.date<F>> :
+  F extends fields.DateTime ? ReturnType<typeof writeValidators.dateTime<F>> :
+  F extends fields.Duration ? ReturnType<typeof writeValidators.duration<F>> :
+  F extends fields.Email ? ReturnType<typeof writeValidators.email<F>> :
+  F extends fields.ExternalSyncSource ? ReturnType<typeof writeValidators.externalSyncSource<F>> :
+  F extends fields.Formula ? ReturnType<typeof writeValidators.formula<F>> :
+  F extends fields.LastModifiedBy ? ReturnType<typeof writeValidators.lastModifiedBy<F>> :
+  F extends fields.LastModifiedTime ? ReturnType<typeof writeValidators.lastModifiedTime<F>> :
+  F extends fields.MultilineText ? ReturnType<typeof writeValidators.multilineText<F>> :
+  F extends fields.MultipleAttachments ? ReturnType<typeof writeValidators.multipleAttachments<F>> :
+  F extends fields.MultipleCollaborators ? ReturnType<typeof writeValidators.multipleCollaborators<F>> :
+  F extends fields.MultipleLookupValues ? ReturnType<typeof writeValidators.multipleLookupValues<F>> :
+  F extends fields.MultipleRecordLinks ? ReturnType<typeof writeValidators.multipleRecordLinks<F>> :
+  F extends fields.MultipleSelects ? ReturnType<typeof writeValidators.multipleSelects<F>> :
+  F extends fields.Number ? ReturnType<typeof writeValidators.number<F>> :
+  F extends fields.Percent ? ReturnType<typeof writeValidators.percent<F>> :
+  F extends fields.PhoneNumber ? ReturnType<typeof writeValidators.phoneNumber<F>> :
+  F extends fields.Rating ? ReturnType<typeof writeValidators.rating<F>> :
+  F extends fields.RichText ? ReturnType<typeof writeValidators.richText<F>> :
+  F extends fields.Rollup ? ReturnType<typeof writeValidators.rollup<F>> :
+  F extends fields.SingleCollaborator ? ReturnType<typeof writeValidators.singleCollaborator<F>> :
+  F extends fields.SingleLineText ? ReturnType<typeof writeValidators.singleLineText<F>> :
+  F extends fields.SingleSelect ? ReturnType<typeof writeValidators.singleSelect<F>> :
+  F extends fields.Url ? ReturnType<typeof writeValidators.url<F>> :
+  never;
 
 /**
- * Convert a field type to a Zod schema
+ * Convert a {@link FieldSchema} to a Zod schema that can be used to validate data being written to Airtable.
  */
-export function fieldSchemaToZod<T extends FieldSchema>(field: T): inferZod<T> {
-  let validator = _fieldSchemaToZod(field);
+export function makeFieldWriteValidator<T extends FieldSchema>(field: T): inferFieldWriteValidator<T> {
+  const validatorMaker = writeValidators[field.type] as any;
+  let validator = validatorMaker(field);
   if (field.description) {
     validator = validator.describe(field.description) as typeof validator;
   }
   return validator;
 }
 
-// Helper to narrow array includes from https://www.petermekhaeil.com/til/ts-array-includes/
-function includes<T extends U, U>(arr: ReadonlyArray<T>, searchElement: U): searchElement is T {
-  return arr.includes(searchElement as T);
-}
+// Examples for testing validator inference
+type _aiWriteValidator = inferFieldWriteValidator<typeof testFields.AI_TEXT>;
+type _autoNumberWriteValidator = inferFieldWriteValidator<typeof testFields.AUTO_NUMBER>;
+type _barcodeWriteValidator = inferFieldWriteValidator<typeof testFields.BARCODE>;
+type _buttonWriteValidator = inferFieldWriteValidator<typeof testFields.BUTTON>;
+type _checkboxWriteValidator = inferFieldWriteValidator<typeof testFields.CHECKBOX>;
+type _countWriteValidator = inferFieldWriteValidator<typeof testFields.COUNT>;
+type _createdByWriteValidator = inferFieldWriteValidator<typeof testFields.CREATED_BY>;
+type _createdTimeWriteValidator = inferFieldWriteValidator<typeof testFields.CREATED_TIME>;
+type _currencyWriteValidator = inferFieldWriteValidator<typeof testFields.CURRENCY>;
+type _dateWriteValidator = inferFieldWriteValidator<typeof testFields.DATE>;
+type _dateTimeWriteValidator = inferFieldWriteValidator<typeof testFields.DATE_TIME>;
+type _durationWriteValidator = inferFieldWriteValidator<typeof testFields.DURATION>;
+type _emailWriteValidator = inferFieldWriteValidator<typeof testFields.EMAIL>;
+type _externalSyncSourceWriteValidator = inferFieldWriteValidator<typeof testFields.EXTERNAL_SYNC_SOURCE>;
+type _formulaWriteValidator = inferFieldWriteValidator<typeof testFields.FORMULA>;
+type _lastModifiedByWriteValidator = inferFieldWriteValidator<typeof testFields.LAST_MODIFIED_BY>;
+type _lastModifiedTimeWriteValidator = inferFieldWriteValidator<typeof testFields.LAST_MODIFIED_TIME>;
+type _multilineTextWriteValidator = inferFieldWriteValidator<typeof testFields.MULTILINE_TEXT>;
+type _multipleAttachmentsWriteValidator = inferFieldWriteValidator<typeof testFields.MULTIPLE_ATTACHMENTS>;
+type _multipleCollaboratorsWriteValidator = inferFieldWriteValidator<typeof testFields.MULTIPLE_COLLABORATORS>;
+type _multipleLookupValuesWriteValidator = inferFieldWriteValidator<typeof testFields.MULTIPLE_LOOKUP_VALUES>;
+type _multipleRecordLinksWriteValidator = inferFieldWriteValidator<typeof testFields.MULTIPLE_RECORD_LINKS>;
+type _multipleSelectsWriteValidator = inferFieldWriteValidator<typeof testFields.MULTIPLE_SELECTS>;
+type _numberWriteValidator = inferFieldWriteValidator<typeof testFields.NUMBER>;
+type _percentWriteValidator = inferFieldWriteValidator<typeof testFields.PERCENT>;
+type _phoneNumberWriteValidator = inferFieldWriteValidator<typeof testFields.PHONE_NUMBER>;
+type _ratingWriteValidator = inferFieldWriteValidator<typeof testFields.RATING>;
+type _richTextWriteValidator = inferFieldWriteValidator<typeof testFields.RICH_TEXT>;
+type _rollupWriteValidator = inferFieldWriteValidator<typeof testFields.ROLLUP>;
+type _singleCollaboratorWriteValidator = inferFieldWriteValidator<typeof testFields.SINGLE_COLLABORATOR>;
+type _singleLineTextWriteValidator = inferFieldWriteValidator<typeof testFields.SINGLE_LINE_TEXT>;
+type _singleSelectWriteValidator = inferFieldWriteValidator<typeof testFields.SINGLE_SELECT>;
+type _urlWriteValidator = inferFieldWriteValidator<typeof testFields.URL>;
 
-function _fieldSchemaToZod<T extends FieldSchema>(field: T): inferZod<T> {
-  const fieldType = field.type as FieldType;
-  if (includes(ANY_TYPES, fieldType)) {
-    return ANY_VALIDATOR as inferZod<T>;
-  }
-  if (includes(BOOLEAN_TYPES, fieldType)) {
-    return BOOLEAN_VALIDATOR as inferZod<T>;
-  }
-  if (includes(BARCODE_TYPES, fieldType)) {
-    return BARCODE_VALIDATOR as inferZod<T>;
-  }
-  if (includes(COLLABORATOR_TYPES, fieldType)) {
-    return COLLABORATOR_VALIDATOR as inferZod<T>;
-  }
-  if (includes(DATE_TYPES, fieldType)) {
-    return DATE_VALIDATOR as inferZod<T>;
-  }
-  if (includes(DATE_TIME_TYPES, fieldType)) {
-    return DATE_TIME_VALIDATOR as inferZod<T>;
-  }
-  if (includes(EMAIL_TYPES, fieldType)) {
-    return EMAIL_VALIDATOR as inferZod<T>;
-  }
-  if (includes(MULTIPLE_ATTACHMENT_TYPES, fieldType)) {
-    return MULTIPLE_ATTACHMENT_VALIDATOR as inferZod<T>;
-  }
-  if (includes(MULTIPLE_COLLABORATOR_TYPES, fieldType)) {
-    return MULTIPLE_COLLABORATOR_VALIDATOR as inferZod<T>;
-  }
-  if (includes(MULTIPLE_RECORD_LINK_TYPES, fieldType)) {
-    return MULTIPLE_RECORD_LINK_VALIDATOR as inferZod<T>;
-  }
-  if (includes(NUMBER_TYPES, fieldType)) {
-    return NUMBER_VALIDATOR as inferZod<T>;
-  }
-  if (includes(READONLY_TYPES, fieldType)) {
-    return READONLY_VALIDATOR as inferZod<T>;
-  }
-  if (includes(STRING_TYPES, fieldType)) {
-    return STRING_VALIDATOR as inferZod<T>;
-  }
-  if (includes(URL_TYPES, fieldType)) {
-    return URL_VALIDATOR as inferZod<T>;
-  }
-  if (fieldType === 'singleSelect') {
-    return makeSingleSelectValidator(field as fields.SingleSelect) as inferZod<T>;
-  }
-  if (fieldType === 'multipleSelects') {
-    return makeMultipleSelectValidator(field as fields.MultipleSelects) as inferZod<T>;
-  }
-  throw new Error(`Unsupported field type: ${fieldType satisfies never}`);
-}
+// Test inferred ts types
+type _aiWriteType = z.infer<_aiWriteValidator>
+type _autoNumberWriteType = z.infer<_autoNumberWriteValidator>
+type _barcodeWriteType = z.infer<_barcodeWriteValidator>
+type _buttonWriteType = z.infer<_buttonWriteValidator>
+type _checkboxWriteType = z.infer<_checkboxWriteValidator>
+type _countWriteType = z.infer<_countWriteValidator>
+type _createdByWriteType = z.infer<_createdByWriteValidator>
+type _createdTimeWriteType = z.infer<_createdTimeWriteValidator>
+type _currencyWriteType = z.infer<_currencyWriteValidator>
+type _dateWriteType = z.infer<_dateWriteValidator>
+type _dateTimeWriteType = z.infer<_dateTimeWriteValidator>
+type _durationWriteType = z.infer<_durationWriteValidator>
+type _emailWriteType = z.infer<_emailWriteValidator>
+type _externalSyncSourceWriteType = z.infer<_externalSyncSourceWriteValidator>
+type _formulaWriteType = z.infer<_formulaWriteValidator>
+type _lastModifiedByWriteType = z.infer<_lastModifiedByWriteValidator>
+type _lastModifiedTimeWriteType = z.infer<_lastModifiedTimeWriteValidator>
+type _multilineTextWriteType = z.infer<_multilineTextWriteValidator>
+type _multipleAttachmentsWriteType = z.infer<_multipleAttachmentsWriteValidator>
+type _multipleCollaboratorsWriteType = z.infer<_multipleCollaboratorsWriteValidator>
+type _multipleLookupValuesWriteType = z.infer<_multipleLookupValuesWriteValidator>
+type _multipleRecordLinksWriteType = z.infer<_multipleRecordLinksWriteValidator>
+type _multipleSelectsWriteType = z.infer<_multipleSelectsWriteValidator>
+type _numberWriteType = z.infer<_numberWriteValidator>
+type _percentWriteType = z.infer<_percentWriteValidator>
+type _phoneNumberWriteType = z.infer<_phoneNumberWriteValidator>
+type _ratingWriteType = z.infer<_ratingWriteValidator>
+type _richTextWriteType = z.infer<_richTextWriteValidator>
+type _rollupWriteType = z.infer<_rollupWriteValidator>
+type _singleCollaboratorWriteType = z.infer<_singleCollaboratorWriteValidator>
+type _singleLineTextWriteType = z.infer<_singleLineTextWriteValidator>
+type _singleSelectWriteType = z.infer<_singleSelectWriteValidator>
+type _urlWriteType = z.infer<_urlWriteValidator>
