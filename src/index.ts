@@ -19,6 +19,11 @@ export {
 } from "./types.ts";
 
 export {
+    type Formula,
+    formulaToString,
+} from "./formula/index.ts";
+
+export {
     makeTableClient,
     makeBaseClient,
     makeOrgClient,
