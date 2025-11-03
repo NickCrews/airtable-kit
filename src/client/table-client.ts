@@ -71,16 +71,19 @@ export interface GetRecordResponse<T extends ReadonlyArray<FieldSchema>> {
 /**
  * Options for updating records
  */
-export interface UpdateRecordsOptions {
+export interface UpdateRecordsOptions<T extends ReadonlyArray<FieldSchema>> {
+    /**
+     * If not destructive (the default), then only the fields included in the update will be modified; all other fields will remain unchanged.
+     * If destructive, then ALL fields in the target record will be updated, meaning that any fields not included in the update will be cleared. 
+    */
+    destructive?: boolean;
     /** Enable upsert behavior */
     performUpsert?: {
         /** Fields to use as external ID for matching (1-3 fields) */
-        fieldsToMergeOn: string[];
+        fieldsToMergeOn: T[number]['name'][];
     };
     /** Enable typecasting for string values */
     typecast?: boolean;
-    /** Use destructive update (PUT) instead of partial update (PATCH) */
-    destructive?: boolean;
 }
 
 /**
@@ -125,10 +128,12 @@ export interface UploadAttachmentOptions {
 export type CreateArgs<T extends ReadonlyArray<FieldSchema>> = Array<Partial<WriteRecord<T>>>;
 
 export type CreateResult<T extends ReadonlyArray<FieldSchema>> = {
-    id: RecordId,
-    fields: ReadRecordByName<T>,
-    createdTime: Timestamp,
-}[];
+    records: Array<{
+        id: RecordId,
+        fields: ReadRecordByName<T>,
+        createdTime: Timestamp,
+    }>;
+};
 
 /**
  * A client to interact with a specific table within an Airtable base.
@@ -141,7 +146,14 @@ export interface TableClient<T extends TableSchema> {
     /** The {@link TableSchema} of the table this client interacts with */
     tableSchema: T;
 
-    /** Insert records into the table */
+    /** Insert records into the table
+     * 
+     * @param records - An array of records to create, keyed by either field names or field IDs
+     * @returns A promise that resolves to an array of created records with their IDs and createdTime
+     * 
+     * Any values of `null` or `undefined` in the input records will not be passed
+     * to Airtable, effectively leaving those fields blank on creation.
+     */
     create(values: CreateArgs<T["fields"]>): Promise<CreateResult<T["fields"]>>;
 
     /** List records from the table with optional filtering and pagination */
@@ -150,10 +162,18 @@ export interface TableClient<T extends TableSchema> {
     /** Get a single record by ID */
     get(recordId: RecordId, options?: GetRecordOptions): Promise<GetRecordResponse<T["fields"]>>;
 
-    /** Update records (PATCH by default, PUT if destructive=true) */
+    /**
+     * Update records in the table.
+     * 
+     * @param records - An array of records to update, each with an optional ID and fields to update
+     * @param options - Optional settings for the update operation
+     * 
+     * Any values of `undefined` in a record will be not be sent to Airtable, leaving those fields unchanged.
+     * To explicitly clear a field, set its value to `null`.
+     */
     update(
         records: Array<{ id?: string; fields: Partial<WriteRecord<T["fields"]>> }>,
-        options?: UpdateRecordsOptions
+        options?: UpdateRecordsOptions<T["fields"]>
     ): Promise<UpdateRecordsResponse<T["fields"]>>;
 
     /** Delete records by IDs */
@@ -243,7 +263,7 @@ export function makeTableClient<T extends TableSchema>(
         },
         update(
             records: Array<{ id?: string; fields: Partial<WriteRecord<T["fields"]>> }>,
-            options?: UpdateRecordsOptions
+            options?: UpdateRecordsOptions<T["fields"]>
         ) {
             return update<T["fields"]>({
                 records,
@@ -306,10 +326,16 @@ export async function create<T extends ReadonlyArray<FieldSchema>>(
         fetcher: Fetcher;
     },
 ): Promise<CreateResult<T>> {
+    if (records.length === 0) {
+        return { records: [] };
+    }
     const convertedToAirtable = records.map((record) => {
+        const withoutUndefinedAndNulls = Object.fromEntries(
+            Object.entries(record).filter(([_, v]) => v !== undefined && v !== null)
+        );
         return {
             fields: recordToAirtableRecord(
-                record as Partial<WriteRecord<T>>,
+                withoutUndefinedAndNulls as Partial<WriteRecord<T>>,
                 fieldSpecs,
             ),
         };
@@ -322,11 +348,13 @@ export async function create<T extends ReadonlyArray<FieldSchema>>(
             returnFieldsByFieldId: true,
         },
     });
-    const result = raw.records.map((record) => ({
-        id: record.id,
-        fields: convertFieldIdKeysToNames(record.fields, fieldSpecs),
-        createdTime: record.createdTime,
-    }));
+    const result = {
+        records: raw.records.map((record) => ({
+            id: record.id,
+            fields: convertFieldIdKeysToNames(record.fields, fieldSpecs),
+            createdTime: record.createdTime,
+        }))
+    };
     return result;
 }
 
@@ -507,18 +535,26 @@ export async function update<T extends ReadonlyArray<FieldSchema>>(
         tableId,
     }: {
         records: Array<{ id?: string; fields: Partial<WriteRecord<T>> }>;
-        options?: UpdateRecordsOptions;
+        options?: UpdateRecordsOptions<T>;
         fieldSpecs: T;
         baseId: BaseId;
         tableId: TableId;
         fetcher: Fetcher;
     },
 ): Promise<UpdateRecordsResponse<T>> {
+    if (records.length === 0) {
+        return {
+            records: [],
+        };
+    }
     const rawRequestBody: UpdateRawRequestBody<T> = {
         records: records.map((record) => {
+            const withoutUndefined = Object.fromEntries(
+                Object.entries(record.fields).filter(([_, v]) => v !== undefined)
+            );
             const converted: UpdateRawRequestBody<T>['records'][number] = {
                 fields: recordToAirtableRecord(
-                    record.fields as Partial<WriteRecord<T>>,
+                    withoutUndefined as Partial<WriteRecord<T>>,
                     fieldSpecs,
                 ),
             };

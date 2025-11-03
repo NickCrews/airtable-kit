@@ -3,7 +3,7 @@ import {
     SelectChoice,
     SingleSelect,
 } from "../fields/index.ts";
-import { type FieldSchema, type FieldType } from "../types.ts";
+import { RecordId, type FieldSchema, type FieldType } from "../types.ts";
 
 type ToAirtableConverter<T> = (value: T) => unknown;
 type FromAirtableConverter<T> = (value: unknown) => T;
@@ -13,16 +13,17 @@ interface IConverters<
     F extends FieldSchema,
 > {
     type: F["type"];
-    /** null implies the field is read-only */
-    makeTo(fieldSchema: F): ToAirtableConverter<ToArg> | null;
-    makeFrom(fieldSchema: F): FromAirtableConverter<FromResult>;
+    /** null implies the field can't be written to (eg is createdTime or formula) */
+    makeTo: null | ((fieldSchema: F) => ToAirtableConverter<ToArg>);
+    /** null implies the field can't be read from (eg is a button) */
+    makeFrom: null | ((fieldSchema: F) => FromAirtableConverter<FromResult>);
 }
 
 type FieldOfType<T extends FieldType> = Extract<FieldSchema, { type: T }>;
 
 const AiTextConverters = {
     type: "aiText",
-    makeTo: (_fieldSchema: FieldOfType<"aiText">) => null,
+    makeTo: null,
     makeFrom:
         (_fieldSchema: FieldOfType<"aiText">) => (value: unknown): string =>
             value as string,
@@ -30,7 +31,7 @@ const AiTextConverters = {
 
 const AutoNumberConverters = {
     type: "autoNumber",
-    makeTo: (_fieldSchema: FieldOfType<"autoNumber">) => null,
+    makeTo: null,
     makeFrom:
         (_fieldSchema: FieldOfType<"autoNumber">) => (value: unknown): number =>
             value as number,
@@ -48,41 +49,39 @@ const BarcodeConverters = {
     type: "barcode",
     makeTo:
         (_fieldSchema: FieldOfType<"barcode">) =>
-            (value: BarcodeValue): BarcodeValue => value,
+            (value: BarcodeValue | null | undefined): BarcodeValue | null | undefined => value,
     makeFrom:
         (_fieldSchema: FieldOfType<"barcode">) =>
             (value: unknown): BarcodeValue => value as BarcodeValue,
 } as const satisfies IConverters<
-    BarcodeValue,
-    BarcodeValue,
+    BarcodeValue | null | undefined,
+    BarcodeValue | null,
     FieldOfType<"barcode">
 >;
 
 const ButtonConverters = {
     type: "button",
-    makeTo: (_fieldSchema: FieldOfType<"button">) => null,
-    makeFrom:
-        (_fieldSchema: FieldOfType<"button">) => (value: unknown): string =>
-            value as string,
-} as const satisfies IConverters<never, string, FieldOfType<"button">>;
+    makeTo: null,
+    makeFrom: null,
+} as const satisfies IConverters<never, never, FieldOfType<"button">>;
 
 const CheckboxConverters = {
     type: "checkbox",
     makeTo:
-        (_fieldSchema: FieldOfType<"checkbox">) => (value: boolean): boolean =>
+        (_fieldSchema: FieldOfType<"checkbox">) => (value: boolean | null | undefined): boolean | null | undefined =>
             value,
     makeFrom:
-        (_fieldSchema: FieldOfType<"checkbox">) => (value: unknown): boolean =>
-            value as boolean,
+        (_fieldSchema: FieldOfType<"checkbox">) => (value: unknown): boolean | null =>
+            value as boolean | null,
 } as const satisfies IConverters<
-    boolean,
-    boolean,
+    boolean | null | undefined,
+    boolean | null,
     FieldOfType<"checkbox">
 >;
 
 const CountConverters = {
     type: "count",
-    makeTo: (_fieldSchema: FieldOfType<"count">) => null,
+    makeTo: null,
     makeFrom:
         (_fieldSchema: FieldOfType<"count">) => (value: unknown): number =>
             value as number,
@@ -113,7 +112,7 @@ interface UserWrite {
 }
 const CreatedByConverters = {
     type: "createdBy",
-    makeTo: (_fieldSchema: FieldOfType<"createdBy">) => null,
+    makeTo: null,
     makeFrom:
         (_fieldSchema: FieldOfType<"createdBy">) => (value: unknown): User =>
             value as User,
@@ -121,7 +120,7 @@ const CreatedByConverters = {
 
 const CreatedTimeConverters = {
     type: "createdTime",
-    makeTo: (_fieldSchema: FieldOfType<"createdTime">) => null,
+    makeTo: null,
     makeFrom:
         (_fieldSchema: FieldOfType<"createdTime">) =>
             (value: unknown): globalThis.Date =>
@@ -135,14 +134,14 @@ const CreatedTimeConverters = {
 const CurrencyConverters = {
     type: "currency",
     makeTo:
-        (_fieldSchema: FieldOfType<"currency">) => (value: number): number =>
+        (_fieldSchema: FieldOfType<"currency">) => (value: number | null | undefined): number | null | undefined =>
             value,
     makeFrom:
-        (_fieldSchema: FieldOfType<"currency">) => (value: unknown): number =>
-            value as number,
+        (_fieldSchema: FieldOfType<"currency">) => (value: unknown): number | null =>
+            value as number | null,
 } as const satisfies IConverters<
-    number,
-    number,
+    number | null | undefined,
+    number | null,
     FieldOfType<"currency">
 >;
 
@@ -151,17 +150,17 @@ const DateConverters = {
     type: "date",
     makeTo:
         (_fieldSchema: FieldOfType<"date">) =>
-            (value: globalThis.Date | TDateString): string => {
+            (value: globalThis.Date | TDateString | null | undefined): string | null | undefined => {
                 if (value instanceof globalThis.Date) {
                     return value.toISOString().split("T")[0];
                 }
                 return value;
             },
-    makeFrom: (_fieldSchema: FieldOfType<"date">) => (value: unknown): string =>
-        value as string,
+    makeFrom: (_fieldSchema: FieldOfType<"date">) => (value: unknown): string | null =>
+        value as string | null,
 } as const satisfies IConverters<
-    globalThis.Date | TDateString,
-    string,
+    globalThis.Date | TDateString | null | undefined,
+    string | null,
     FieldOfType<"date">
 >;
 
@@ -169,7 +168,7 @@ const DateTimeConverters = {
     type: "dateTime",
     makeTo:
         (_fieldSchema: FieldOfType<"dateTime">) =>
-            (value: globalThis.Date | string): string => {
+            (value: globalThis.Date | string | null | undefined): string | null | undefined => {
                 if (value instanceof globalThis.Date) {
                     return value.toISOString();
                 }
@@ -177,33 +176,35 @@ const DateTimeConverters = {
             },
     makeFrom:
         (_fieldSchema: FieldOfType<"dateTime">) =>
-            (value: unknown): globalThis.Date =>
-                new globalThis.Date(value as string),
+            (value: unknown): globalThis.Date | null => {
+                if (value === null) return null;
+                return new globalThis.Date(value as string);
+            },
 } as const satisfies IConverters<
-    globalThis.Date | string,
-    globalThis.Date,
+    globalThis.Date | string | null | undefined,
+    globalThis.Date | null,
     FieldOfType<"dateTime">
 >;
 
 const DurationConverters = {
     type: "duration",
     makeTo:
-        (_fieldSchema: FieldOfType<"duration">) => (value: number): number =>
+        (_fieldSchema: FieldOfType<"duration">) => (value: number | null | undefined): number | null | undefined =>
             value,
     makeFrom:
-        (_fieldSchema: FieldOfType<"duration">) => (value: unknown): number =>
-            value as number,
+        (_fieldSchema: FieldOfType<"duration">) => (value: unknown): number | null =>
+            value as number | null,
 } as const satisfies IConverters<
-    number,
-    number,
+    number | null | undefined,
+    number | null,
     FieldOfType<"duration">
 >;
 
 const EmailConverters = {
     type: "email",
-    makeTo: (_: FieldSchema) => (value: string): string => String(value),
+    makeTo: (_: FieldSchema) => (value: string | null | undefined): string | null | undefined => value,
     makeFrom: (_: FieldSchema) => (value: unknown): string => value as string,
-} as const satisfies IConverters<string, string, FieldOfType<"email">>;
+} as const satisfies IConverters<string | null | undefined, string, FieldOfType<"email">>;
 
 const ExternalSyncSourceConverters = {
     type: "externalSyncSource",
@@ -219,17 +220,19 @@ const ExternalSyncSourceConverters = {
     FieldOfType<"externalSyncSource">
 >;
 
+type FormulaReadType<F extends FieldOfType<"formula">> = F["options"] extends { result: infer R } ? R : never;
 const FormulaConverters = {
     type: "formula",
-    makeTo: (_fieldSchema: FieldOfType<"formula">) => null,
+    makeTo: null,
     makeFrom:
-        (_fieldSchema: FieldOfType<"formula">) => (value: unknown): string =>
-            value as string,
-} as const satisfies IConverters<never, string, FieldOfType<"formula">>;
+        <F extends FieldOfType<"formula">>(_fieldSchema: F) => (value: unknown): FormulaReadType<F> => {
+            return value as FormulaReadType<F>;
+        }
+} as const satisfies IConverters<never, string | number, FieldOfType<"formula">>;
 
 const LastModifiedByConverters = {
     type: "lastModifiedBy",
-    makeTo: (_fieldSchema: FieldOfType<"lastModifiedBy">) => null,
+    makeTo: null,
     makeFrom:
         (_fieldSchema: FieldOfType<"lastModifiedBy">) =>
             (value: unknown): User => value as User,
@@ -241,7 +244,7 @@ const LastModifiedByConverters = {
 
 const LastModifiedTimeConverters = {
     type: "lastModifiedTime",
-    makeTo: (_fieldSchema: FieldOfType<"lastModifiedTime">) => null,
+    makeTo: null,
     makeFrom:
         (_fieldSchema: FieldOfType<"lastModifiedTime">) =>
             (value: unknown): globalThis.Date =>
@@ -254,10 +257,10 @@ const LastModifiedTimeConverters = {
 
 const MultilineTextConverters = {
     type: "multilineText",
-    makeTo: (_: FieldSchema) => (value: string): string => String(value),
+    makeTo: (_: FieldSchema) => (value: string | null | undefined): string | null | undefined => value,
     makeFrom: (_: FieldSchema) => (value: unknown): string => value as string,
 } as const satisfies IConverters<
-    string,
+    string | null | undefined,
     string,
     FieldOfType<"multilineText">
 >;
@@ -265,12 +268,13 @@ const MultilineTextConverters = {
 export type MultipleAttachment = {
     url: string;
     filename?: string;
-}[];
+};
 const MultipleAttachmentsConverters = {
     type: "multipleAttachments",
     makeTo:
         (_fieldSchema: FieldOfType<"multipleAttachments">) =>
-            (value: MultipleAttachment): MultipleAttachment => {
+            (value: ReadonlyArray<MultipleAttachment> | null | undefined): ReadonlyArray<MultipleAttachment> | null | undefined => {
+                if (!value) return value;
                 return value.map(({ url, filename }) => ({
                     url,
                     filename,
@@ -278,17 +282,20 @@ const MultipleAttachmentsConverters = {
             },
     makeFrom:
         (_fieldSchema: FieldOfType<"multipleAttachments">) =>
-            (value: unknown): MultipleAttachment => value as MultipleAttachment,
+            (value: unknown): Array<MultipleAttachment> => value as Array<MultipleAttachment>,
 } as const satisfies IConverters<
-    MultipleAttachment,
-    MultipleAttachment,
+    ReadonlyArray<MultipleAttachment> | null | undefined,
+    Array<MultipleAttachment>,
     FieldOfType<"multipleAttachments">
 >;
 const MultipleCollaboratorsConverters = {
     type: "multipleCollaborators",
     makeTo:
         (_fieldSchema: FieldOfType<"multipleCollaborators">) =>
-            (value: User[]): User[] => value,
+            (value: User[] | null | undefined): User[] => {
+                if (!value) return [];
+                return value;
+            },
     makeFrom:
         (_fieldSchema: FieldOfType<"multipleCollaborators">) =>
             (value: unknown): User[] => value as User[],
@@ -300,14 +307,12 @@ const MultipleCollaboratorsConverters = {
 
 const MultipleLookupValuesConverters = {
     type: "multipleLookupValues",
-    makeTo:
-        (_fieldSchema: FieldOfType<"multipleLookupValues">) =>
-            (value: unknown[]): unknown[] => value,
+    makeTo: null,
     makeFrom:
         (_fieldSchema: FieldOfType<"multipleLookupValues">) =>
             (value: unknown): unknown[] => value as unknown[],
 } as const satisfies IConverters<
-    unknown[],
+    never,
     unknown[],
     FieldOfType<"multipleLookupValues">
 >;
@@ -316,13 +321,16 @@ const MultipleRecordLinksConverters = {
     type: "multipleRecordLinks",
     makeTo:
         (_fieldSchema: FieldOfType<"multipleRecordLinks">) =>
-            (value: string[]): string[] => value,
+            (value: RecordId[] | null | undefined): RecordId[] => {
+                if (!value) return [];
+                return value;
+            },
     makeFrom:
         (_fieldSchema: FieldOfType<"multipleRecordLinks">) =>
-            (value: unknown): string[] => value as string[],
+            (value: unknown): RecordId[] => value as RecordId[],
 } as const satisfies IConverters<
-    string[],
-    string[],
+    RecordId[] | null | undefined,
+    RecordId[],
     FieldOfType<"multipleRecordLinks">
 >;
 
@@ -330,7 +338,8 @@ const MultipleSelectsConverters = {
     type: "multipleSelects",
     makeTo:
         <C extends SelectChoice>(fieldSchema: MultipleSelects<C>) =>
-            (idsOrValues: Array<C["id"] | C["name"]>): Array<C["id"]> => {
+            (idsOrValues: Array<C["id"] | C["name"]> | null | undefined): Array<C["id"]> => {
+                if (!idsOrValues) return [];
                 const choices = fieldSchema.options.choices;
                 return idsOrValues.map((idOrValue) => {
                     let found = choices.find((option) => option.id === idOrValue);
@@ -365,45 +374,49 @@ const NumberConverters = {
 
 const PercentConverters = {
     type: "percent",
-    makeTo: (_fieldSchema: FieldOfType<"percent">) => (value: number): number =>
+    makeTo: (_fieldSchema: FieldOfType<"percent">) => (value: number | null | undefined): number | null | undefined =>
         value,
     makeFrom:
-        (_fieldSchema: FieldOfType<"percent">) => (value: unknown): number =>
-            value as number,
-} as const satisfies IConverters<number, number, FieldOfType<"percent">>;
+        (_fieldSchema: FieldOfType<"percent">) => (value: unknown): number | null =>
+            value as number | null,
+} as const satisfies IConverters<
+    number | null | undefined,
+    number | null,
+    FieldOfType<"percent">
+>;
 
 const PhoneNumberConverters = {
     type: "phoneNumber",
-    makeTo: (_: FieldSchema) => (value: string): string => String(value),
+    makeTo: (_: FieldSchema) => (value: string | null | undefined): string | null | undefined => value,
     makeFrom: (_: FieldSchema) => (value: unknown): string => value as string,
 } as const satisfies IConverters<
-    string,
+    string | null | undefined,
     string,
     FieldOfType<"phoneNumber">
 >;
 
 const RatingConverters = {
     type: "rating",
-    makeTo: (_fieldSchema: FieldOfType<"rating">) => (value: number): number =>
+    makeTo: (_fieldSchema: FieldOfType<"rating">) => (value: number | null | undefined): number | null | undefined =>
         value,
     makeFrom:
-        (_fieldSchema: FieldOfType<"rating">) => (value: unknown): number =>
-            value as number,
-} as const satisfies IConverters<number, number, FieldOfType<"rating">>;
+        (_fieldSchema: FieldOfType<"rating">) => (value: unknown): number | null =>
+            value as number | null,
+} as const satisfies IConverters<number | null | undefined, number | null, FieldOfType<"rating">>;
 
 const RichTextConverters = {
     type: "richText",
-    makeTo: (_: FieldSchema) => (value: string): string => String(value),
+    makeTo: (_: FieldSchema) => (value: string | null | undefined): string | null | undefined => value,
     makeFrom: (_: FieldSchema) => (value: unknown): string => value as string,
 } as const satisfies IConverters<
-    string,
+    string | null | undefined,
     string,
     FieldOfType<"richText">
 >;
 
 const RollupConverters = {
     type: "rollup",
-    makeTo: (_fieldSchema: FieldOfType<"rollup">) => null,
+    makeTo: null,
     makeFrom:
         (_fieldSchema: FieldOfType<"rollup">) => (value: unknown): unknown =>
             value,
@@ -413,22 +426,22 @@ const SingleCollaboratorConverters = {
     type: "singleCollaborator",
     makeTo:
         (_fieldSchema: FieldOfType<"singleCollaborator">) =>
-            (value: UserWrite): UserWrite => value,
+            (value: UserWrite | null | undefined): UserWrite | null | undefined => value,
     makeFrom:
         (_fieldSchema: FieldOfType<"singleCollaborator">) =>
-            (value: unknown): User => value as User,
+            (value: unknown): User | null => value as User | null,
 } as const satisfies IConverters<
-    UserWrite,
-    User,
+    UserWrite | null | undefined,
+    User | null,
     FieldOfType<"singleCollaborator">
 >;
 
 const SingleLineTextConverters = {
     type: "singleLineText",
-    makeTo: (_: FieldSchema) => (value: string): string => String(value),
+    makeTo: (_: FieldSchema) => (value: string | null | undefined): string | null | undefined => value,
     makeFrom: (_: FieldSchema) => (value: unknown): string => value as string,
 } as const satisfies IConverters<
-    string,
+    string | null | undefined,
     string,
     FieldOfType<"singleLineText">
 >;
@@ -437,10 +450,13 @@ const SingleSelectConverters = {
     type: "singleSelect",
     makeTo:
         <C extends SelectChoice>(fieldSchema: SingleSelect<C>) =>
-            (idOrValue: C["id"] | C["name"]): C["id"] => {
+            (idOrValue: C["id"] | C["name"] | null | undefined): C["id"] | null | undefined => {
                 // If already an ID in the spec, return it.
                 // Otherwise, try to lookup the ID from the value.
                 // If not found, error.
+                if (idOrValue === null || idOrValue === undefined) {
+                    return idOrValue;
+                }
                 const choices = fieldSchema.options.choices;
                 let found = choices.find((option) => option.id === idOrValue);
                 if (found) {
@@ -464,9 +480,9 @@ const SingleSelectConverters = {
 
 const UrlConverters = {
     type: "url",
-    makeTo: (_: FieldSchema) => (value: string): string => String(value),
+    makeTo: (_: FieldSchema) => (value: string | null | undefined): string | null | undefined => value,
     makeFrom: (_: FieldSchema) => (value: unknown): string => value as string,
-} as const satisfies IConverters<string, string, FieldOfType<"url">>;
+} as const satisfies IConverters<string | null | undefined, string, FieldOfType<"url">>;
 
 export const CONVERTERS = {
     [AiTextConverters.type]: AiTextConverters,
@@ -509,37 +525,37 @@ export type Converters = typeof CONVERTERS[keyof typeof CONVERTERS];
 /** Given a FieldSchema, return the typescript type will be returned when you read from it */
 export type inferRead<F extends FieldSchema> = F extends FieldOfType<"aiText">
     ? string
-    : F extends FieldOfType<"autoNumber"> ? number
-    : F extends FieldOfType<"barcode"> ? BarcodeValue
-    : F extends FieldOfType<"button"> ? string
-    : F extends FieldOfType<"checkbox"> ? boolean
-    : F extends FieldOfType<"count"> ? number
-    : F extends FieldOfType<"createdBy"> ? User
+    : F extends FieldOfType<"autoNumber"> ? number | null
+    : F extends FieldOfType<"barcode"> ? BarcodeValue | null
+    : F extends FieldOfType<"button"> ? string | null
+    : F extends FieldOfType<"checkbox"> ? boolean | null
+    : F extends FieldOfType<"count"> ? number | null
+    : F extends FieldOfType<"createdBy"> ? User | null
     : F extends FieldOfType<"createdTime"> ? globalThis.Date
-    : F extends FieldOfType<"currency"> ? number
-    : F extends FieldOfType<"date"> ? string
-    : F extends FieldOfType<"dateTime"> ? globalThis.Date
-    : F extends FieldOfType<"duration"> ? number
+    : F extends FieldOfType<"currency"> ? number | null
+    : F extends FieldOfType<"date"> ? string | null // ISO date string or null
+    : F extends FieldOfType<"dateTime"> ? globalThis.Date | null
+    : F extends FieldOfType<"duration"> ? number | null
     : F extends FieldOfType<"email"> ? string
     : F extends FieldOfType<"externalSyncSource"> ? unknown
-    : F extends FieldOfType<"formula"> ? string
-    : F extends FieldOfType<"lastModifiedBy"> ? User
-    : F extends FieldOfType<"lastModifiedTime"> ? globalThis.Date
+    : F extends FieldOfType<"formula"> ? FormulaReadType<F>
+    : F extends FieldOfType<"lastModifiedBy"> ? User | null
+    : F extends FieldOfType<"lastModifiedTime"> ? globalThis.Date | null
     : F extends FieldOfType<"multilineText"> ? string
-    : F extends FieldOfType<"multipleAttachments"> ? MultipleAttachment
+    : F extends FieldOfType<"multipleAttachments"> ? ReadonlyArray<MultipleAttachment> | null
     : F extends FieldOfType<"multipleCollaborators"> ? User[]
     : F extends FieldOfType<"multipleLookupValues"> ? unknown[]
-    : F extends FieldOfType<"multipleRecordLinks"> ? string[]
+    : F extends FieldOfType<"multipleRecordLinks"> ? RecordId[]
     : F extends MultipleSelects<infer C> ? C[]
-    : F extends FieldOfType<"number"> ? number
-    : F extends FieldOfType<"percent"> ? number
+    : F extends FieldOfType<"number"> ? number | null
+    : F extends FieldOfType<"percent"> ? number | null
     : F extends FieldOfType<"phoneNumber"> ? string
-    : F extends FieldOfType<"rating"> ? number
+    : F extends FieldOfType<"rating"> ? number | null
     : F extends FieldOfType<"richText"> ? string
     : F extends FieldOfType<"rollup"> ? unknown
-    : F extends FieldOfType<"singleCollaborator"> ? User
+    : F extends FieldOfType<"singleCollaborator"> ? User | null
     : F extends FieldOfType<"singleLineText"> ? string
-    : F extends SingleSelect<infer C> ? C
+    : F extends SingleSelect<infer C> ? C | null
     : F extends FieldOfType<"url"> ? string
     : never;
 
@@ -547,37 +563,37 @@ export type inferRead<F extends FieldSchema> = F extends FieldOfType<"aiText">
 export type inferWrite<F extends FieldSchema> = F extends FieldOfType<"aiText">
     ? never
     : F extends FieldOfType<"autoNumber"> ? never
-    : F extends FieldOfType<"barcode"> ? BarcodeValue
+    : F extends FieldOfType<"barcode"> ? BarcodeValue | null | undefined
     : F extends FieldOfType<"button"> ? never
-    : F extends FieldOfType<"checkbox"> ? boolean
+    : F extends FieldOfType<"checkbox"> ? boolean | null | undefined
     : F extends FieldOfType<"count"> ? never
     : F extends FieldOfType<"createdBy"> ? never
     : F extends FieldOfType<"createdTime"> ? never
-    : F extends FieldOfType<"currency"> ? number
-    : F extends FieldOfType<"date"> ? globalThis.Date | TDateString
-    : F extends FieldOfType<"dateTime"> ? globalThis.Date | string
-    : F extends FieldOfType<"duration"> ? number
-    : F extends FieldOfType<"email"> ? string
+    : F extends FieldOfType<"currency"> ? number | null | undefined
+    : F extends FieldOfType<"date"> ? globalThis.Date | TDateString | null | undefined
+    : F extends FieldOfType<"dateTime"> ? globalThis.Date | string | null | undefined
+    : F extends FieldOfType<"duration"> ? number | null | undefined
+    : F extends FieldOfType<"email"> ? string | null | undefined
     : F extends FieldOfType<"externalSyncSource"> ? unknown
     : F extends FieldOfType<"formula"> ? never
     : F extends FieldOfType<"lastModifiedBy"> ? never
     : F extends FieldOfType<"lastModifiedTime"> ? never
-    : F extends FieldOfType<"multilineText"> ? string
-    : F extends FieldOfType<"multipleAttachments"> ? MultipleAttachment
-    : F extends FieldOfType<"multipleCollaborators"> ? User[]
-    : F extends FieldOfType<"multipleLookupValues"> ? unknown[]
-    : F extends FieldOfType<"multipleRecordLinks"> ? string[]
-    : F extends MultipleSelects<infer C> ? Array<C["id"] | C["name"]>
-    : F extends FieldOfType<"number"> ? number
-    : F extends FieldOfType<"percent"> ? number
-    : F extends FieldOfType<"phoneNumber"> ? string
-    : F extends FieldOfType<"rating"> ? number
-    : F extends FieldOfType<"richText"> ? string
+    : F extends FieldOfType<"multilineText"> ? string | null | undefined
+    : F extends FieldOfType<"multipleAttachments"> ? ReadonlyArray<MultipleAttachment> | null | undefined
+    : F extends FieldOfType<"multipleCollaborators"> ? ReadonlyArray<User> | null | undefined
+    : F extends FieldOfType<"multipleLookupValues"> ? never
+    : F extends FieldOfType<"multipleRecordLinks"> ? ReadonlyArray<RecordId> | null | undefined
+    : F extends MultipleSelects<infer C> ? ReadonlyArray<C["id"] | C["name"]> | null | undefined
+    : F extends FieldOfType<"number"> ? number | null | undefined
+    : F extends FieldOfType<"percent"> ? number | null | undefined
+    : F extends FieldOfType<"phoneNumber"> ? string | null | undefined
+    : F extends FieldOfType<"rating"> ? number | null | undefined
+    : F extends FieldOfType<"richText"> ? string | null | undefined
     : F extends FieldOfType<"rollup"> ? never
-    : F extends FieldOfType<"singleCollaborator"> ? UserWrite
-    : F extends FieldOfType<"singleLineText"> ? string
-    : F extends SingleSelect<infer C> ? C["id"] | C["name"]
-    : F extends FieldOfType<"url"> ? string
+    : F extends FieldOfType<"singleCollaborator"> ? UserWrite | null | undefined
+    : F extends FieldOfType<"singleLineText"> ? string | null | undefined
+    : F extends SingleSelect<infer C> ? C["id"] | C["name"] | null | undefined
+    : F extends FieldOfType<"url"> ? string | null | undefined
     : never;
 
 export type ReadRecordByName<T extends ReadonlyArray<FieldSchema>> = {
@@ -604,7 +620,7 @@ export type WriteRecord<T extends ReadonlyArray<FieldSchema>> = {
     : never;
 };
 
-function toAirtableValue<F extends FieldSchema>(
+export function convertForWrite<F extends FieldSchema>(
     value: inferWrite<F>,
     fieldSchema: F,
 ): unknown {
@@ -614,15 +630,38 @@ function toAirtableValue<F extends FieldSchema>(
         throw new Error(`No converter found for field type: ${type}`);
     }
     type AnyConverter = {
-        makeTo: (fs: FieldSchema) => ((v: unknown) => unknown) | null;
+        makeTo: null | ((fs: FieldSchema) => ((v: unknown) => unknown));
     };
-    const converter = (converterObj as AnyConverter).makeTo(fieldSchema);
-    if (converter === null) {
+    const makeTo = (converterObj as AnyConverter).makeTo;
+    if (makeTo === null) {
         throw new Error(
             `Field type "${fieldSchema.type}" is read-only and cannot be written to.`,
         );
     }
+    const converter = makeTo(fieldSchema);
     return converter(value);
+}
+
+export function convertForRead<F extends FieldSchema>(
+    value: unknown,
+    fieldSchema: F,
+): inferRead<F> {
+    const type = fieldSchema.type;
+    const converterObj = CONVERTERS[type];
+    if (!converterObj) {
+        throw new Error(`No converter found for field type: ${type}`);
+    }
+    type AnyConverter = {
+        makeFrom: null | ((fs: FieldSchema) => ((v: unknown) => unknown));
+    };
+    const makeFrom = (converterObj as AnyConverter).makeFrom;
+    if (makeFrom === null) {
+        throw new Error(
+            `Field type "${fieldSchema.type}" is write-only and cannot be read from.`,
+        );
+    }
+    const converter = makeFrom(fieldSchema);
+    return converter(value) as inferRead<F>;
 }
 
 export function recordToAirtableRecord<
@@ -635,7 +674,7 @@ export function recordToAirtableRecord<
     const result: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(record)) {
         const fieldSchema = lookupFieldSchema(k, fieldSchemas);
-        const airtableValue = toAirtableValue(
+        const airtableValue = convertForWrite(
             v as inferWrite<typeof fieldSchema>,
             fieldSchema,
         );

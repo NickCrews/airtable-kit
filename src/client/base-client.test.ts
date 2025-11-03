@@ -50,14 +50,17 @@ describe("BaseClient", () => {
                 returnFieldsByFieldId: true,
             },
         }]);
-        expect(result).toEqual([{
-            id: "rec123",
-            fields: {
-                Name: "do laundry",
-                "Due Date": "1990-01-01",
-                Tags: ["selUrgent", "selImportant"],
-            },
-            createdTime: "2024-01-01T00:00:00.000Z",
-        }]);
+        expect(result).toEqual(
+            {
+                records: [{
+                    id: "rec123",
+                    fields: {
+                        Name: "do laundry",
+                        "Due Date": "1990-01-01",
+                        Tags: ["selUrgent", "selImportant"],
+                    },
+                    createdTime: "2024-01-01T00:00:00.000Z",
+                }]
+            });
     });
 });

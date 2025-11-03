@@ -33,7 +33,7 @@ type CreateInput<T extends TableSchema> = {
   records: CreateArgs<T["fields"]>;
 };
 type CreateToolResult<T extends TableSchema["fields"]> = Array<
-  CreateResult<T>[number] & { url: string; }
+  CreateResult<T>["records"][number] & { url: string; }
 >;
 export function makeCreateTool<
   T extends TableSchema,
@@ -42,8 +42,8 @@ export function makeCreateTool<
   const zodInputValidator = z4.object({ records: z4.array(recordSchema) });
   async function execute(input: CreateInput<T>) {
     const validated = zodInputValidator.parse(input);
-    const createdRecords = await client.create(validated.records as WriteRecord<T["fields"]>[]);
-    return createdRecords.map((r) => ({
+    const createResponse = await client.create(validated.records as WriteRecord<T["fields"]>[]);
+    return createResponse.records.map((r) => ({
       ...r,
       // include the URL so the bot can share it with the user
       "url": `https://airtable.com/${client.baseId}/${client.tableSchema.id}/${r.id}`,
@@ -73,7 +73,7 @@ type UpdateInput<T extends TableSchema> = {
     id?: string;
     fields: Partial<WriteRecord<T["fields"]>>;
   }>;
-  options?: UpdateRecordsOptions;
+  options?: UpdateRecordsOptions<T["fields"]>;
 };
 export function makeUpdateTool<
   T extends TableSchema,

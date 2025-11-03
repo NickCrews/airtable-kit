@@ -3,834 +3,440 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { BarcodeValue, CONVERTERS, MultipleAttachment } from "./converters.ts";
+import { BarcodeValue, MultipleAttachment, convertForWrite, convertForRead } from "./converters.ts";
 import type { FieldSchema } from "../types.ts";
 import { MultipleSelects, SingleSelect } from "../fields/index.ts";
+import * as FIELDS from "../fields/_example-fields.ts";
 
 describe("Converters", () => {
-  describe("Read-only fields (makeTo returns null)", () => {
-    it("aiText should be read-only", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldAiText",
-        name: "AI Text",
-        type: "aiText",
-        options: { state: "generated", isStale: false, value: null },
-      };
-      const converter = CONVERTERS.aiText.makeTo(fieldSchema as any);
-      expect(converter).toBeNull();
+  describe("aiText", () => {
+    it("aiText can't be written to", () => {
+      // @ts-expect-error should be null
+      expect(() => convertForWrite("some slop", FIELDS.AI_TEXT)).toThrow();
     });
-
     it("aiText makeFrom should convert to string", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldAiText",
-        name: "AI Text",
-        type: "aiText",
-        options: { state: "generated", isStale: false, value: null },
-      };
-      const converter = CONVERTERS.aiText.makeFrom(fieldSchema as any);
-      expect(converter("Generated text")).toBe("Generated text");
+      expect(convertForRead("Generated AI text", FIELDS.AI_TEXT)).toBe("Generated AI text");
     });
-
-    it("autoNumber should be read-only", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldAutoNumber",
-        name: "Auto Number",
-        type: "autoNumber",
-      };
-      const converter = CONVERTERS.autoNumber.makeTo(fieldSchema as any);
-      expect(converter).toBeNull();
+  });
+  describe("autoNumber", () => {
+    it("autoNumber can't be written to", () => {
+      // @ts-expect-error should be null
+      expect(() => convertForWrite(42, FIELDS.AUTO_NUMBER)).toThrow();
     });
-
     it("autoNumber makeFrom should convert to number", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldAutoNumber",
-        name: "Auto Number",
-        type: "autoNumber",
-      };
-      const converter = CONVERTERS.autoNumber.makeFrom(fieldSchema as any);
-      expect(converter(42)).toBe(42);
-    });
-
-    it("button should be read-only", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldButton",
-        name: "Button",
-        type: "button",
-      };
-      const converter = CONVERTERS.button.makeTo(fieldSchema as any);
-      expect(converter).toBeNull();
-    });
-
-    it("count should be read-only", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldCount",
-        name: "Count",
-        type: "count",
-        options: {},
-      };
-      const converter = CONVERTERS.count.makeTo(fieldSchema as any);
-      expect(converter).toBeNull();
-    });
-
-    it("createdBy should be read-only", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldCreatedBy",
-        name: "Created By",
-        type: "createdBy",
-      };
-      const converter = CONVERTERS.createdBy.makeTo(fieldSchema as any);
-      expect(converter).toBeNull();
-    });
-
-    it("createdTime should be read-only", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldCreatedTime",
-        name: "Created Time",
-        type: "createdTime",
-      };
-      const converter = CONVERTERS.createdTime.makeTo(fieldSchema as any);
-      expect(converter).toBeNull();
-    });
-
-    it("formula should be read-only", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldFormula",
-        name: "Formula",
-        type: "formula",
-        options: {},
-      };
-      const converter = CONVERTERS.formula.makeTo(fieldSchema as any);
-      expect(converter).toBeNull();
-    });
-
-    it("lastModifiedBy should be read-only", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldLastModifiedBy",
-        name: "Last Modified By",
-        type: "lastModifiedBy",
-      };
-      const converter = CONVERTERS.lastModifiedBy.makeTo(fieldSchema as any);
-      expect(converter).toBeNull();
-    });
-
-    it("lastModifiedTime should be read-only", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldLastModifiedTime",
-        name: "Last Modified Time",
-        type: "lastModifiedTime",
-      };
-      const converter = CONVERTERS.lastModifiedTime.makeTo(fieldSchema as any);
-      expect(converter).toBeNull();
-    });
-
-    it("rollup should be read-only", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldRollup",
-        name: "Rollup",
-        type: "rollup",
-        options: {},
-      };
-      const converter = CONVERTERS.rollup.makeTo(fieldSchema as any);
-      expect(converter).toBeNull();
+      expect(convertForRead(42, FIELDS.AUTO_NUMBER)).toBe(42);
     });
   });
-
-  describe("Barcode", () => {
-    it("makeTo should pass through barcode value", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldBarcode",
-        name: "Barcode",
-        type: "barcode",
-      };
-      const converter = CONVERTERS.barcode.makeTo(fieldSchema as any);
-      const barcode: BarcodeValue = { text: "123456789", type: "ean13" };
-      expect(converter(barcode)).toEqual(barcode);
+  describe("barcode", () => {
+    it("barcode should convert BarcodeValue for write", () => {
+      const value: BarcodeValue = { text: "123456", type: "upce" };
+      expect(convertForWrite(value, FIELDS.BARCODE)).toEqual(value);
     });
-
-    it("makeFrom should convert to barcode value", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldBarcode",
-        name: "Barcode",
-        type: "barcode",
-      };
-      const converter = CONVERTERS.barcode.makeFrom(fieldSchema as any);
-      const barcode = { text: "123456789", type: "ean13" };
-      expect(converter(barcode)).toEqual(barcode);
+    it("barcode should handle null for write", () => {
+      expect(convertForWrite(null, FIELDS.BARCODE)).toBeNull();
+    });
+    it("barcode should convert to BarcodeValue for read", () => {
+      const value = { text: "123456", type: "upce" };
+      expect(convertForRead(value, FIELDS.BARCODE)).toEqual(value);
     });
   });
-
-  describe("Checkbox", () => {
-    it("makeTo should pass through boolean", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldCheckbox",
-        name: "Checkbox",
-        type: "checkbox",
-        options: {},
-      };
-      const converter = CONVERTERS.checkbox.makeTo(fieldSchema as any);
-      expect(converter(true)).toBe(true);
-      expect(converter(false)).toBe(false);
+  describe("button", () => {
+    it("button can't be written to", () => {
+      // @ts-expect-error should be null
+      expect(() => convertForWrite("some value", FIELDS.BUTTON)).toThrow();
     });
-
-    it("makeFrom should convert to boolean", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldCheckbox",
-        name: "Checkbox",
-        type: "checkbox",
-        options: {},
-      };
-      const converter = CONVERTERS.checkbox.makeFrom(fieldSchema as any);
-      expect(converter(true)).toBe(true);
-      expect(converter(false)).toBe(false);
+    it("button can't be written to", () => {
+      // @ts-expect-error should be null
+      expect(() => convertForWrite("some value", FIELDS.BUTTON)).toThrow();
     });
   });
-
-  describe("Currency", () => {
-    it("makeTo should pass through number", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldCurrency",
-        name: "Currency",
-        type: "currency",
-        options: { precision: 2, symbol: "$" },
-      };
-      const converter = CONVERTERS.currency.makeTo(fieldSchema as any);
-      expect(converter(123.45)).toBe(123.45);
+  describe("checkbox", () => {
+    it("checkbox should convert values for write", () => {
+      expect(convertForWrite(true, FIELDS.CHECKBOX)).toBe(true);
+      expect(convertForWrite(false, FIELDS.CHECKBOX)).toBe(false);
+      expect(convertForWrite(null, FIELDS.CHECKBOX)).toBeNull();
+      expect(convertForWrite(undefined, FIELDS.CHECKBOX)).toBeUndefined();
     });
-
-    it("makeFrom should convert to number", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldCurrency",
-        name: "Currency",
-        type: "currency",
-        options: { precision: 2, symbol: "$" },
-      };
-      const converter = CONVERTERS.currency.makeFrom(fieldSchema as any);
-      expect(converter(123.45)).toBe(123.45);
+    it("checkbox should convert to boolean for read", () => {
+      expect(convertForRead(true, FIELDS.CHECKBOX)).toBe(true);
+      expect(convertForRead(false, FIELDS.CHECKBOX)).toBe(false);
     });
   });
-
-  describe("Date", () => {
-    it("makeTo should convert Date object to ISO date string", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldDate",
-        name: "Date",
-        type: "date",
-        options: {},
-      };
-      const converter = CONVERTERS.date.makeTo(fieldSchema as any);
-      const date = new Date("2024-03-15T10:30:00Z");
-      expect(converter(date)).toBe("2024-03-15");
+  describe("count", () => {
+    it("count should can't be written to", () => {
+      // @ts-expect-error should be null
+      expect(() => convertForWrite(42, FIELDS.COUNT)).toThrow();
     });
-
-    it("makeTo should pass through date string", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldDate",
-        name: "Date",
-        type: "date",
-        options: {},
-      };
-      const converter = CONVERTERS.date.makeTo(fieldSchema as any);
-      expect(converter("2024-03-15")).toBe("2024-03-15");
-    });
-
-    it("makeFrom should return date string as-is", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldDate",
-        name: "Date",
-        type: "date",
-        options: {},
-      };
-      const converter = CONVERTERS.date.makeFrom(fieldSchema as any);
-      expect(converter("2024-03-15")).toBe("2024-03-15");
+    it("count makeFrom should convert to number", () => {
+      expect(convertForRead(42, FIELDS.COUNT)).toBe(42);
     });
   });
-
-  describe("DateTime", () => {
-    it("makeTo should convert Date object to ISO string", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldDateTime",
-        name: "DateTime",
-        type: "dateTime",
-        options: {},
-      };
-      const converter = CONVERTERS.dateTime.makeTo(fieldSchema as any);
-      const date = new Date("2024-03-15T10:30:00Z");
-      expect(converter(date)).toBe("2024-03-15T10:30:00.000Z");
+  describe("createdBy", () => {
+    it("createdBy can't be written to", () => {
+      // @ts-expect-error should be null
+      expect(() => convertForWrite({ id: "usr123", email: "test@example.com" }, FIELDS.CREATED_BY)).toThrow();
     });
-
-    it("makeTo should pass through ISO string", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldDateTime",
-        name: "DateTime",
-        type: "dateTime",
-        options: {},
-      };
-      const converter = CONVERTERS.dateTime.makeTo(fieldSchema as any);
-      const isoString = "2024-03-15T10:30:00.000Z";
-      expect(converter(isoString)).toBe(isoString);
+    it("createdBy should convert to User", () => {
+      const user = { id: "usr123", email: "test@example.com", name: "Test User" };
+      expect(convertForRead(user, FIELDS.CREATED_BY)).toEqual(user);
     });
-
-    it("makeFrom should convert ISO string to Date object", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldDateTime",
-        name: "DateTime",
-        type: "dateTime",
-        options: {},
-      };
-      const converter = CONVERTERS.dateTime.makeFrom(fieldSchema as any);
-      const result = converter("2024-03-15T10:30:00.000Z");
+  });
+  describe("createdTime", () => {
+    it("createdTime can't be written to", () => {
+      // @ts-expect-error should be null
+      expect(() => convertForWrite(new Date(), FIELDS.CREATED_TIME)).toThrow();
+    });
+    it("createdTime should convert to Date", () => {
+      const dateStr = "2024-01-15T10:30:00.000Z";
+      const result = convertForRead(dateStr, FIELDS.CREATED_TIME);
       expect(result).toBeInstanceOf(Date);
-      expect(result.toISOString()).toBe("2024-03-15T10:30:00.000Z");
+      expect(result.toISOString()).toBe(dateStr);
     });
-
-    it("createdTime makeFrom should convert to Date object", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldCreatedTime",
-        name: "Created Time",
-        type: "createdTime",
-      };
-      const converter = CONVERTERS.createdTime.makeFrom(fieldSchema as any);
-      const result = converter("2024-03-15T10:30:00.000Z");
+  });
+  describe("currency", () => {
+    it("currency should convert for write", () => {
+      expect(convertForWrite(99.99, FIELDS.CURRENCY)).toBe(99.99);
+      expect(convertForWrite(null, FIELDS.CURRENCY)).toBeNull();
+      expect(convertForWrite(undefined, FIELDS.CURRENCY)).toBeUndefined();
+    });
+    it("currency should convert to number for read", () => {
+      expect(convertForRead(99.99, FIELDS.CURRENCY)).toBe(99.99);
+      expect(convertForRead(null, FIELDS.CURRENCY)).toBeNull();
+    });
+  });
+  describe("date", () => {
+    it("date should convert Date to ISO string for write", () => {
+      const date = new Date("2024-01-15T10:30:00.000Z");
+      expect(convertForWrite(date, FIELDS.DATE)).toBe("2024-01-15");
+    });
+    it("date should accept date string for write", () => {
+      expect(convertForWrite("2024-01-15", FIELDS.DATE)).toBe("2024-01-15");
+    });
+    it("date should handle null for write", () => {
+      expect(convertForWrite(null, FIELDS.DATE)).toBeNull();
+    });
+    it("date should handle undefined for write", () => {
+      expect(convertForWrite(undefined, FIELDS.DATE)).toBeUndefined();
+    });
+    it("date should convert to string for read", () => {
+      expect(convertForRead("2024-01-15", FIELDS.DATE)).toBe("2024-01-15");
+    });
+  });
+  describe("dateTime", () => {
+    it("dateTime should convert Date to ISO string for write", () => {
+      const date = new Date("2024-01-15T10:30:00.000Z");
+      expect(convertForWrite(date, FIELDS.DATE_TIME)).toBe(date.toISOString());
+    });
+    it("dateTime should pass through ISO string in UTC for write", () => {
+      const isoStr = "2024-01-15T10:30:00.000Z";
+      expect(convertForWrite(isoStr, FIELDS.DATE_TIME)).toBe(isoStr);
+    });
+    it("dateTime should pass through ISO string in other timezone for write", () => {
+      const isoStr = "2024-01-15T10:30:00-05:00";
+      expect(convertForWrite(isoStr, FIELDS.DATE_TIME)).toBe(isoStr);
+    });
+    it("dateTime should pass through ISO string with no timezone for write", () => {
+      const isoStr = "2024-01-15T10:30:00";
+      expect(convertForWrite(isoStr, FIELDS.DATE_TIME)).toBe(isoStr);
+    });
+    it("dateTime should handle null for write", () => {
+      expect(convertForWrite(null, FIELDS.DATE_TIME)).toBeNull();
+    });
+    it("dateTime should handle undefined for write", () => {
+      expect(convertForWrite(undefined, FIELDS.DATE_TIME)).toBeUndefined();
+    });
+    it("dateTime should convert to Date for read", () => {
+      const isoStr = "2024-01-15T10:30:00.000Z";
+      const result = convertForRead(isoStr, FIELDS.DATE_TIME);
       expect(result).toBeInstanceOf(Date);
+      expect(result?.toISOString()).toBe(isoStr);
     });
-
-    it("lastModifiedTime makeFrom should convert to Date object", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldLastModifiedTime",
-        name: "Last Modified Time",
-        type: "lastModifiedTime",
-      };
-      const converter = CONVERTERS.lastModifiedTime.makeFrom(
-        fieldSchema as any,
-      );
-      const result = converter("2024-03-15T10:30:00.000Z");
+    it("dateTime should handle null for read", () => {
+      expect(convertForRead(null, FIELDS.DATE_TIME)).toBeNull();
+    });
+  });
+  describe("duration", () => {
+    it("duration should convert for write", () => {
+      expect(convertForWrite(3600, FIELDS.DURATION)).toBe(3600);
+      expect(convertForWrite(null, FIELDS.DURATION)).toBeNull();
+      expect(convertForWrite(undefined, FIELDS.DURATION)).toBeUndefined();
+    });
+    it("duration should convert to number for read", () => {
+      expect(convertForRead(3600, FIELDS.DURATION)).toBe(3600);
+    });
+  });
+  describe("email", () => {
+    it("email should convert for write", () => {
+      expect(convertForWrite("test@example.com", FIELDS.EMAIL)).toBe("test@example.com");
+      expect(convertForWrite(null, FIELDS.EMAIL)).toBeNull();
+      expect(convertForWrite(undefined, FIELDS.EMAIL)).toBeUndefined();
+    });
+    it("email should convert to string for read", () => {
+      expect(convertForRead("test@example.com", FIELDS.EMAIL)).toBe("test@example.com");
+    });
+  });
+  describe("externalSyncSource", () => {
+    it("externalSyncSource should pass through for write", () => {
+      const value = { someData: "test" };
+      expect(convertForWrite(value, FIELDS.EXTERNAL_SYNC_SOURCE)).toEqual(value);
+    });
+    it("externalSyncSource should pass through for read", () => {
+      const value = { someData: "test" };
+      expect(convertForRead(value, FIELDS.EXTERNAL_SYNC_SOURCE)).toEqual(value);
+    });
+  });
+  describe("formula", () => {
+    it("formula can't be written to", () => {
+      // @ts-expect-error should be null
+      expect(() => convertForWrite(42, FIELDS.FORMULA)).toThrow();
+    });
+    it("formula should convert to result type for read", () => {
+      expect(convertForRead(42, FIELDS.FORMULA)).toBe(42);
+    });
+  });
+  describe("lastModifiedBy", () => {
+    it("lastModifiedBy can't be written to", () => {
+      // @ts-expect-error should be null
+      expect(() => convertForWrite({ id: "usr123", email: "test@example.com" }, FIELDS.LAST_MODIFIED_BY)).toThrow();
+    });
+    it("lastModifiedBy should convert to User", () => {
+      const user = { id: "usr123", email: "test@example.com", name: "Test User" };
+      expect(convertForRead(user, FIELDS.LAST_MODIFIED_BY)).toEqual(user);
+    });
+  });
+  describe("lastModifiedTime", () => {
+    it("lastModifiedTime can't be written to", () => {
+      // @ts-expect-error should be null
+      expect(() => convertForWrite(new Date(), FIELDS.LAST_MODIFIED_TIME)).toThrow();
+    });
+    it("lastModifiedTime should convert to Date", () => {
+      const dateStr = "2024-01-15T10:30:00.000Z";
+      const result = convertForRead(dateStr, FIELDS.LAST_MODIFIED_TIME);
       expect(result).toBeInstanceOf(Date);
+      expect(result?.toISOString()).toBe(dateStr);
     });
   });
-
-  describe("Duration", () => {
-    it("makeTo should pass through number", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldDuration",
-        name: "Duration",
-        type: "duration",
-        options: {},
-      };
-      const converter = CONVERTERS.duration.makeTo(fieldSchema as any);
-      expect(converter(3600)).toBe(3600);
+  describe("multilineText", () => {
+    it("multilineText should convert for write", () => {
+      const text = "Line 1\nLine 2\nLine 3";
+      expect(convertForWrite(text, FIELDS.MULTILINE_TEXT)).toBe(text);
+      expect(convertForWrite(null, FIELDS.MULTILINE_TEXT)).toBeNull();
+      expect(convertForWrite(undefined, FIELDS.MULTILINE_TEXT)).toBeUndefined();
     });
-
-    it("makeFrom should convert to number", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldDuration",
-        name: "Duration",
-        type: "duration",
-        options: {},
-      };
-      const converter = CONVERTERS.duration.makeFrom(fieldSchema as any);
-      expect(converter(3600)).toBe(3600);
+    it("multilineText should convert to string for read", () => {
+      const text = "Line 1\nLine 2\nLine 3";
+      expect(convertForRead(text, FIELDS.MULTILINE_TEXT)).toBe(text);
     });
   });
-
-  describe("Text fields", () => {
-    it("email makeTo should convert to string", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldEmail",
-        name: "Email",
-        type: "email",
-      };
-      const converter = CONVERTERS.email.makeTo(fieldSchema as any);
-      expect(converter("test@example.com")).toBe("test@example.com");
-    });
-
-    it("email makeFrom should convert to string", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldEmail",
-        name: "Email",
-        type: "email",
-      };
-      const converter = CONVERTERS.email.makeFrom(fieldSchema as any);
-      expect(converter("test@example.com")).toBe("test@example.com");
-    });
-
-    it("multilineText makeTo should convert to string", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldMultilineText",
-        name: "Multiline Text",
-        type: "multilineText",
-      };
-      const converter = CONVERTERS.multilineText.makeTo(fieldSchema as any);
-      expect(converter("Line 1\nLine 2")).toBe("Line 1\nLine 2");
-    });
-
-    it("phoneNumber makeTo should convert to string", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldPhoneNumber",
-        name: "Phone Number",
-        type: "phoneNumber",
-      };
-      const converter = CONVERTERS.phoneNumber.makeTo(fieldSchema as any);
-      expect(converter("+1234567890")).toBe("+1234567890");
-    });
-
-    it("richText makeTo should convert to string", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldRichText",
-        name: "Rich Text",
-        type: "richText",
-      };
-      const converter = CONVERTERS.richText.makeTo(fieldSchema as any);
-      expect(converter("**bold**")).toBe("**bold**");
-    });
-
-    it("singleLineText makeTo should convert to string", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldSingleLineText",
-        name: "Single Line Text",
-        type: "singleLineText",
-      };
-      const converter = CONVERTERS.singleLineText.makeTo(fieldSchema as any);
-      expect(converter("Hello")).toBe("Hello");
-    });
-
-    it("url makeTo should convert to string", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldUrl",
-        name: "URL",
-        type: "url",
-      };
-      const converter = CONVERTERS.url.makeTo(fieldSchema as any);
-      expect(converter("https://example.com")).toBe("https://example.com");
-    });
-  });
-
-  describe("Number fields", () => {
-    it("number makeTo should pass through number", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldNumber",
-        name: "Number",
-        type: "number",
-        options: {},
-      };
-      const converter = CONVERTERS.number.makeTo(fieldSchema as any);
-      expect(converter(42)).toBe(42);
-      expect(converter(3.14)).toBe(3.14);
-    });
-
-    it("percent makeTo should pass through number", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldPercent",
-        name: "Percent",
-        type: "percent",
-        options: {},
-      };
-      const converter = CONVERTERS.percent.makeTo(fieldSchema as any);
-      expect(converter(0.75)).toBe(0.75);
-    });
-
-    it("rating makeTo should pass through number", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldRating",
-        name: "Rating",
-        type: "rating",
-        options: {},
-      };
-      const converter = CONVERTERS.rating.makeTo(fieldSchema as any);
-      expect(converter(5)).toBe(5);
-    });
-  });
-
-  describe("MultipleAttachments", () => {
-    it("makeTo should preserve url and filename", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldAttachments",
-        name: "Attachments",
-        type: "multipleAttachments",
-      };
-      const converter = CONVERTERS.multipleAttachments.makeTo(
-        fieldSchema as any,
-      );
-      const attachments: MultipleAttachment = [
-        { url: "https://example.com/file1.pdf", filename: "file1.pdf" },
-        { url: "https://example.com/file2.jpg", filename: "file2.jpg" },
-      ];
-      const result = converter(attachments);
-      expect(result).toEqual(attachments);
-    });
-
-    it("makeFrom should convert to attachment array", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldAttachments",
-        name: "Attachments",
-        type: "multipleAttachments",
-      };
-      const converter = CONVERTERS.multipleAttachments.makeFrom(
-        fieldSchema as any,
-      );
+  describe("multipleAttachments", () => {
+    it("multipleAttachments should convert array for write", () => {
       const attachments = [
         { url: "https://example.com/file1.pdf", filename: "file1.pdf" },
+        { url: "https://example.com/file2.png" }
       ];
-      expect(converter(attachments)).toEqual(attachments);
+      const result = convertForWrite(attachments, FIELDS.MULTIPLE_ATTACHMENTS);
+      expect(result).toEqual(attachments);
+    });
+    it("multipleAttachments should handle nullish for write", () => {
+      expect(convertForWrite(null, FIELDS.MULTIPLE_ATTACHMENTS)).toBeNull();
+      expect(convertForWrite(undefined, FIELDS.MULTIPLE_ATTACHMENTS)).toBeUndefined();
+    });
+    it("multipleAttachments should convert to array for read", () => {
+      const attachments = [
+        { url: "https://example.com/file1.pdf", filename: "file1.pdf" },
+        { url: "https://example.com/file2.png" }
+      ];
+      expect(convertForRead(attachments, FIELDS.MULTIPLE_ATTACHMENTS)).toEqual(attachments);
     });
   });
-
-  describe("MultipleCollaborators", () => {
-    it("makeTo should pass through user array", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldCollaborators",
-        name: "Collaborators",
-        type: "multipleCollaborators",
-      };
-      const converter = CONVERTERS.multipleCollaborators.makeTo(
-        fieldSchema as any,
-      );
+  describe("multipleCollaborators", () => {
+    it("multipleCollaborators should convert array for write", () => {
+      const users = [
+        { id: "usr1", email: "user1@example.com" },
+        { id: "usr2", email: "user2@example.com" }
+      ];
+      expect(convertForWrite(users, FIELDS.MULTIPLE_COLLABORATORS)).toEqual(users);
+    });
+    it("multipleCollaborators should handle null/undefined as empty array for write", () => {
+      expect(convertForWrite(null, FIELDS.MULTIPLE_COLLABORATORS)).toEqual([]);
+      expect(convertForWrite(undefined, FIELDS.MULTIPLE_COLLABORATORS)).toEqual([]);
+    });
+    it("multipleCollaborators should convert to array for read", () => {
       const users = [
         { id: "usr1", email: "user1@example.com", name: "User 1" },
-        { id: "usr2", email: "user2@example.com", name: "User 2" },
+        { id: "usr2", email: "user2@example.com", name: "User 2" }
       ];
-      expect(converter(users)).toEqual(users);
-    });
-
-    it("makeFrom should convert to user array", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldCollaborators",
-        name: "Collaborators",
-        type: "multipleCollaborators",
-      };
-      const converter = CONVERTERS.multipleCollaborators.makeFrom(
-        fieldSchema as any,
-      );
-      const users = [
-        { id: "usr1", email: "user1@example.com", name: "User 1" },
-      ];
-      expect(converter(users)).toEqual(users);
+      expect(convertForRead(users, FIELDS.MULTIPLE_COLLABORATORS)).toEqual(users);
     });
   });
-
-  describe("MultipleLookupValues", () => {
-    it("makeTo should pass through unknown array", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldLookup",
-        name: "Lookup",
-        type: "multipleLookupValues",
-        options: {},
-      };
-      const converter = CONVERTERS.multipleLookupValues.makeTo(
-        fieldSchema as any,
-      );
-      const values = ["value1", "value2", 123];
-      expect(converter(values)).toEqual(values);
+  describe("multipleLookupValues", () => {
+    it("multipleLookupValues can't be written to", () => {
+      // @ts-expect-error should be never
+      expect(() => convertForWrite([1, 2, 3], FIELDS.MULTIPLE_LOOKUP_VALUES)).toThrow();
     });
-
-    it("makeFrom should convert to unknown array", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldLookup",
-        name: "Lookup",
-        type: "multipleLookupValues",
-        options: {},
-      };
-      const converter = CONVERTERS.multipleLookupValues.makeFrom(
-        fieldSchema as any,
-      );
-      const values = ["value1", "value2"];
-      expect(converter(values)).toEqual(values);
+    it("multipleLookupValues should convert to array for read", () => {
+      const values = ["value1", "value2", "value3"];
+      expect(convertForRead(values, FIELDS.MULTIPLE_LOOKUP_VALUES)).toEqual(values);
     });
   });
-
-  describe("MultipleRecordLinks", () => {
-    it("makeTo should pass through string array", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldLinks",
-        name: "Links",
-        type: "multipleRecordLinks",
-        options: {},
-      };
-      const converter = CONVERTERS.multipleRecordLinks.makeTo(
-        fieldSchema as any,
-      );
-      const links = ["rec1", "rec2", "rec3"];
-      expect(converter(links)).toEqual(links);
+  describe("multipleRecordLinks", () => {
+    it("multipleRecordLinks should convert array for write", () => {
+      const links = ["rec123", "rec456"] as const;
+      expect(convertForWrite(links, FIELDS.MULTIPLE_RECORD_LINKS)).toEqual(links);
     });
-
-    it("makeFrom should convert to string array", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldLinks",
-        name: "Links",
-        type: "multipleRecordLinks",
-        options: {},
-      };
-      const converter = CONVERTERS.multipleRecordLinks.makeFrom(
-        fieldSchema as any,
-      );
-      const links = ["rec1", "rec2"];
-      expect(converter(links)).toEqual(links);
+    it("multipleRecordLinks should typecheck array for write", () => {
+      const links = ["not the right format", "foo bar"] as const;
+      // @ts-expect-error should be never
+      expect(convertForWrite(links, FIELDS.MULTIPLE_RECORD_LINKS)).toEqual(links);
+    });
+    it("multipleRecordLinks should handle null/undefined as empty array for write", () => {
+      expect(convertForWrite(null, FIELDS.MULTIPLE_RECORD_LINKS)).toEqual([]);
+      expect(convertForWrite(undefined, FIELDS.MULTIPLE_RECORD_LINKS)).toEqual([]);
+    });
+    it("multipleRecordLinks should convert to array for read", () => {
+      const links = ["rec123", "rec456"];
+      expect(convertForRead(links, FIELDS.MULTIPLE_RECORD_LINKS)).toEqual(links);
     });
   });
-
-  describe("MultipleSelects", () => {
-    const fieldSchema: MultipleSelects = {
-      id: "fldMultiSelect",
-      name: "Multi Select",
-      type: "multipleSelects",
-      options: {
-        choices: [
-          { id: "sel1", name: "Option 1", color: "blueLight2" },
-          { id: "sel2", name: "Option 2", color: "greenLight2" },
-          { id: "sel3", name: "Option 3", color: "redLight2" },
-        ],
-      },
-    };
-
-    it("makeTo should convert option names to IDs", () => {
-      const converter = CONVERTERS.multipleSelects.makeTo(fieldSchema);
-      const result = converter(["Option 1", "Option 3"]);
-      expect(result).toEqual(["sel1", "sel3"]);
+  describe("multipleSelects", () => {
+    it("multipleSelects should convert choice IDs for write", () => {
+      const result = convertForWrite(["selGood"], FIELDS.MULTIPLE_SELECTS);
+      expect(result).toEqual(["selGood"]);
     });
-
-    it("makeTo should pass through IDs", () => {
-      const converter = CONVERTERS.multipleSelects.makeTo(fieldSchema);
-      const result = converter(["sel1", "sel2"]);
-      expect(result).toEqual(["sel1", "sel2"]);
+    it("multipleSelects should convert choice names to IDs for write", () => {
+      const result = convertForWrite(["good", "bad"], FIELDS.MULTIPLE_SELECTS);
+      expect(result).toEqual(["selGood", "selBad"]);
     });
-
-    it("makeTo should handle mix of IDs and names", () => {
-      const converter = CONVERTERS.multipleSelects.makeTo(fieldSchema);
-      const result = converter(["sel1", "Option 2", "sel3"]);
-      expect(result).toEqual(["sel1", "sel2", "sel3"]);
+    it("multipleSelects should handle null/undefined as empty array for write", () => {
+      expect(convertForWrite(null, FIELDS.MULTIPLE_SELECTS)).toEqual([]);
+      expect(convertForWrite(undefined, FIELDS.MULTIPLE_SELECTS)).toEqual([]);
     });
-
-    it("makeTo should throw error for invalid option", () => {
-      const converter = CONVERTERS.multipleSelects.makeTo(fieldSchema);
-      expect(() => converter(["Invalid Option"])).toThrow(
-        "No option found for value: Invalid Option",
-      );
+    it("multipleSelects should throw on invalid choice for write", () => {
+      // @ts-expect-error should be never
+      expect(() => convertForWrite(["invalid"], FIELDS.MULTIPLE_SELECTS)).toThrow();
     });
-
-    it("makeFrom should convert to choice array", () => {
-      const converter = CONVERTERS.multipleSelects.makeFrom(fieldSchema);
+    it("multipleSelects should convert to array of choices for read", () => {
       const choices = [
-        { id: "sel1", name: "Option 1", color: "blue" },
-        { id: "sel2", name: "Option 2", color: "green" },
+        { id: "selGood", name: "good", color: "greenLight1" },
+        { id: "selBad", name: "bad", color: "redLight1" }
       ];
-      expect(converter(choices)).toEqual(choices);
+      expect(convertForRead(choices, FIELDS.MULTIPLE_SELECTS)).toEqual(choices);
     });
   });
-
-  describe("SingleSelect", () => {
-    const fieldSchema: SingleSelect = {
-      id: "fldSingleSelect",
-      name: "Single Select",
-      type: "singleSelect",
-      options: {
-        choices: [
-          { id: "sel1", name: "Option 1", color: "blueLight2" },
-          { id: "sel2", name: "Option 2", color: "greenLight2" },
-          { id: "sel3", name: "Option 3", color: "redLight2" },
-        ],
-      },
-    };
-
-    it("makeTo should convert option name to ID", () => {
-      const converter = CONVERTERS.singleSelect.makeTo(fieldSchema);
-      const result = converter("Option 1");
-      expect(result).toBe("sel1");
-    });
-
-    it("makeTo should pass through ID", () => {
-      const converter = CONVERTERS.singleSelect.makeTo(fieldSchema);
-      const result = converter("sel2");
-      expect(result).toBe("sel2");
-    });
-
-    it("makeTo should throw error for invalid option", () => {
-      const converter = CONVERTERS.singleSelect.makeTo(fieldSchema);
-      expect(() => converter("Invalid Option")).toThrow(
-        "No option found for value 'Invalid Option' in field 'Single Select'",
-      );
-    });
-
-    it("makeTo error should list available options", () => {
-      const converter = CONVERTERS.singleSelect.makeTo(fieldSchema);
-      expect(() => converter("Invalid")).toThrow(
-        "Available options: Option 1, Option 2, Option 3, sel1, sel2, sel3",
-      );
-    });
-
-    it("makeFrom should convert to choice object", () => {
-      const converter = CONVERTERS.singleSelect.makeFrom(fieldSchema);
-      const choice = { id: "sel1", name: "Option 1", color: "blue" };
-      expect(converter(choice)).toEqual(choice);
+  describe("number", () => {
+    it("number should convert for write", () => {
+      expect(convertForWrite(42.5, FIELDS.NUMBER)).toBe(42.5);
+      expect(convertForRead(null, FIELDS.NUMBER)).toBeNull();
+      expect(convertForWrite(undefined, FIELDS.NUMBER)).toBeUndefined();
     });
   });
-
-  describe("SingleCollaborator", () => {
-    it("makeTo should pass through user write object", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldCollaborator",
-        name: "Collaborator",
-        type: "singleCollaborator",
-      };
-      const converter = CONVERTERS.singleCollaborator.makeTo(
-        fieldSchema as any,
-      );
-      const user = { id: "usr1", email: "user@example.com" };
-      expect(converter(user)).toEqual(user);
+  describe("percent", () => {
+    it("percent should convert for write", () => {
+      expect(convertForWrite(0.75, FIELDS.PERCENT)).toBe(0.75);
+      expect(convertForWrite(null, FIELDS.PERCENT)).toBeNull();
+      expect(convertForWrite(undefined, FIELDS.PERCENT)).toBeUndefined();
     });
-
-    it("makeFrom should convert to user object", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldCollaborator",
-        name: "Collaborator",
-        type: "singleCollaborator",
-      };
-      const converter = CONVERTERS.singleCollaborator.makeFrom(
-        fieldSchema as any,
-      );
-      const user = { id: "usr1", email: "user@example.com", name: "User 1" };
-      expect(converter(user)).toEqual(user);
+    it("percent should convert to number for read", () => {
+      expect(convertForRead(0.75, FIELDS.PERCENT)).toBe(0.75);
     });
   });
-
-  describe("User fields", () => {
-    it("createdBy makeFrom should convert to user object", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldCreatedBy",
-        name: "Created By",
-        type: "createdBy",
-      };
-      const converter = CONVERTERS.createdBy.makeFrom(fieldSchema as any);
-      const user = { id: "usr1", email: "user@example.com", name: "User 1" };
-      expect(converter(user)).toEqual(user);
+  describe("phoneNumber", () => {
+    it("phoneNumber should convert for write", () => {
+      expect(convertForWrite("+1-555-123-4567", FIELDS.PHONE_NUMBER)).toBe("+1-555-123-4567");
+      expect(convertForWrite(null, FIELDS.PHONE_NUMBER)).toBeNull();
+      expect(convertForWrite(undefined, FIELDS.PHONE_NUMBER)).toBeUndefined();
     });
-
-    it("lastModifiedBy makeFrom should convert to user object", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldLastModifiedBy",
-        name: "Last Modified By",
-        type: "lastModifiedBy",
-      };
-      const converter = CONVERTERS.lastModifiedBy.makeFrom(fieldSchema as any);
-      const user = { id: "usr1", email: "user@example.com" };
-      expect(converter(user)).toEqual(user);
+    it("phoneNumber should convert to string for read", () => {
+      expect(convertForRead("+1-555-123-4567", FIELDS.PHONE_NUMBER)).toBe("+1-555-123-4567");
     });
   });
-
-  describe("ExternalSyncSource", () => {
-    it("makeTo should pass through value", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldSync",
-        name: "Sync Source",
-        type: "externalSyncSource",
-        options: { choices: [] },
-      };
-      const converter = CONVERTERS.externalSyncSource.makeTo(
-        fieldSchema as any,
-      );
-      const value = { someData: "test" };
-      expect(converter(value)).toEqual(value);
+  describe("rating", () => {
+    it("rating should convert for write", () => {
+      expect(convertForWrite(4, FIELDS.RATING)).toBe(4);
+      expect(convertForWrite(null, FIELDS.RATING)).toBeNull();
+      expect(convertForWrite(undefined, FIELDS.RATING)).toBeUndefined();
     });
-
-    it("makeFrom should pass through value", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldSync",
-        name: "Sync Source",
-        type: "externalSyncSource",
-        options: { choices: [] },
-      };
-      const converter = CONVERTERS.externalSyncSource.makeFrom(
-        fieldSchema as any,
-      );
-      const value = { someData: "test" };
-      expect(converter(value)).toEqual(value);
+    it("rating should convert to number for read", () => {
+      expect(convertForRead(4, FIELDS.RATING)).toBe(4);
     });
   });
-
-  describe("Formula and Rollup", () => {
-    it("formula makeFrom should convert to string", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldFormula",
-        name: "Formula",
-        type: "formula",
-        options: {},
-      };
-      const converter = CONVERTERS.formula.makeFrom(fieldSchema as any);
-      expect(converter("calculated value")).toBe("calculated value");
+  describe("richText", () => {
+    it("richText should convert for write", () => {
+      const html = "<p>Rich <strong>text</strong></p>";
+      expect(convertForWrite(html, FIELDS.RICH_TEXT)).toBe(html);
+      expect(convertForWrite(null, FIELDS.RICH_TEXT)).toBeNull();
+      expect(convertForWrite(undefined, FIELDS.RICH_TEXT)).toBeUndefined();
     });
-
-    it("rollup makeFrom should return value as-is", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldRollup",
-        name: "Rollup",
-        type: "rollup",
-        options: {},
-      };
-      const converter = CONVERTERS.rollup.makeFrom(fieldSchema as any);
-      expect(converter(42)).toBe(42);
-      expect(converter("text")).toBe("text");
-      expect(converter([1, 2, 3])).toEqual([1, 2, 3]);
+    it("richText should convert to string for read", () => {
+      const html = "<p>Rich <strong>text</strong></p>";
+      expect(convertForRead(html, FIELDS.RICH_TEXT)).toBe(html);
     });
   });
-
-  describe("Edge cases", () => {
-    it("should handle empty attachment array", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldAttachments",
-        name: "Attachments",
-        type: "multipleAttachments",
-      };
-      const converter = CONVERTERS.multipleAttachments.makeTo(
-        fieldSchema as any,
-      );
-      expect(converter([])).toEqual([]);
+  describe("rollup", () => {
+    it("rollup can't be written to", () => {
+      // @ts-expect-error should be null
+      expect(() => convertForWrite(42, FIELDS.ROLLUP)).toThrow();
     });
-
-    it("should handle empty multipleSelects array", () => {
-      const fieldSchema: MultipleSelects = {
-        id: "fldMultiSelect",
-        name: "Multi Select",
-        type: "multipleSelects",
-        options: {
-          choices: [
-            { id: "sel1", name: "Option 1", color: "blueLight2" },
-          ],
-        },
-      };
-      const converter = CONVERTERS.multipleSelects.makeTo(fieldSchema);
-      expect(converter([])).toEqual([]);
+    it("rollup should pass through value for read", () => {
+      expect(convertForRead(42, FIELDS.ROLLUP)).toBe(42);
+      expect(convertForRead("text", FIELDS.ROLLUP)).toBe("text");
     });
-
-    it("should handle zero for number fields", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldNumber",
-        name: "Number",
-        type: "number",
-        options: {},
-      };
-      const converter = CONVERTERS.number.makeTo(fieldSchema as any);
-      expect(converter(0)).toBe(0);
+  });
+  describe("singleCollaborator", () => {
+    it("singleCollaborator should convert user for write", () => {
+      const user = { id: "usr123", email: "test@example.com" };
+      expect(convertForWrite(user, FIELDS.SINGLE_COLLABORATOR)).toEqual(user);
     });
-
-    it("should handle negative numbers", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldCurrency",
-        name: "Currency",
-        type: "currency",
-        options: {},
-      };
-      const converter = CONVERTERS.currency.makeTo(fieldSchema as any);
-      expect(converter(-100.50)).toBe(-100.50);
+    it("singleCollaborator should handle nullish for write", () => {
+      expect(convertForWrite(null, FIELDS.SINGLE_COLLABORATOR)).toBeNull();
+      expect(convertForWrite(undefined, FIELDS.SINGLE_COLLABORATOR)).toBeUndefined();
     });
-
-    it("should handle dates at midnight UTC", () => {
-      const fieldSchema: FieldSchema = {
-        id: "fldDate",
-        name: "Date",
-        type: "date",
-        options: {},
-      };
-      const converter = CONVERTERS.date.makeTo(fieldSchema as any);
-      const date = new Date("2024-03-15T00:00:00Z");
-      expect(converter(date)).toBe("2024-03-15");
+    it("singleCollaborator should convert to User for read", () => {
+      const user = { id: "usr123", email: "test@example.com", name: "Test User" };
+      expect(convertForRead(user, FIELDS.SINGLE_COLLABORATOR)).toEqual(user);
+    });
+  });
+  describe("singleLineText", () => {
+    it("singleLineText should convert for write", () => {
+      expect(convertForWrite("Hello World", FIELDS.SINGLE_LINE_TEXT)).toBe("Hello World");
+      expect(convertForWrite(null, FIELDS.SINGLE_LINE_TEXT)).toBeNull();
+      expect(convertForWrite(undefined, FIELDS.SINGLE_LINE_TEXT)).toBeUndefined();
+    });
+    it("singleLineText should convert to string for read", () => {
+      expect(convertForRead("Hello World", FIELDS.SINGLE_LINE_TEXT)).toBe("Hello World");
+    });
+  });
+  describe("singleSelect", () => {
+    it("singleSelect should convert choice ID for write", () => {
+      expect(convertForWrite("selTodo", FIELDS.SINGLE_SELECT)).toBe("selTodo");
+    });
+    it("singleSelect should convert choice name to ID for write", () => {
+      expect(convertForWrite("todo", FIELDS.SINGLE_SELECT)).toBe("selTodo");
+      expect(convertForWrite("done", FIELDS.SINGLE_SELECT)).toBe("selDone");
+    });
+    it("singleSelect should handle null for write", () => {
+      expect(convertForWrite(null, FIELDS.SINGLE_SELECT)).toBeNull();
+    });
+    it("singleSelect should handle undefined for write", () => {
+      expect(convertForWrite(undefined, FIELDS.SINGLE_SELECT)).toBeUndefined();
+    });
+    it("singleSelect should throw on invalid choice for write", () => {
+      // @ts-expect-error should be never
+      expect(() => convertForWrite("invalid", FIELDS.SINGLE_SELECT)).toThrow();
+    });
+    it("singleSelect should convert to choice for read", () => {
+      const choice = { id: "selTodo", name: "todo", color: "yellowLight1" };
+      expect(convertForRead(choice, FIELDS.SINGLE_SELECT)).toEqual(choice);
+    });
+  });
+  describe("url", () => {
+    it("url should convert for write", () => {
+      expect(convertForWrite("https://example.com", FIELDS.URL)).toBe("https://example.com");
+      expect(convertForWrite(null, FIELDS.URL)).toBeNull();
+      expect(convertForWrite(undefined, FIELDS.URL)).toBeUndefined();
+    });
+    it("url should convert to string for read", () => {
+      expect(convertForRead("https://example.com", FIELDS.URL)).toBe("https://example.com");
     });
   });
 });
