@@ -523,7 +523,7 @@ export const CONVERTERS = {
 export type Converters = typeof CONVERTERS[keyof typeof CONVERTERS];
 
 /** Given a FieldSchema, return the typescript type will be returned when you read from it */
-export type inferRead<F extends FieldSchema> = F extends FieldOfType<"aiText">
+export type FieldRead<F extends FieldSchema> = F extends FieldOfType<"aiText">
     ? string
     : F extends FieldOfType<"autoNumber"> ? number | null
     : F extends FieldOfType<"barcode"> ? BarcodeValue | null
@@ -560,7 +560,7 @@ export type inferRead<F extends FieldSchema> = F extends FieldOfType<"aiText">
     : never;
 
 /** Given a FieldSchema, return the typescript type that can be written to it */
-export type inferWrite<F extends FieldSchema> = F extends FieldOfType<"aiText">
+export type FieldWrite<F extends FieldSchema> = F extends FieldOfType<"aiText">
     ? never
     : F extends FieldOfType<"autoNumber"> ? never
     : F extends FieldOfType<"barcode"> ? BarcodeValue | null | undefined
@@ -596,46 +596,16 @@ export type inferWrite<F extends FieldSchema> = F extends FieldOfType<"aiText">
     : F extends FieldOfType<"url"> ? string | null | undefined
     : never;
 
-export type ReadRecordByName<T extends ReadonlyArray<FieldSchema>> = {
-    [K in T[number]["name"]]: inferRead<Extract<T[number], { name: K }>>;
-};
-export type ReadRecordById<T extends ReadonlyArray<FieldSchema>> = {
-    [K in T[number]["id"]]: inferRead<Extract<T[number], { id: K }>>;
-};
-export type WriteRecordById<T extends ReadonlyArray<FieldSchema>> = {
-    [K in T[number]["id"]]?: inferWrite<Extract<T[number], { id: K }>>;
-};
-
 /**
- * The format of a record a {@link TableClient} accepts for writing, eg for creating or updating records.
+ * Convert a value from the appropriate TypeScript type into the raw value for writing to Airtable for the given field schema.
+ * @param value The value in the appropriate TypeScript type
+ * @param fieldSchema The {@link FieldSchema} describing the field
+ * @returns The raw value to write to Airtable
  * 
- * Each key can be either the field name or field ID, and the value is the appropriate type for writing to that field.
+ * @throws Error if the field type is read-only and cannot be written to.
  */
-export type WriteRecord<T extends ReadonlyArray<FieldSchema>> = {
-    [K in T[number]["name"] | T[number]["id"]]?: K extends T[number]["name"]
-    ? Extract<T[number], { name: K }> extends infer F
-    ? F extends FieldSchema ? inferWrite<F>
-    : never
-    : never
-    : K extends T[number]["id"]
-    ? Extract<T[number], { id: K }> extends infer F
-    ? F extends FieldSchema ? inferWrite<F>
-    : never
-    : never
-    : never;
-};
-
-/**
- * The format of a record a {@link TableClient} returns when reading records.
- * 
- * Each key is the field name, and the value is the appropriate type for reading from that field.
- */
-export type ReadRecord<T extends ReadonlyArray<FieldSchema>> = {
-    [K in T[number]["name"]]: inferRead<Extract<T[number], { name: K }>>;
-};
-
-export function convertForWrite<F extends FieldSchema>(
-    value: inferWrite<F>,
+export function convertFieldForWrite<F extends FieldSchema>(
+    value: FieldWrite<F>,
     fieldSchema: F,
 ): unknown {
     const type = fieldSchema.type;
@@ -656,10 +626,18 @@ export function convertForWrite<F extends FieldSchema>(
     return converter(value);
 }
 
-export function convertForRead<F extends FieldSchema>(
+/**
+ * Convert a value from the Airtable into the appropriate TypeScript type for the given field schema.
+ * 
+ * @param value The raw value from Airtable
+ * @param fieldSchema The {@link FieldSchema} describing the field
+ * @returns The converted value in the appropriate TypeScript type
+ * @throws Error if the field type is write-only and cannot be read from.
+ */
+export function convertFieldForRead<F extends FieldSchema>(
     value: unknown,
     fieldSchema: F,
-): inferRead<F> {
+): FieldRead<F> {
     const type = fieldSchema.type;
     const converterObj = CONVERTERS[type];
     if (!converterObj) {
@@ -675,32 +653,5 @@ export function convertForRead<F extends FieldSchema>(
         );
     }
     const converter = makeFrom(fieldSchema);
-    return converter(value) as inferRead<F>;
-}
-
-export function recordToAirtableRecord<
-    V extends Partial<WriteRecord<F>>,
-    F extends ReadonlyArray<FieldSchema>,
->(
-    record: V,
-    fieldSchemas: F,
-): Partial<WriteRecordById<F>> {
-    const result: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(record)) {
-        const fieldSchema = lookupFieldSchema(k, fieldSchemas);
-        const airtableValue = convertForWrite(
-            v as inferWrite<typeof fieldSchema>,
-            fieldSchema,
-        );
-        result[fieldSchema.id] = airtableValue;
-    }
-    return result as Partial<WriteRecordById<F>>;
-}
-
-function lookupFieldSchema(k: string, fieldSchemas: readonly FieldSchema[]) {
-    let fieldSchema = fieldSchemas.find((fs) => fs.id === k);
-    if (fieldSchema) return fieldSchema;
-    fieldSchema = fieldSchemas.find((fs) => fs.name === k);
-    if (fieldSchema) return fieldSchema;
-    throw new Error(`No field schema found for key: ${k}`);
+    return converter(value) as FieldRead<F>;
 }

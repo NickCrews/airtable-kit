@@ -6,7 +6,7 @@ import {
 import taskBaseSchema from "../tests/taskBase.ts";
 
 const fields = taskBaseSchema.tables.find(t => t.name === "tasks")!.fields;
-type Fields = typeof fields
+type Field = typeof fields[number];
 
 
 describe("formulaToString()", () => {
@@ -57,33 +57,33 @@ describe("formulaToString()", () => {
     });
 
     it("should convert field names to field IDs", () => {
-        const formula: Formula<Fields> = { field: "Name" };
+        const formula: Formula<Field> = { field: "Name" };
         const result = formulaToString(fields, formula);
         expect(result).toBe("{fldName}");
     });
 
     it("should keep field IDs as field IDs", () => {
-        const formula: Formula<Fields> = { field: "fldName" };
+        const formula: Formula<Field> = { field: "fldName" };
         const result = formulaToString(fields, formula);
         expect(result).toBe("{fldName}");
     });
 
     it("should throw error for unknown field", () => {
         // @ts-expect-error invalid field reference
-        const formula: Formula<Fields> = { field: "unknownField" }
+        const formula: Formula<Field> = { field: "unknownField" }
         expect(() => formulaToString(fields, formula)).toThrow(
             'Field "unknownField" not found in table mappings'
         );
     });
 
     it("should convert simple function calls", () => {
-        const formula: Formula<Fields> = ["BLANK", { field: "Notes" }];
+        const formula: Formula<Field> = ["BLANK", { field: "Notes" }];
         const result = formulaToString(fields, formula);
         expect(result).toBe("BLANK({fldNotes})");
     });
 
     it("should convert OR formulas", () => {
-        const formula: Formula<Fields> = [
+        const formula: Formula<Field> = [
             "OR",
             { field: "Completed" },
             ["=", { field: "Name" }, "John"]
@@ -93,7 +93,7 @@ describe("formulaToString()", () => {
     });
 
     it("should convert AND formulas", () => {
-        const formula: Formula<Fields> = [
+        const formula: Formula<Field> = [
             "AND",
             { field: "Completed" },
             ["=", { field: "Priority" }, 25]
@@ -103,7 +103,7 @@ describe("formulaToString()", () => {
     });
 
     it("should convert nested formulas", () => {
-        const formula: Formula<Fields> = [
+        const formula: Formula<Field> = [
             "AND",
             [
                 "OR",
@@ -119,7 +119,7 @@ describe("formulaToString()", () => {
     });
 
     it("should work with 0-argument functions", () => {
-        const topUpcoming: Formula<typeof fields> = [
+        const topUpcoming: Formula<Field> = [
             "AND",
             [">=", { field: "Due Date" }, ["TODAY"]],
             ["<=", { field: "Due Date" }, ["DATEADD", ["TODAY"], 7, "days"]],
@@ -132,7 +132,7 @@ describe("formulaToString()", () => {
     });
 
     it("should convert SEARCH function", () => {
-        const formula: Formula<Fields> = [
+        const formula: Formula<Field> = [
             "SEARCH",
             ["LOWER", "john"],
             ["LOWER", { field: "Name" }],
@@ -142,7 +142,7 @@ describe("formulaToString()", () => {
     });
 
     it("should convert complex nested formula with multiple functions", () => {
-        const formula: Formula<Fields> = [
+        const formula: Formula<Field> = [
             "AND",
             ["NOT", ["BLANK", { field: "Notes" }]],
             [">=", { field: "Priority" }, 18],

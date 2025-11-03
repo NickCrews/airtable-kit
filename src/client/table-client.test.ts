@@ -20,10 +20,10 @@ describe("TableClient", () => {
     afterEach(() => {
         mockFetcher.reset();
     });
-    describe("create", () => {
+    describe("createMany", () => {
         it("can handle 0-record creates", async () => {
-            const result = await client.create([]);
-            expect(result).toEqual({ records: [] });
+            const result = await client.createMany([]);
+            expect(result).toEqual([]);
             expect(mockFetcher.getCallHistory()).toEqual([]);
         });
         it("can create records", async () => {
@@ -40,7 +40,7 @@ describe("TableClient", () => {
                     }
                 ]
             })
-            await client.create(
+            const response = await client.createMany(
                 [{
                     Name: "Fold Laundry",
                     "Assigned To": ["rec123abc"],
@@ -65,10 +65,21 @@ describe("TableClient", () => {
                     returnFieldsByFieldId: true,
                 },
             }]);
+            expect(response).toEqual([
+                {
+                    id: "rec123",
+                    fields: {
+                        Name: "Fold Laundry",
+                        "Assigned To": ["usrMe"],
+                        Completed: false,
+                    },
+                    createdTime: "2024-01-01T00:00:00.000Z",
+                }
+            ]);
         });
         it("has typesafety on selects and multiselects", async () => {
             const f = async () =>
-                await client.create(
+                await client.createMany(
                     [
                         {
                             Status: "In Progress",

@@ -24,11 +24,17 @@ export {
 } from "./formula/index.ts";
 
 export {
+    convertFieldForRead,
+    convertFieldForWrite,
+    convertRecordForRead,
+    convertRecordForWrite,
+    type FieldRead,
+    type FieldWrite,
+    type RecordRead,
+    type RecordWrite,
     makeTableClient,
     makeBaseClient,
     makeOrgClient,
-    type ReadRecord,
-    type WriteRecord,
     type TableClient,
     type TableClientOptions,
     type BaseClient,

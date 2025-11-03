@@ -13,7 +13,7 @@ describe("BaseClient", () => {
     beforeEach(() => {
         mockFetcher.reset();
     });
-    it("can insert records", async () => {
+    it("can create records", async () => {
         mockFetcher.setReturnValue({
             records: [
                 {
@@ -27,7 +27,7 @@ describe("BaseClient", () => {
                 }
             ]
         })
-        const result = await client.tables.tasks.create(
+        const result = await client.tables.tasks.createMany(
             [{
                 "Name": "do laundry",
                 "fldDueDate": "1990-01-01",
@@ -50,17 +50,16 @@ describe("BaseClient", () => {
                 returnFieldsByFieldId: true,
             },
         }]);
-        expect(result).toEqual(
+        expect(result).toEqual([
             {
-                records: [{
-                    id: "rec123",
-                    fields: {
-                        Name: "do laundry",
-                        "Due Date": "1990-01-01",
-                        Tags: ["selUrgent", "selImportant"],
-                    },
-                    createdTime: "2024-01-01T00:00:00.000Z",
-                }]
-            });
+                id: "rec123",
+                fields: {
+                    Name: "do laundry",
+                    "Due Date": "1990-01-01",
+                    Tags: ["selUrgent", "selImportant"],
+                },
+                createdTime: "2024-01-01T00:00:00.000Z",
+            },
+        ]);
     });
 });

@@ -5,15 +5,12 @@
 import type { RecordId, TableSchema } from '../types.ts';
 import {
   type TableClient,
-  type CreateArgs,
-  CreateResult,
   type UpdateRecordsOptions,
   type UpdateRecordsResponse,
   type ListRecordsOptions,
   type ListRecordsResponse,
-  type GetRecordOptions,
 } from '../client/table-client.ts';
-import { type WriteRecord, type ReadRecordByName } from '../client/converters.ts';
+import { type RecordRead, type RecordWrite } from '../client/record-converters.ts';
 import * as z4 from 'zod/v4';
 import { makeRecordWriteValidator } from '../validators/schema-to-zod.ts';
 import { toIdentifier } from '../codegen/identifiers.ts';
@@ -30,20 +27,23 @@ export interface MCPToolDefinition<TInput = any, TOutput = any> {
 }
 
 type CreateInput<T extends TableSchema> = {
-  records: CreateArgs<T["fields"]>;
+  records: ReadonlyArray<RecordWrite<T["fields"][number]>>;
 };
-type CreateToolResult<T extends TableSchema["fields"]> = Array<
-  CreateResult<T>["records"][number] & { url: string; }
->;
+type CreateToolResult<T extends TableSchema> = Array<{
+  id: RecordId;
+  createdTime: string;
+  fields: RecordRead<T["fields"][number]>;
+  url: string;
+}>;
 export function makeCreateTool<
   T extends TableSchema,
->(client: TableClient<T>): MCPToolDefinition<CreateInput<T>, CreateToolResult<T["fields"]>> {
+>(client: TableClient<T>): MCPToolDefinition<CreateInput<T>, CreateToolResult<T>> {
   const recordSchema = makeRecordWriteValidator(client.tableSchema.fields);
   const zodInputValidator = z4.object({ records: z4.array(recordSchema) });
   async function execute(input: CreateInput<T>) {
     const validated = zodInputValidator.parse(input);
-    const createResponse = await client.create(validated.records as WriteRecord<T["fields"]>[]);
-    return createResponse.records.map((r) => ({
+    const createRecords = await client.createMany(validated.records as RecordWrite<T["fields"][number]>[]);
+    return createRecords.map((r) => ({
       ...r,
       // include the URL so the bot can share it with the user
       "url": `https://airtable.com/${client.baseId}/${client.tableSchema.id}/${r.id}`,
@@ -71,13 +71,13 @@ If you use this, consider giving the user the URLs of the created records in you
 type UpdateInput<T extends TableSchema> = {
   records: Array<{
     id?: string;
-    fields: Partial<WriteRecord<T["fields"]>>;
+    fields: Partial<RecordWrite<T["fields"][number]>>;
   }>;
-  options?: UpdateRecordsOptions<T["fields"]>;
+  options?: UpdateRecordsOptions<T["fields"][number]>;
 };
 export function makeUpdateTool<
   T extends TableSchema,
->(client: TableClient<T>): MCPToolDefinition<UpdateInput<T>, UpdateRecordsResponse<T["fields"]>> {
+>(client: TableClient<T>): MCPToolDefinition<UpdateInput<T>, UpdateRecordsResponse<T["fields"][number]>> {
   const fieldsZod = makeRecordWriteValidator(client.tableSchema.fields);
   const recordZod = z4.object({
     id: RecordIdSchema.optional(),
@@ -116,15 +116,15 @@ const GetInput = z4.object({
   }).optional(),
 });
 type GetInput = z4.infer<typeof GetInput>;
-type GetToolResult<T extends TableSchema["fields"]> = {
+type GetToolResult<T extends TableSchema> = {
   id: string;
   createdTime: string;
-  fields: ReadRecordByName<T>;
+  fields: RecordRead<T["fields"][number]>;
   url: string;
 };
 export function makeGetTool<
   T extends TableSchema,
->(client: TableClient<T>): MCPToolDefinition<GetInput, GetToolResult<T["fields"]>> {
+>(client: TableClient<T>): MCPToolDefinition<GetInput, GetToolResult<T>> {
   async function execute(input: GetInput) {
     const validated = GetInput.parse(input);
     const raw = await client.get(validated.recordId, validated.options);
@@ -143,11 +143,11 @@ export function makeGetTool<
 }
 
 type ListInput<T extends TableSchema> = {
-  options?: ListRecordsOptions<T["fields"]>;
+  options?: ListRecordsOptions<T["fields"][number]>;
 };
 export function makeListTool<
   T extends TableSchema,
->(client: TableClient<T>): MCPToolDefinition<ListInput<T>, ListRecordsResponse<T["fields"]>> {
+>(client: TableClient<T>): MCPToolDefinition<ListInput<T>, ListRecordsResponse<T["fields"][number]>> {
   const availableFieldNames = client.tableSchema.fields.map((f) => f.name);
   const zodInputValidator = z4.object({
     options: z4.object({

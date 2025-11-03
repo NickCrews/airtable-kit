@@ -122,12 +122,12 @@ type FormulaFunction<T extends FieldSchema> = [OpCode, ...FormulaValue<T>[]];
  * @typeParam T - A readonly array of {@link FieldSchema} objects representing the fields in the table
  * @see {@link formulaToString} for more info and examples
  */
-export type Formula<T extends ReadonlyArray<FieldSchema>> = FormulaValue<T[number]>;
+export type Formula<T extends FieldSchema> = FormulaValue<T>;
 
-function _formulaToString<T extends ReadonlyArray<FieldSchema>>(
-    fields: T,
-    value: FormulaValue<T[number]>,
-    toId: ToIdMapping<T[number]>,
+function _formulaToString<T extends FieldSchema>(
+    fields: ReadonlyArray<T>,
+    value: FormulaValue<T>,
+    toId: ToIdMapping<T>,
 ): string {
     if (value === null) {
         return "BLANK()";
@@ -246,15 +246,15 @@ function _formulaToString<T extends ReadonlyArray<FieldSchema>>(
  * which makes them vulnerable to renames.
  * See the above example, where we compare the "Priority" field by the choice name "High".
  */
-export function formulaToString<T extends ReadonlyArray<FieldSchema>>(
-    fields: T,
+export function formulaToString<T extends FieldSchema>(
+    fields: ReadonlyArray<T>,
     formula: Formula<T>,
 ): string {
-    const toId: ToIdMapping<T[number]> = fields.reduce((acc, field) => {
+    const toId: ToIdMapping<T> = fields.reduce((acc, field) => {
         // put id second so it takes precedence
-        acc[field.name as T[number]["name"]] = field.id as T[number]["id"];
-        acc[field.id as T[number]["id"]] = field.id as T[number]["id"];
+        acc[field.name as T["name"]] = field.id as T["id"];
+        acc[field.id as T["id"]] = field.id as T["id"];
         return acc;
-    }, {} as ToIdMapping<T[number]>);
+    }, {} as ToIdMapping<T>);
     return _formulaToString(fields, formula, toId);
 }

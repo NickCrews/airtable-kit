@@ -1,7 +1,15 @@
 export {
-    type ReadRecord,
-    type WriteRecord,
-} from "./converters.ts";
+    type convertFieldForRead,
+    type convertFieldForWrite,
+    type FieldRead,
+    type FieldWrite,
+} from "./field-converters.ts";
+export {
+    type RecordRead,
+    type RecordWrite,
+    convertRecordForRead,
+    convertRecordForWrite,
+} from "./record-converters.ts";
 export {
     type OrgClient,
     makeOrgClient,
