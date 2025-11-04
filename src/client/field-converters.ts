@@ -123,8 +123,12 @@ const CreatedTimeConverters = {
     makeTo: null,
     makeFrom:
         (_fieldSchema: FieldOfType<"createdTime">) =>
-            (value: unknown): globalThis.Date =>
-                new globalThis.Date(value as string),
+            (value: unknown): globalThis.Date => {
+                if (value === null || value === undefined) {
+                    throw new Error(`Invalid value for createdTime: ${value}`);
+                }
+                return new globalThis.Date(value as string);
+            }
 } as const satisfies IConverters<
     never,
     globalThis.Date,
@@ -247,8 +251,12 @@ const LastModifiedTimeConverters = {
     makeTo: null,
     makeFrom:
         (_fieldSchema: FieldOfType<"lastModifiedTime">) =>
-            (value: unknown): globalThis.Date =>
-                new globalThis.Date(value as string),
+            (value: unknown): globalThis.Date => {
+                if (value === null || value === undefined) {
+                    throw new Error("Invalid value for lastModifiedTime");
+                }
+                return new globalThis.Date(value as string);
+            }
 } as const satisfies IConverters<
     never,
     globalThis.Date,
@@ -360,7 +368,10 @@ const MultipleSelectsConverters = {
             },
     makeFrom:
         <C extends SelectChoice>(_fieldSchema: MultipleSelects<C>) =>
-            (value: unknown): C[] => value as C[],
+            (value: unknown): C[] => {
+                if (!value) return [];
+                return value as C[];
+            },
 } as const;
 
 const NumberConverters = {

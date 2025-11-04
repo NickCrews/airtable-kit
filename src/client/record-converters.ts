@@ -1,4 +1,5 @@
 import { FieldSchema } from "../fields/types";
+import { FieldId } from "../types";
 import { convertFieldForRead, convertFieldForWrite, FieldRead, FieldWrite } from "./field-converters";
 
 export type WriteRecordById<T extends FieldSchema> = {
@@ -34,8 +35,8 @@ export type RecordRead<T extends FieldSchema> = {
 };
 
 /**
- * Convert a record from Airtable into the appropriate TypeScript types for reading.
- * @param record The raw record from Airtable
+ * Convert a record, freshly read from Airtable, into the appropriate TypeScript types, keyed by field names.
+ * @param record The raw record from Airtable, keyed by field IDs
  * @param fieldSchemas The array of {@link FieldSchema} objects describing the fields in the table
  * @param onUnexpectedField Behavior when encountering a field in the record that is not described by the provided fieldSchemas.
  *                         This usually happens when someone adds a new field to a table after you've fetched the schema.
@@ -44,26 +45,42 @@ export type RecordRead<T extends FieldSchema> = {
  *                         - { warn: boolean; keep: boolean; }:
  *                             - if warn is true, log a warning to the console.
  *                             - if keep is true, keep the unexpected field in the output record with its original field ID as the key. Otherwise, it will be omitted.
- * @returns The converted record with field names as keys and appropriate TypeScript types as values
+ * @returns The converted record with field names as keys and appropriate TypeScript types as values.
+ * 
+ * The airtable API omits empty fields. This function fills in these missing fields with default values,
+ * which is null for most field types, but an empty array for some.
  */
 export function convertRecordForRead<
     F extends FieldSchema,
 >(
-    record: Record<string, unknown>,
+    record: Readonly<Record<FieldId, unknown>>,
     fieldSchemas: ReadonlyArray<F>,
     onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; }
 ): RecordRead<F> {
     onUnexpectedField = onUnexpectedField ?? { warn: true, keep: true };
     const result: Record<string, unknown> = {};
     const lookup = makeFieldLookup(fieldSchemas);
-    for (const [fieldId, airtableValue] of Object.entries(record)) {
+    // The airtable API omits empty fields, so ensure all fields are present in the output record
+    const fullRecord: Record<string, unknown> = { ...record };
+    for (const fieldSchema of fieldSchemas) {
+        if (!(fieldSchema.id in fullRecord)) {
+            fullRecord[fieldSchema.id] = null;
+        }
+    }
+    const errors = [];
+    for (const [fieldId, airtableValue] of Object.entries(fullRecord)) {
         const fieldSchema = lookup.get(fieldId);
         if (fieldSchema) {
-            const value = convertFieldForRead(airtableValue, fieldSchema);
-            result[fieldSchema.name] = value;
+            try {
+                const value = convertFieldForRead(airtableValue, fieldSchema);
+                result[fieldSchema.name] = value;
+            } catch (e) {
+                errors.push(`Error converting field ${fieldSchema.name} (id: ${fieldSchema.id}): ${(e as Error).message}`);
+            }
         } else {
             if (onUnexpectedField === "throw") {
-                throw new Error(`Unknown field in record for read: ${fieldId}. Known fields: ${fieldSchemas.map((f) => `${f.name} (id: ${f.id})`).join(", ")}`);
+                errors.push(`Unknown field in record for read: ${fieldId}. Known fields: ${fieldSchemas.map((f) => `${f.name} (id: ${f.id})`).join(", ")}`);
+                continue
             }
             if (onUnexpectedField.warn) {
                 console.warn(`Warning: Unknown field in record for read: ${fieldId}. Known fields: ${fieldSchemas.map((f) => `${f.name} (id: ${f.id})`).join(", ")}`);
@@ -72,6 +89,10 @@ export function convertRecordForRead<
                 result[fieldId] = airtableValue;
             }
         }
+    }
+    if (errors.length > 0) {
+        console.log(fullRecord);
+        throw new Error(errors.join("\n"));
     }
     return result as RecordRead<F>;
 }

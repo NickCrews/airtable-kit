@@ -36,6 +36,8 @@ describe("TableClient", () => {
                             fldName: "Fold Laundry",
                             fldAssignedTo: ["usrMe"],
                             fldCompleted: false,
+                            fldUpdatedAt: "2024-01-02T00:00:00.000Z",
+                            fldCreatedAt: "2024-01-01T00:00:00.000Z",
                         },
                     }
                 ]
@@ -69,9 +71,17 @@ describe("TableClient", () => {
                 {
                     id: "rec123",
                     fields: {
-                        Name: "Fold Laundry",
                         "Assigned To": ["usrMe"],
-                        Completed: false,
+                        "Attachments": null,
+                        "Completed": false,
+                        "Created At": new Date("2024-01-01T00:00:00.000Z"),
+                        "Due Date": null,
+                        "Name": "Fold Laundry",
+                        "Notes": null,
+                        "Priority": null,
+                        "Status": null,
+                        "Tags": [],
+                        "Updated At": new Date("2024-01-02T00:00:00.000Z"),
                     },
                     createdTime: "2024-01-01T00:00:00.000Z",
                 }
@@ -111,6 +121,8 @@ describe("TableClient", () => {
                         fields: {
                             fldName: "Fold Laundry",
                             fldCompleted: true,
+                            fldUpdatedAt: "2024-01-02T00:00:00.000Z",
+                            fldCreatedAt: "2024-01-01T00:00:00.000Z",
                         },
                     }
                 ]
@@ -154,8 +166,17 @@ describe("TableClient", () => {
                         id: "rec123",
                         createdTime: "2024-01-01T00:00:00.000Z",
                         fields: {
-                            Name: "Fold Laundry",
-                            Completed: true,
+                            "Assigned To": null,
+                            "Attachments": null,
+                            "Completed": true,
+                            "Created At": new Date("2024-01-01T00:00:00.000Z"),
+                            "Due Date": null,
+                            "Name": "Fold Laundry",
+                            "Notes": null,
+                            "Priority": null,
+                            "Status": null,
+                            "Tags": [],
+                            "Updated At": new Date("2024-01-02T00:00:00.000Z"),
                         },
                     }]
                 });
@@ -201,6 +222,75 @@ describe("TableClient", () => {
                 path: "/app123/tblTasks?returnFieldsByFieldId=true&filterByFormula=AND%28%7BfldStatus%7D+%3D+%22Done%22%2C+%7BfldCompleted%7D+%3D+TRUE%28%29%29",
                 method: "GET",
             }]);
+        });
+    });
+    describe("get", () => {
+        it("can get a record by ID", async () => {
+            mockFetcher.setReturnValue({
+                id: "rec123",
+                createdTime: "2024-01-01T00:00:00.000Z",
+                fields: {
+                    fldName: "Fold Laundry",
+                    fldCompleted: false,
+                    fldCreatedAt: "2024-01-01T00:00:00.000Z",
+                    fldUpdatedAt: "2024-01-02T00:00:00.000Z",
+                },
+            });
+            const record = await client.get("rec123");
+            expect(mockFetcher.getCallHistory()).toEqual([{
+                path: "/app123/tblTasks/rec123?returnFieldsByFieldId=true",
+                method: "GET",
+            }]);
+            expect(record).toEqual({
+                id: "rec123",
+                createdTime: "2024-01-01T00:00:00.000Z",
+                fields: {
+                    "Assigned To": null,
+                    "Attachments": null,
+                    "Completed": false,
+                    "Created At": new Date("2024-01-01T00:00:00.000Z"),
+                    "Due Date": null,
+                    "Name": "Fold Laundry",
+                    "Notes": null,
+                    "Priority": null,
+                    "Status": null,
+                    "Tags": [],
+                    "Updated At": new Date("2024-01-02T00:00:00.000Z"),
+                },
+            });
+        });
+        it("fills in any fields omitted by the Airtable API with a default value", async () => {
+            mockFetcher.setReturnValue({
+                id: "rec123",
+                createdTime: "2024-01-01T00:00:00.000Z",
+                fields: {
+                    fldName: "Fold Laundry",
+                    fldUpdatedAt: "2024-01-02T00:00:00.000Z",
+                    fldCreatedAt: "2024-01-01T00:00:00.000Z",
+                },
+            });
+            const record = await client.get("rec123");
+            expect(mockFetcher.getCallHistory()).toEqual([{
+                path: "/app123/tblTasks/rec123?returnFieldsByFieldId=true",
+                method: "GET",
+            }]);
+            expect(record).toEqual({
+                id: "rec123",
+                createdTime: "2024-01-01T00:00:00.000Z",
+                fields: {
+                    "Assigned To": null,
+                    "Attachments": null,
+                    "Completed": null,
+                    "Created At": new Date("2024-01-01T00:00:00.000Z"),
+                    "Due Date": null,
+                    "Name": "Fold Laundry",
+                    "Notes": null,
+                    "Priority": null,
+                    "Status": null,
+                    "Tags": [],
+                    "Updated At": new Date("2024-01-02T00:00:00.000Z"),
+                },
+            });
         });
     });
 });
