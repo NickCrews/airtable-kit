@@ -22,12 +22,8 @@ export interface ListRecordsOptions<T extends FieldSchema> {
     timeZone?: Timezone;
     /** User locale for formatting dates when using cellFormat: "string" */
     userLocale?: string;
-    /** Number of records per page (max 100, default 100) */
-    pageSize?: number;
     /** Maximum total number of records to return */
     maxRecords?: number;
-    /** Offset for pagination */
-    offset?: string;
     /** View name or ID to filter by */
     view?: string;
     /** Sort configuration */
@@ -45,15 +41,12 @@ export interface ListRecordsOptions<T extends FieldSchema> {
 /**
  * Response from listing records
  */
-export interface ListRecordsResponse<T extends FieldSchema> {
-    records: Array<{
-        id: RecordId;
-        createdTime: Timestamp;
-        fields: RecordRead<T>;
-        commentCount?: number;
-    }>;
-    offset?: RecordId;
-}
+export type ListRecordsResponse<T extends FieldSchema> = Array<{
+    id: RecordId;
+    createdTime: Timestamp;
+    fields: RecordRead<T>;
+    commentCount?: number;
+}>;
 
 /**
  * Options for getting a single record
@@ -171,8 +164,11 @@ export interface TableClient<T extends TableSchema> {
         createdTime: Timestamp,
     }>>;
 
-    /** List records from the table with optional filtering and pagination */
+    /** List records from the table with optional filtering. Pagination is handled automatically. */
     list(options?: ListRecordsOptions<FieldType<T>>): Promise<ListRecordsResponse<FieldType<T>>>;
+
+    /** List records, but you are responsible for pagination */
+    listRaw(options?: ListRecordsOptions<FieldType<T>> & { pageSize?: number; offset?: string; }): Promise<ListRawResponse<FieldType<T>>>;
 
     /** Get a single record by ID */
     get(recordId: RecordId, options?: GetRecordOptions): Promise<GetRecordResponse<FieldType<T>>>;
@@ -266,7 +262,7 @@ export function makeTableClient<T extends TableSchema>(
             });
         },
         async createOne(records: RecordWrite<FieldType<T>>) {
-            const raw = await createMany<FieldType<T>>([records], {
+            const raw = await createManyRaw<FieldType<T>>([records], {
                 fieldSpecs,
                 baseId,
                 tableId,
@@ -277,6 +273,16 @@ export function makeTableClient<T extends TableSchema>(
         },
         async list(options?: ListRecordsOptions<FieldType<T>>) {
             return await list<FieldType<T>>({
+                options,
+                fieldSpecs,
+                baseId,
+                tableId,
+                fetcher,
+                onUnexpectedField: clientOptions?.onReadUnexpectedField,
+            });
+        },
+        async listRaw(options?: ListRecordsOptions<FieldType<T>> & { pageSize?: number; offset?: string; }) {
+            return await listRaw<FieldType<T>>({
                 options,
                 fieldSpecs,
                 baseId,
@@ -342,15 +348,43 @@ export function makeTableClient<T extends TableSchema>(
 type RawReadRecord<T extends FieldSchema> = {
     [K in T["id"]]: FieldRead<Extract<T, { id: K }>>;
 }
-type CreateRawResponse<T extends FieldSchema> = {
-    records: Array<{
-        id: `rec${string}`;
-        createdTime: string;
-        fields: RawReadRecord<T>;
-    }>;
-};
-
 export async function createMany<T extends FieldSchema>(
+    records: ReadonlyArray<RecordWrite<T>>,
+    {
+        fieldSpecs,
+        fetcher,
+        baseId,
+        tableId,
+        onUnexpectedField
+    }: {
+        fieldSpecs: ReadonlyArray<T>;
+        baseId: BaseId;
+        tableId: TableId;
+        fetcher: Fetcher;
+        onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
+    },
+) {
+    const BATCH_SIZE = 10;
+    const result: Array<{
+        id: RecordId,
+        fields: RecordRead<T>,
+        createdTime: Timestamp,
+    }> = [];
+    for (let i = 0; i < records.length; i += BATCH_SIZE) {
+        const batch = records.slice(i, i + BATCH_SIZE);
+        const created = await createManyRaw<T>(batch, {
+            fieldSpecs,
+            baseId,
+            tableId,
+            fetcher,
+            onUnexpectedField,
+        });
+        result.push(...created);
+    }
+    return result;
+}
+
+export async function createManyRaw<T extends FieldSchema>(
     records: ReadonlyArray<RecordWrite<T>>,
     {
         fieldSpecs,
@@ -380,7 +414,14 @@ export async function createMany<T extends FieldSchema>(
             ),
         };
     });
-    const raw = await fetcher.fetch<CreateRawResponse<T>>({
+    type CreateApiResponse<T extends FieldSchema> = {
+        records: Array<{
+            id: `rec${string}`;
+            createdTime: string;
+            fields: RawReadRecord<T>;
+        }>;
+    };
+    const raw = await fetcher.fetch<CreateApiResponse<T>>({
         path: `/${baseId}/${tableId}`,
         method: "POST",
         data: {
@@ -398,15 +439,6 @@ export async function createMany<T extends FieldSchema>(
 
 /** ISO 8601 format in UTC, eg `2024-01-01T12:00:00.000Z` */
 type Timestamp = string;
-type ListRawResponse<T extends FieldSchema> = {
-    records: Array<{
-        id: RecordId;
-        createdTime: Timestamp;
-        fields: RawReadRecord<T>;
-        commentCount: number;
-    }>;
-    offset?: RecordId;
-};
 
 export async function list<T extends FieldSchema>(
     {
@@ -425,6 +457,56 @@ export async function list<T extends FieldSchema>(
         onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
     },
 ): Promise<ListRecordsResponse<T>> {
+    const allRecords: ListRecordsResponse<T> = [];
+    let offset = undefined;
+    do {
+        const response: ListRawResponse<T> = await listRaw({
+            options: {
+                ...options,
+                offset,
+            },
+            fieldSpecs,
+            baseId,
+            tableId,
+            fetcher,
+            onUnexpectedField,
+        });
+        allRecords.push(...response.records);
+        offset = response.offset;
+    } while (offset);
+    return allRecords;
+}
+
+
+type ListRawResponse<T extends FieldSchema> = {
+    records: Array<{
+        id: RecordId;
+        createdTime: Timestamp;
+        fields: RecordRead<T>;
+        commentCount: number;
+    }>;
+    offset?: RecordId;
+};
+export async function listRaw<T extends FieldSchema>(
+    {
+        options,
+        fieldSpecs,
+        fetcher,
+        baseId,
+        tableId,
+        onUnexpectedField,
+    }: {
+        options?: ListRecordsOptions<T> & {
+            pageSize?: number;
+            offset?: string;
+        };
+        fieldSpecs: ReadonlyArray<T>;
+        baseId: BaseId;
+        tableId: TableId;
+        fetcher: Fetcher;
+        onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
+    },
+): Promise<ListRawResponse<T>> {
     const queryParams = new URLSearchParams();
     queryParams.append('returnFieldsByFieldId', 'true');
 
@@ -459,11 +541,19 @@ export async function list<T extends FieldSchema>(
     const query = queryParams.toString();
     const path = `/${baseId}/${tableId}${query ? `?${query}` : ''}`;
 
-    const raw = await fetcher.fetch<ListRawResponse<T>>({
+    type ListApiResponse<T extends FieldSchema> = {
+        records: Array<{
+            id: RecordId;
+            createdTime: Timestamp;
+            fields: RawReadRecord<T>;
+            commentCount: number;
+        }>;
+        offset?: RecordId;
+    };
+    const raw = await fetcher.fetch<ListApiResponse<T>>({
         path,
         method: "GET",
     });
-
     return {
         records: raw.records.map((record) => {
             return {
@@ -473,14 +563,9 @@ export async function list<T extends FieldSchema>(
                 commentCount: record.commentCount,
             };
         }),
-    } as ListRecordsResponse<T>;
+        offset: raw.offset,
+    };
 }
-
-type GetRawResponse<T extends FieldSchema> = {
-    id: RecordId;
-    createdTime: Timestamp;
-    fields: RawReadRecord<T>;
-};
 
 export async function getRecord<T extends FieldSchema>(
     {
@@ -513,7 +598,12 @@ export async function getRecord<T extends FieldSchema>(
     const query = queryParams.toString();
     const path = `/${baseId}/${tableId}/${recordId}${query ? `?${query}` : ''}`;
 
-    const result = await fetcher.fetch<GetRawResponse<T>>({
+    type GetApiResponse<T extends FieldSchema> = {
+        id: RecordId;
+        createdTime: Timestamp;
+        fields: RawReadRecord<T>;
+    };
+    const result = await fetcher.fetch<GetApiResponse<T>>({
         path,
         method: "GET",
     });
@@ -525,31 +615,7 @@ export async function getRecord<T extends FieldSchema>(
     }
 }
 
-// https://airtable.com/developers/web/api/update-multiple-records
-type UpdateRawRequestBody<T extends FieldSchema> = {
-    records: Array<{
-        id?: string;
-        fields: WriteRecordById<T>;
-    }>;
-    performUpsert?: {
-        fieldsToMergeOn: string[];
-    };
-    returnFieldsByFieldId?: boolean;
-    typecast?: boolean;
-};
-type UpdateRawResponse<T extends FieldSchema> = {
-    records: Array<{
-        id: RecordId;
-        createdTime: Timestamp;
-        fields: RawReadRecord<T>;
-    }>;
-    details?: {
-        message: 'partialSuccess';
-        reasons: Array<'attachmentsFailedUploading' | 'attachmentUploadRateIsTooHigh'>;
-    };
-    createdRecords?: RecordId[];
-    updatedRecords?: RecordId[];
-};
+/** Handles pagination for you, since Airtable can only handle 10 records to update at a time. */
 export async function update<T extends FieldSchema>(
     {
         records,
@@ -569,17 +635,86 @@ export async function update<T extends FieldSchema>(
         onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
     },
 ): Promise<UpdateRecordsResponse<T>> {
-    if (records.length === 0) {
-        return {
-            records: [],
-        };
+    const BATCH_SIZE = 10;
+    const result: UpdateRecordsResponse<T> = {
+        records: [],
+    };
+    const promises = [];
+    for (let i = 0; i < records.length; i += BATCH_SIZE) {
+        const batch = records.slice(i, i + BATCH_SIZE);
+        promises.push(updateRaw<T>({
+            records: batch,
+            options,
+            fieldSpecs,
+            baseId,
+            tableId,
+            fetcher,
+            onUnexpectedField,
+        }));
     }
-    const rawRequestBody: UpdateRawRequestBody<T> = {
+    const results = await Promise.all(promises);
+    for (const res of results) {
+        result.records.push(...res.records);
+    }
+    return result;
+}
+
+export async function updateRaw<T extends FieldSchema>(
+    {
+        records,
+        options,
+        fieldSpecs,
+        fetcher,
+        baseId,
+        tableId,
+        onUnexpectedField,
+    }: {
+        records: Array<{ id?: string; fields: RecordWrite<T> }>;
+        options?: UpdateRecordsOptions<T>;
+        fieldSpecs: ReadonlyArray<T>;
+        baseId: BaseId;
+        tableId: TableId;
+        fetcher: Fetcher;
+        onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
+    },
+): Promise<UpdateRecordsResponse<T>> {
+    if (records.length === 0) {
+        return { records: [] };
+    }
+    if (records.length > 10) {
+        throw new Error("Can only update up to 10 records at a time in updateRaw. Use update for automatic batching.");
+    }
+    // https://airtable.com/developers/web/api/update-multiple-records
+    type UpdateApiRequestBody<T extends FieldSchema> = {
+        records: Array<{
+            id?: string;
+            fields: WriteRecordById<T>;
+        }>;
+        performUpsert?: {
+            fieldsToMergeOn: string[];
+        };
+        returnFieldsByFieldId?: boolean;
+        typecast?: boolean;
+    };
+    type UpdateApiResponse<T extends FieldSchema> = {
+        records: Array<{
+            id: RecordId;
+            createdTime: Timestamp;
+            fields: RawReadRecord<T>;
+        }>;
+        details?: {
+            message: 'partialSuccess';
+            reasons: Array<'attachmentsFailedUploading' | 'attachmentUploadRateIsTooHigh'>;
+        };
+        createdRecords?: RecordId[];
+        updatedRecords?: RecordId[];
+    };
+    const rawRequestBody: UpdateApiRequestBody<T> = {
         records: records.map((record) => {
             const withoutUndefined = Object.fromEntries(
                 Object.entries(record.fields).filter(([_, v]) => v !== undefined)
             );
-            const converted: UpdateRawRequestBody<T>['records'][number] = {
+            const converted: UpdateApiRequestBody<T>['records'][number] = {
                 fields: convertRecordForWrite(
                     withoutUndefined as Partial<RecordWrite<T>>,
                     fieldSpecs,
@@ -601,7 +736,7 @@ export async function update<T extends FieldSchema>(
 
     const path = `/${baseId}/${tableId}`;
     const method = options?.destructive ? "PUT" : "PATCH";
-    const rawResponse = await fetcher.fetch<UpdateRawResponse<T>>({
+    const rawResponse = await fetcher.fetch<UpdateApiResponse<T>>({
         path,
         method,
         data: rawRequestBody,
@@ -622,8 +757,40 @@ export async function update<T extends FieldSchema>(
     } as UpdateRecordsResponse<T>;
 }
 
-type DeleteRawResponse = DeleteRecordsResponse;
 export async function deleteRecords(
+    {
+        recordIds,
+        fetcher,
+        baseId,
+        tableId,
+    }: {
+        recordIds: ReadonlyArray<RecordId>;
+        baseId: BaseId;
+        tableId: TableId;
+        fetcher: Fetcher;
+    },
+): Promise<DeleteRecordsResponse> {
+    const batches: RecordId[][] = [];
+    for (let i = 0; i < recordIds.length; i += 10) {
+        batches.push(recordIds.slice(i, i + 10));
+    }
+    const promises = batches.map(batch => deleteRecordsRaw({
+        recordIds: batch,
+        baseId,
+        tableId,
+        fetcher,
+    }));
+    const results = await Promise.all(promises);
+    const allDeletedRecords: DeleteRecordsResponse['records'] = [];
+    for (const res of results) {
+        allDeletedRecords.push(...res.records);
+    }
+    return {
+        records: allDeletedRecords,
+    };
+}
+
+export async function deleteRecordsRaw(
     {
         recordIds,
         fetcher,
@@ -639,27 +806,21 @@ export async function deleteRecords(
     if (recordIds.length === 0) {
         return { records: [] };
     }
-    const batches: RecordId[][] = [];
-    for (let i = 0; i < recordIds.length; i += 10) {
-        batches.push(recordIds.slice(i, i + 10));
+    if (recordIds.length > 10) {
+        throw new Error("Can only delete up to 10 records at a time in deleteRecordsRaw. Use deleteRecords for automatic batching.");
     }
-    const results = await Promise.all(
-        batches.map(async (batch) => {
-            const queryParams = new URLSearchParams();
-            batch.forEach(id => {
-                queryParams.append('records[]', id);
-            });
-            const query = queryParams.toString();
-            const path = `/${baseId}/${tableId}${query ? `?${query}` : ''}`;
-            return await fetcher.fetch<DeleteRawResponse>({
-                path,
-                method: "DELETE",
-            });
-        })
-    );
-    return {
-        records: results.flatMap(r => r.records)
-    };
+
+    type DeleteApiResponse = DeleteRecordsResponse;
+    const queryParams = new URLSearchParams();
+    recordIds.forEach(id => {
+        queryParams.append('records[]', id);
+    });
+    const query = queryParams.toString();
+    const path = `/${baseId}/${tableId}${query ? `?${query}` : ''}`;
+    return await fetcher.fetch<DeleteApiResponse>({
+        path,
+        method: "DELETE",
+    });
 }
 
 export async function uploadAttachment<T extends FieldId | string>(

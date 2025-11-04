@@ -153,9 +153,7 @@ export function makeListTool<
     options: z4.object({
       timeZone: z4.enum(TIMEZONES).optional(),
       userLocale: z4.string().optional(),
-      pageSize: z4.int().min(1).max(100).optional(),
       maxRecords: z4.int().min(1).optional(),
-      offset: z4.string().optional().describe('If the previous response contained an "offset" field, use that value here to continue from where the last response left off.'),
       view: z4.string().optional(),
       sort: z4.array(z4.object({
         field: z4.enum(availableFieldNames),
@@ -172,13 +170,10 @@ export function makeListTool<
   async function execute(input: ListInput<T>) {
     const validated = zodInputValidator.parse(input);
     const raw = await client.list(validated.options);
-    return {
-      ...raw,
-      records: raw.records.map((r) => ({
-        ...r,
-        url: `https://airtable.com/${client.baseId}/${client.tableSchema.id}/${r.id}`,
-      })),
-    };
+    return raw.map((rec) => ({
+      ...rec,
+      url: `https://airtable.com/${client.baseId}/${client.tableSchema.id}/${rec.id}`,
+    }));
   }
   return {
     name: `list-records-from-${toIdentifier(client.tableSchema.name)}-table`,
@@ -190,7 +185,7 @@ export function makeListTool<
 }
 
 const DeleteInput = z4.object({
-  recordIds: z4.array(RecordIdSchema).min(1).max(10).readonly(),
+  recordIds: z4.array(RecordIdSchema).min(1).readonly(),
 });
 type DeleteInput = z4.infer<typeof DeleteInput>;
 type DeleteToolResult = RecordId[];
@@ -205,8 +200,6 @@ export function makeDeleteTool<
   return {
     name: `delete-records-from-${toIdentifier(client.tableSchema.name)}-table`,
     description: `Delete records by ID from the ${client.tableSchema.name} table.
-
-    You can delete up to 10 records at a time.
     
     Returns the list of deleted record IDs.`,
     zodInputValidator: DeleteInput as any,

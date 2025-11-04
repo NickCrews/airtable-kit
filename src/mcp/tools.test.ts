@@ -390,15 +390,6 @@ describe('MCP Tool - List Tool', () => {
                 "minimum": 1,
                 "type": "integer",
               },
-              "offset": {
-                "description": "If the previous response contained an "offset" field, use that value here to continue from where the last response left off.",
-                "type": "string",
-              },
-              "pageSize": {
-                "maximum": 100,
-                "minimum": 1,
-                "type": "integer",
-              },
               "recordMetadata": {
                 "items": {
                   "enum": [
@@ -906,8 +897,8 @@ describe('MCP Tool - List Tool', () => {
       method: 'GET',
       path: '/appTaskBase/tblUsers?returnFieldsByFieldId=true',
     }]);
-    expect(result).toMatchObject({
-      records: [
+    expect(result).toMatchObject(
+      [
         {
           "id": "rec123",
           "fields": {
@@ -918,7 +909,7 @@ describe('MCP Tool - List Tool', () => {
           "createdTime": "2024-01-01T12:00:00.000Z",
         }
       ]
-    });
+    );
   });
   it('should work with filtering options', async () => {
     const validInput = {
@@ -945,8 +936,8 @@ describe('MCP Tool - List Tool', () => {
       method: 'GET',
       path: '/appTaskBase/tblUsers?returnFieldsByFieldId=true&maxRecords=10&filterByFormula=Email+%3D+%22alice.smith%40example.com%22',
     }]);
-    expect(result).toMatchObject({
-      records: [
+    expect(result).toMatchObject(
+      [
         {
           "id": "rec123",
           "fields": {
@@ -957,7 +948,7 @@ describe('MCP Tool - List Tool', () => {
           "createdTime": "2024-01-01T12:00:00.000Z",
         }
       ]
-    });
+    );
   });
 });
 
@@ -973,8 +964,6 @@ describe('MCP Tool - Delete Tool', () => {
     expect(deleteTool.name).toMatchInlineSnapshot(`"delete-records-from-users-table"`);
     expect(deleteTool.description).toMatchInlineSnapshot(`
       "Delete records by ID from the users table.
-
-          You can delete up to 10 records at a time.
           
           Returns the list of deleted record IDs."
     `);
@@ -987,7 +976,6 @@ describe('MCP Tool - Delete Tool', () => {
             "items": {
               "type": "string",
             },
-            "maxItems": 10,
             "minItems": 1,
             "type": "array",
           },
