@@ -7,7 +7,7 @@ import { RecordId, type FieldSchema, type FieldType } from "../types.ts";
 import * as exceptions from "../exceptions.ts";
 
 type ToAirtableConverter<T> = (value: T) => unknown;
-type FromAirtableConverter<T> = (value: unknown) => T;
+type FromAirtableConverter<T> = (value: any) => T;
 interface IConverters<
     ToArg,
     FromResult,
@@ -34,8 +34,13 @@ const AutoNumberConverters = {
     type: "autoNumber",
     makeTo: null,
     makeFrom:
-        (_fieldSchema: FieldOfType<"autoNumber">) => (value: unknown): number =>
-            value as number,
+        (fieldSchema: FieldOfType<"autoNumber">) => (value: number): number => {
+            if (!value && value !== 0) {
+                const e = new Error(`an autoNumber field must have a value, got: ${value}`);
+                throw new exceptions.ReadValueConversionError(value, fieldSchema, e);
+            }
+            return value;
+        }
 } as const satisfies IConverters<
     never,
     number,
@@ -72,11 +77,13 @@ const CheckboxConverters = {
         (_fieldSchema: FieldOfType<"checkbox">) => (value: boolean | null | undefined): boolean | null | undefined =>
             value,
     makeFrom:
-        (_fieldSchema: FieldOfType<"checkbox">) => (value: unknown): boolean | null =>
-            value as boolean | null,
+        (_fieldSchema: FieldOfType<"checkbox">) =>
+            // Airtable has no notion of undefined for checkboxes, it only stores true/false,
+            // so during read, if the API omits the field, we convert that to false. 
+            (value: boolean | null): boolean => value ?? false
 } as const satisfies IConverters<
     boolean | null | undefined,
-    boolean | null,
+    boolean,
     FieldOfType<"checkbox">
 >;
 
@@ -84,8 +91,13 @@ const CountConverters = {
     type: "count",
     makeTo: null,
     makeFrom:
-        (_fieldSchema: FieldOfType<"count">) => (value: unknown): number =>
-            value as number,
+        (fieldSchema: FieldOfType<"count">) => (value: number): number => {
+            if (!value && value !== 0) {
+                const e = new Error(`a count field must have a value, got: ${value}`);
+                throw new exceptions.ReadValueConversionError(value, fieldSchema, e);
+            }
+            return value;
+        }
 } as const satisfies IConverters<never, number, FieldOfType<"count">>;
 
 interface User {
@@ -115,18 +127,24 @@ const CreatedByConverters = {
     type: "createdBy",
     makeTo: null,
     makeFrom:
-        (_fieldSchema: FieldOfType<"createdBy">) => (value: unknown): User =>
-            value as User,
+        (fieldSchema: FieldOfType<"createdBy">) => (value: User): User => {
+            if (!value) {
+                const e = new Error(`a createdBy field must have a value, got: ${value}`);
+                throw new exceptions.ReadValueConversionError(value, fieldSchema, e);
+            }
+            return value;
+        }
 } as const satisfies IConverters<never, User, FieldOfType<"createdBy">>;
 
 const CreatedTimeConverters = {
     type: "createdTime",
     makeTo: null,
     makeFrom:
-        (_fieldSchema: FieldOfType<"createdTime">) =>
+        (fieldSchema: FieldOfType<"createdTime">) =>
             (value: unknown): globalThis.Date => {
                 if (value === null || value === undefined) {
-                    throw new Error(`Invalid value for createdTime: ${value}`);
+                    const e = new Error(`a createdTime field must have a value, got: ${value}`);
+                    throw new exceptions.ReadValueConversionError(value, fieldSchema, e);
                 }
                 return new globalThis.Date(value as string);
             }
@@ -142,8 +160,7 @@ const CurrencyConverters = {
         (_fieldSchema: FieldOfType<"currency">) => (value: number | null | undefined): number | null | undefined =>
             value,
     makeFrom:
-        (_fieldSchema: FieldOfType<"currency">) => (value: unknown): number | null =>
-            value as number | null,
+        (_fieldSchema: FieldOfType<"currency">) => (value: number | null): number | null => value
 } as const satisfies IConverters<
     number | null | undefined,
     number | null,
@@ -161,8 +178,7 @@ const DateConverters = {
                 }
                 return value;
             },
-    makeFrom: (_fieldSchema: FieldOfType<"date">) => (value: unknown): string | null =>
-        value as string | null,
+    makeFrom: (_fieldSchema: FieldOfType<"date">) => (value: string | null): string | null => value,
 } as const satisfies IConverters<
     globalThis.Date | TDateString | null | undefined,
     string | null,
@@ -181,9 +197,9 @@ const DateTimeConverters = {
             },
     makeFrom:
         (_fieldSchema: FieldOfType<"dateTime">) =>
-            (value: unknown): globalThis.Date | null => {
+            (value: string | null): globalThis.Date | null => {
                 if (value === null) return null;
-                return new globalThis.Date(value as string);
+                return new globalThis.Date(value);
             },
 } as const satisfies IConverters<
     globalThis.Date | string | null | undefined,
@@ -197,8 +213,7 @@ const DurationConverters = {
         (_fieldSchema: FieldOfType<"duration">) => (value: number | null | undefined): number | null | undefined =>
             value,
     makeFrom:
-        (_fieldSchema: FieldOfType<"duration">) => (value: unknown): number | null =>
-            value as number | null,
+        (_fieldSchema: FieldOfType<"duration">) => (value: number | null): number | null => value,
 } as const satisfies IConverters<
     number | null | undefined,
     number | null,
@@ -208,7 +223,7 @@ const DurationConverters = {
 const EmailConverters = {
     type: "email",
     makeTo: (_: FieldSchema) => (value: string | null | undefined): string | null | undefined => value,
-    makeFrom: (_: FieldSchema) => (value: unknown): string => value as string,
+    makeFrom: (_: FieldSchema) => (value: string | null): string => value ? value : "",
 } as const satisfies IConverters<string | null | undefined, string, FieldOfType<"email">>;
 
 const ExternalSyncSourceConverters = {
@@ -239,8 +254,13 @@ const LastModifiedByConverters = {
     type: "lastModifiedBy",
     makeTo: null,
     makeFrom:
-        (_fieldSchema: FieldOfType<"lastModifiedBy">) =>
-            (value: unknown): User => value as User,
+        (fieldSchema: FieldOfType<"lastModifiedBy">) => (value: unknown): User => {
+            if (!value) {
+                const e = new Error(`a lastModifiedBy field must have a value, got: ${value}`);
+                throw new exceptions.ReadValueConversionError(value, fieldSchema, e);
+            }
+            return value as User;
+        }
 } as const satisfies IConverters<
     never,
     User,
@@ -254,7 +274,8 @@ const LastModifiedTimeConverters = {
         (_fieldSchema: FieldOfType<"lastModifiedTime">) =>
             (value: unknown): globalThis.Date => {
                 if (value === null || value === undefined) {
-                    throw new Error("Invalid value for lastModifiedTime");
+                    const e = new Error(`a lastModifiedTime field must have a value, got: ${value}`);
+                    throw new exceptions.ReadValueConversionError(value, _fieldSchema, e);
                 }
                 return new globalThis.Date(value as string);
             }
@@ -267,7 +288,7 @@ const LastModifiedTimeConverters = {
 const MultilineTextConverters = {
     type: "multilineText",
     makeTo: (_: FieldSchema) => (value: string | null | undefined): string | null | undefined => value,
-    makeFrom: (_: FieldSchema) => (value: unknown): string => value as string,
+    makeFrom: (_: FieldSchema) => (value: string | null): string => value ? value : "",
 } as const satisfies IConverters<
     string | null | undefined,
     string,
@@ -307,7 +328,7 @@ const MultipleCollaboratorsConverters = {
             },
     makeFrom:
         (_fieldSchema: FieldOfType<"multipleCollaborators">) =>
-            (value: unknown): User[] => value as User[],
+            (value: User[] | null): User[] => value ? value : [],
 } as const satisfies IConverters<
     User[],
     User[],
@@ -319,7 +340,7 @@ const MultipleLookupValuesConverters = {
     makeTo: null,
     makeFrom:
         (_fieldSchema: FieldOfType<"multipleLookupValues">) =>
-            (value: unknown): unknown[] => value as unknown[],
+            (value: null | unknown[]): unknown[] => value ? value : [],
 } as const satisfies IConverters<
     never,
     unknown[],
@@ -336,7 +357,9 @@ const MultipleRecordLinksConverters = {
             },
     makeFrom:
         (_fieldSchema: FieldOfType<"multipleRecordLinks">) =>
-            (value: unknown): RecordId[] => value as RecordId[],
+            (value: null | RecordId[]): RecordId[] => {
+                return value ? value : [];
+            },
 } as const satisfies IConverters<
     RecordId[] | null | undefined,
     RecordId[],
@@ -377,20 +400,18 @@ const MultipleSelectsConverters = {
 
 const NumberConverters = {
     type: "number",
-    makeTo: (_fieldSchema: FieldOfType<"number">) => (value: number): number =>
+    makeTo: (_fieldSchema: FieldOfType<"number">) => (value: number | null | undefined): number | null | undefined =>
         value,
     makeFrom:
-        (_fieldSchema: FieldOfType<"number">) => (value: unknown): number =>
-            value as number,
-} as const satisfies IConverters<number, number, FieldOfType<"number">>;
+        (_fieldSchema: FieldOfType<"number">) => (value: number | null): number | null => value,
+} as const satisfies IConverters<number | null | undefined, number | null | undefined, FieldOfType<"number">>;
 
 const PercentConverters = {
     type: "percent",
-    makeTo: (_fieldSchema: FieldOfType<"percent">) => (value: number | null | undefined): number | null | undefined =>
-        value,
+    makeTo:
+        (_fieldSchema: FieldOfType<"percent">) => (value: number | null | undefined): number | null | undefined => value,
     makeFrom:
-        (_fieldSchema: FieldOfType<"percent">) => (value: unknown): number | null =>
-            value as number | null,
+        (_fieldSchema: FieldOfType<"percent">) => (value: number | null): number | null => value,
 } as const satisfies IConverters<
     number | null | undefined,
     number | null,
@@ -400,10 +421,10 @@ const PercentConverters = {
 const PhoneNumberConverters = {
     type: "phoneNumber",
     makeTo: (_: FieldSchema) => (value: string | null | undefined): string | null | undefined => value,
-    makeFrom: (_: FieldSchema) => (value: unknown): string => value as string,
+    makeFrom: (_: FieldSchema) => (value: string | null): string | null => value,
 } as const satisfies IConverters<
     string | null | undefined,
-    string,
+    string | null,
     FieldOfType<"phoneNumber">
 >;
 
@@ -412,14 +433,13 @@ const RatingConverters = {
     makeTo: (_fieldSchema: FieldOfType<"rating">) => (value: number | null | undefined): number | null | undefined =>
         value,
     makeFrom:
-        (_fieldSchema: FieldOfType<"rating">) => (value: unknown): number | null =>
-            value as number | null,
+        (_fieldSchema: FieldOfType<"rating">) => (value: number | null): number | null => value,
 } as const satisfies IConverters<number | null | undefined, number | null, FieldOfType<"rating">>;
 
 const RichTextConverters = {
     type: "richText",
     makeTo: (_: FieldSchema) => (value: string | null | undefined): string | null | undefined => value,
-    makeFrom: (_: FieldSchema) => (value: unknown): string => value as string,
+    makeFrom: (_: FieldSchema) => (value: string | null): string => value ? value : "",
 } as const satisfies IConverters<
     string | null | undefined,
     string,
@@ -451,7 +471,7 @@ const SingleCollaboratorConverters = {
 const SingleLineTextConverters = {
     type: "singleLineText",
     makeTo: (_: FieldSchema) => (value: string | null | undefined): string | null | undefined => value,
-    makeFrom: (_: FieldSchema) => (value: unknown): string => value as string,
+    makeFrom: (_: FieldSchema) => (value: string | null): string => value ? value : "",
 } as const satisfies IConverters<
     string | null | undefined,
     string,
@@ -493,7 +513,7 @@ const SingleSelectConverters = {
 const UrlConverters = {
     type: "url",
     makeTo: (_: FieldSchema) => (value: string | null | undefined): string | null | undefined => value,
-    makeFrom: (_: FieldSchema) => (value: unknown): string => value as string,
+    makeFrom: (_: FieldSchema) => (value: string | null): string => value ? value : "",
 } as const satisfies IConverters<string | null | undefined, string, FieldOfType<"url">>;
 
 export const CONVERTERS = {
