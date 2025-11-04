@@ -1,6 +1,6 @@
 export {
-    type convertFieldForRead,
-    type convertFieldForWrite,
+    convertFieldForRead,
+    convertFieldForWrite,
     type FieldRead,
     type FieldWrite,
 } from "./field-converters.ts";
