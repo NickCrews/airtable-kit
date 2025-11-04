@@ -89,8 +89,7 @@ describe("Converters", () => {
     it("createdTime should convert to Date", () => {
       const dateStr = "2024-01-15T10:30:00.000Z";
       const result = convertFieldForRead(dateStr, FIELDS.CREATED_TIME);
-      expect(result).toBeInstanceOf(Date);
-      expect(result.toISOString()).toBe(dateStr);
+      expect(result).toBe(dateStr);
     });
   });
   describe("currency", () => {
@@ -148,8 +147,7 @@ describe("Converters", () => {
     it("dateTime should convert to Date for read", () => {
       const isoStr = "2024-01-15T10:30:00.000Z";
       const result = convertFieldForRead(isoStr, FIELDS.DATE_TIME);
-      expect(result).toBeInstanceOf(Date);
-      expect(result?.toISOString()).toBe(isoStr);
+      expect(result).toBe(isoStr);
     });
     it("dateTime should handle null for read", () => {
       expect(convertFieldForRead(null, FIELDS.DATE_TIME)).toBeNull();
@@ -209,11 +207,10 @@ describe("Converters", () => {
       // @ts-expect-error should be null
       expect(() => convertFieldForWrite(new Date(), FIELDS.LAST_MODIFIED_TIME)).toThrow();
     });
-    it("lastModifiedTime should convert to Date", () => {
+    it("lastModifiedTime should convert to UtcTimestamp", () => {
       const dateStr = "2024-01-15T10:30:00.000Z";
       const result = convertFieldForRead(dateStr, FIELDS.LAST_MODIFIED_TIME);
-      expect(result).toBeInstanceOf(Date);
-      expect(result?.toISOString()).toBe(dateStr);
+      expect(result).toBe(dateStr);
     });
   });
   describe("multilineText", () => {

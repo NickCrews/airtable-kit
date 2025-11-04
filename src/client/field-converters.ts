@@ -6,6 +6,9 @@ import {
 import { RecordId, type FieldSchema, type FieldType } from "../types.ts";
 import * as exceptions from "../exceptions.ts";
 
+/** ISO 8601 string in UTC, e.g. "2024-01-01T00:00:00.000Z" */
+type UtcTimestamp = string;
+
 type ToAirtableConverter<T> = (value: T) => unknown;
 type FromAirtableConverter<T> = (value: any) => T;
 interface IConverters<
@@ -141,16 +144,16 @@ const CreatedTimeConverters = {
     makeTo: null,
     makeFrom:
         (fieldSchema: FieldOfType<"createdTime">) =>
-            (value: unknown): globalThis.Date => {
+            (value: UtcTimestamp): UtcTimestamp => {
                 if (value === null || value === undefined) {
                     const e = new Error(`a createdTime field must have a value, got: ${value}`);
                     throw new exceptions.ReadValueConversionError(value, fieldSchema, e);
                 }
-                return new globalThis.Date(value as string);
+                return value;
             }
 } as const satisfies IConverters<
     never,
-    globalThis.Date,
+    UtcTimestamp,
     FieldOfType<"createdTime">
 >;
 
@@ -197,13 +200,10 @@ const DateTimeConverters = {
             },
     makeFrom:
         (_fieldSchema: FieldOfType<"dateTime">) =>
-            (value: string | null): globalThis.Date | null => {
-                if (value === null) return null;
-                return new globalThis.Date(value);
-            },
+            (value: UtcTimestamp | null): UtcTimestamp | null => value,
 } as const satisfies IConverters<
     globalThis.Date | string | null | undefined,
-    globalThis.Date | null,
+    UtcTimestamp | null,
     FieldOfType<"dateTime">
 >;
 
@@ -272,16 +272,16 @@ const LastModifiedTimeConverters = {
     makeTo: null,
     makeFrom:
         (_fieldSchema: FieldOfType<"lastModifiedTime">) =>
-            (value: unknown): globalThis.Date => {
+            (value: UtcTimestamp): UtcTimestamp => {
                 if (value === null || value === undefined) {
                     const e = new Error(`a lastModifiedTime field must have a value, got: ${value}`);
                     throw new exceptions.ReadValueConversionError(value, _fieldSchema, e);
                 }
-                return new globalThis.Date(value as string);
+                return value;
             }
 } as const satisfies IConverters<
     never,
-    globalThis.Date,
+    UtcTimestamp,
     FieldOfType<"lastModifiedTime">
 >;
 
@@ -312,7 +312,7 @@ const MultipleAttachmentsConverters = {
             },
     makeFrom:
         (_fieldSchema: FieldOfType<"multipleAttachments">) =>
-            (value: unknown): Array<MultipleAttachment> => value as Array<MultipleAttachment>,
+            (value: Array<MultipleAttachment> | null): Array<MultipleAttachment> => value ? value : [],
 } as const satisfies IConverters<
     ReadonlyArray<MultipleAttachment> | null | undefined,
     Array<MultipleAttachment>,
@@ -559,22 +559,22 @@ export type FieldRead<F extends FieldSchema> = F extends FieldOfType<"aiText">
     ? string
     : F extends FieldOfType<"autoNumber"> ? number | null
     : F extends FieldOfType<"barcode"> ? BarcodeValue | null
-    : F extends FieldOfType<"button"> ? string | null
-    : F extends FieldOfType<"checkbox"> ? boolean | null
+    : F extends FieldOfType<"button"> ? never
+    : F extends FieldOfType<"checkbox"> ? boolean // Airtable checkboxes always return true/false, they can't store null
     : F extends FieldOfType<"count"> ? number | null
     : F extends FieldOfType<"createdBy"> ? User | null
-    : F extends FieldOfType<"createdTime"> ? globalThis.Date
+    : F extends FieldOfType<"createdTime"> ? UtcTimestamp
     : F extends FieldOfType<"currency"> ? number | null
     : F extends FieldOfType<"date"> ? string | null // ISO date string or null
-    : F extends FieldOfType<"dateTime"> ? globalThis.Date | null
+    : F extends FieldOfType<"dateTime"> ? UtcTimestamp
     : F extends FieldOfType<"duration"> ? number | null
     : F extends FieldOfType<"email"> ? string
     : F extends FieldOfType<"externalSyncSource"> ? unknown
     : F extends FieldOfType<"formula"> ? FormulaReadType<F>
     : F extends FieldOfType<"lastModifiedBy"> ? User | null
-    : F extends FieldOfType<"lastModifiedTime"> ? globalThis.Date | null
+    : F extends FieldOfType<"lastModifiedTime"> ? UtcTimestamp
     : F extends FieldOfType<"multilineText"> ? string
-    : F extends FieldOfType<"multipleAttachments"> ? ReadonlyArray<MultipleAttachment> | null
+    : F extends FieldOfType<"multipleAttachments"> ? MultipleAttachment[]
     : F extends FieldOfType<"multipleCollaborators"> ? User[]
     : F extends FieldOfType<"multipleLookupValues"> ? unknown[]
     : F extends FieldOfType<"multipleRecordLinks"> ? RecordId[]
@@ -603,7 +603,7 @@ export type FieldWrite<F extends FieldSchema> = F extends FieldOfType<"aiText">
     : F extends FieldOfType<"createdTime"> ? never
     : F extends FieldOfType<"currency"> ? number | null | undefined
     : F extends FieldOfType<"date"> ? globalThis.Date | TDateString | null | undefined
-    : F extends FieldOfType<"dateTime"> ? globalThis.Date | string | null | undefined
+    : F extends FieldOfType<"dateTime"> ? globalThis.Date | UtcTimestamp | null | undefined
     : F extends FieldOfType<"duration"> ? number | null | undefined
     : F extends FieldOfType<"email"> ? string | null | undefined
     : F extends FieldOfType<"externalSyncSource"> ? unknown
