@@ -113,7 +113,7 @@ const client = makeBaseClient({
   fetcher: YOUR_API_KEY,
 });
 // if you tried `client.tables.nonExistentTable` you would get a type error here
-client.tables.tasks.insert([
+client.tables.tasks.create([
   {
     // You can use either the field IDs or names as keys
     fldXXXXXXXXXXXXXX: "Finish report",
@@ -128,10 +128,10 @@ client.tables.tasks.insert([
     // dueBy: "2024-12-31"
   },
 ]);
-const response = await client.tables.tasks.list({
+const tasks = await client.tables.tasks.list({
   // You can build formulas programmatically with type-safety
   // All tasks due in the next 7 days that are not done.
-  // Is compiled to the string:
+  // This is compiled to the string:
   // AND(
   //   {fldZZZZZZZZZZZZZZ} >= TODAY(),
   //   {fldZZZZZZZZZZZZZZ} <= DATEADD(TODAY(), 7, "days"),
@@ -150,7 +150,7 @@ const response = await client.tables.tasks.list({
     ],
   ],
 });
-console.log(response.records);
+console.log(tasks);
 ```
 
 This also supports multi-base clients!
@@ -164,7 +164,7 @@ const client = makeOrgClient({
   bases: [projectTrackerSchema, otherBase],
   fetcher: YOUR_API_KEY,
 });
-client.bases.otherBase.tables.someTable.insert([ ... ]);
+client.bases.otherBase.tables.someTable.create([ ... ]);
 // `client.bases.<base name>` is an instance of BaseClient, like above.
 // `client.bases.nonExistentBase` would be a type error
 ```
