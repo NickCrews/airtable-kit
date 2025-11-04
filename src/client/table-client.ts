@@ -11,6 +11,7 @@ import { makeFetcher } from "./fetcher.ts";
 import { Timezone } from "../fields/timezones.ts";
 import { Formula, formulaToString } from "../formula/formula.ts";
 import { FieldRead } from "./field-converters.ts";
+import * as exceptions from "../exceptions.ts";
 
 type FieldNameOrId<T extends FieldSchema> = T['name'] | T['id'];
 
@@ -520,6 +521,8 @@ export async function listRaw<T extends FieldSchema>(
     if (options?.cellFormat) queryParams.append('cellFormat', options.cellFormat);
 
     if (options?.sort) {
+        // trying to build up something like
+        // ...?sort[0][field]=fldabc&sort[0][direction]=asc
         options.sort.forEach((s, i) => {
             queryParams.append(`sort[${i}][field]`, s.field);
             if (s.direction) queryParams.append(`sort[${i}][direction]`, s.direction);
@@ -537,11 +540,10 @@ export async function listRaw<T extends FieldSchema>(
             queryParams.append('recordMetadata[]', meta);
         });
     }
-
     const query = queryParams.toString();
     const path = `/${baseId}/${tableId}${query ? `?${query}` : ''}`;
 
-    type ListApiResponse<T extends FieldSchema> = {
+    type ListApiSuccessResponse<T extends FieldSchema> = {
         records: Array<{
             id: RecordId;
             createdTime: Timestamp;
@@ -550,10 +552,22 @@ export async function listRaw<T extends FieldSchema>(
         }>;
         offset?: RecordId;
     };
-    const raw = await fetcher.fetch<ListApiResponse<T>>({
-        path,
-        method: "GET",
-    });
+    type ListApiErrorResponse = {
+        error: {
+            type: string;
+            message?: string;
+        };
+        // eg
+        // error: {
+        //     type: 'INVALID_FILTER_BY_FORMULA',
+        //     message: 'The formula for filtering records is invalid: Unknown field names: firstname, lastname'
+        // }
+    };
+    type ListApiResponse<T extends FieldSchema> = ListApiSuccessResponse<T> | ListApiErrorResponse;
+    const raw = await fetcher.fetch<ListApiResponse<T>>({ path, method: "GET" });
+    if ('error' in raw) {
+        throw new exceptions.AirtableListRecordsError(raw.error, options ?? {})
+    }
     return {
         records: raw.records.map((record) => {
             return {

@@ -1,3 +1,4 @@
+import { ListRecordsOptions } from "./client/table-client.ts";
 import { FieldSchema } from "./fields/types.ts";
 import { FieldId } from "./types.ts";
 
@@ -7,6 +8,23 @@ export class AirtableKitError extends Error {
         this.name = "AirtableKitError";
         // Maintain the correct prototype chain
         Object.setPrototypeOf(this, AirtableKitError.prototype);
+    }
+}
+
+type AirtableApiError = {
+    type: string;
+    message?: string;
+};
+export class AirtableListRecordsError<T extends FieldSchema> extends AirtableKitError {
+    public readonly options: ListRecordsOptions<T>
+    public readonly originalError: AirtableApiError;
+    constructor(originalError: AirtableApiError, options: ListRecordsOptions<T>) {
+        super(`Error listing records: ${originalError.type}${originalError.message ? ` - ${originalError.message}` : ''}`);
+        this.options = options;
+        this.originalError = originalError;
+        this.name = "AirtableListRecordsError";
+        // Maintain the correct prototype chain
+        Object.setPrototypeOf(this, AirtableListRecordsError.prototype);
     }
 }
 
@@ -69,8 +87,6 @@ export class FieldNotWritableError extends Error {
         Object.setPrototypeOf(this, FieldNotWritableError.prototype);
     }
 }
-
-
 
 /**
  * Thrown when a required field is missing from a record on read.
