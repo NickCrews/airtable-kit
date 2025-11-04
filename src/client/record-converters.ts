@@ -60,6 +60,13 @@ export type RecordRead<T extends FieldSchema> = {
  * Convert a record from Airtable into the appropriate TypeScript types for reading.
  * @param record The raw record from Airtable
  * @param fieldSchemas The array of {@link FieldSchema} objects describing the fields in the table
+ * @param onUnexpectedField Behavior when encountering a field in the record that is not described by the provided fieldSchemas.
+ *                         This usually happens when someone adds a new field to a table after you've fetched the schema.
+ *                         Defaults to { warn: true, keep: true }.
+ *                         - "throw": throw an error
+ *                         - { warn: boolean; keep: boolean; }:
+ *                             - if warn is true, log a warning to the console.
+ *                             - if keep is true, keep the unexpected field in the output record with its original field ID as the key. Otherwise, it will be omitted.
  * @returns The converted record with field names as keys and appropriate TypeScript types as values
  */
 export function convertRecordForRead<
@@ -67,13 +74,27 @@ export function convertRecordForRead<
 >(
     record: Record<string, unknown>,
     fieldSchemas: ReadonlyArray<F>,
+    onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; }
 ): RecordRead<F> {
+    onUnexpectedField = onUnexpectedField ?? { warn: true, keep: true };
     const result: Record<string, unknown> = {};
     const lookup = makeFieldLookup(fieldSchemas);
     for (const [fieldId, airtableValue] of Object.entries(record)) {
-        const fieldSchema = lookup(fieldId);
-        const value = convertFieldForRead(airtableValue, fieldSchema);
-        result[fieldSchema.name] = value;
+        const fieldSchema = lookup.get(fieldId);
+        if (fieldSchema) {
+            const value = convertFieldForRead(airtableValue, fieldSchema);
+            result[fieldSchema.name] = value;
+        } else {
+            if (onUnexpectedField === "throw") {
+                throw new Error(`Unknown field in record for read: ${fieldId}. Known fields: ${fieldSchemas.map((f) => `${f.name} (id: ${f.id})`).join(", ")}`);
+            }
+            if (onUnexpectedField.warn) {
+                console.warn(`Warning: Unknown field in record for read: ${fieldId}. Known fields: ${fieldSchemas.map((f) => `${f.name} (id: ${f.id})`).join(", ")}`);
+            }
+            if (onUnexpectedField.keep) {
+                result[fieldId] = airtableValue;
+            }
+        }
     }
     return result as RecordRead<F>;
 }
@@ -94,7 +115,10 @@ export function convertRecordForWrite<
     const result: Record<string, unknown> = {};
     const lookup = makeFieldLookup(fieldSchemas);
     for (const [k, v] of Object.entries(record)) {
-        const fieldSchema = lookup(k);
+        const fieldSchema = lookup.get(k);
+        if (!fieldSchema) {
+            throw new Error(`Unknown field in record for write: ${k}. Known fields: ${fieldSchemas.map((f) => `${f.name} (id: ${f.id})`).join(", ")}`);
+        }
         const airtableValue = convertFieldForWrite(
             v as FieldWrite<typeof fieldSchema>,
             fieldSchema,
@@ -111,11 +135,5 @@ function makeFieldLookup(fieldSchemas: readonly FieldSchema[]) {
         toField.set(fs.name, fs);
         toField.set(fs.id, fs);
     }
-    return (k: string) => {
-        const fieldSchema = toField.get(k);
-        if (!fieldSchema) {
-            throw new Error(`No field schema found for key: ${k}`);
-        }
-        return fieldSchema;
-    };
+    return toField
 }

@@ -5,7 +5,7 @@ import {
     type RecordWrite,
     type RecordRead,
     type WriteRecordById,
-    convertFieldIdKeysToNames,
+    convertRecordForRead,
 } from "./record-converters.ts";
 import { makeFetcher } from "./fetcher.ts";
 import { Timezone } from "../fields/timezones.ts";
@@ -216,6 +216,10 @@ export type TableClientOptions<T extends TableSchema> = {
     baseId: BaseId;
     tableSchema: T;
     fetcher?: IntoFetcher;
+    options?: {
+        /** When reading from the Airtable API, behavior when encountering a field in a record that is not described by the provided tableSchema. */
+        onReadUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
+    };
 };
 
 /**
@@ -243,6 +247,7 @@ export function makeTableClient<T extends TableSchema>(
         baseId,
         tableSchema,
         fetcher: intoFetcher,
+        options: clientOptions,
     }: TableClientOptions<T>,
 ): TableClient<T> {
     const fetcher = makeFetcher(intoFetcher);
@@ -257,6 +262,7 @@ export function makeTableClient<T extends TableSchema>(
                 baseId,
                 tableId,
                 fetcher,
+                onUnexpectedField: clientOptions?.onReadUnexpectedField,
             });
         },
         async createOne(records: RecordWrite<FieldType<T>>) {
@@ -265,6 +271,7 @@ export function makeTableClient<T extends TableSchema>(
                 baseId,
                 tableId,
                 fetcher,
+                onUnexpectedField: clientOptions?.onReadUnexpectedField,
             });
             return raw[0];
         },
@@ -275,6 +282,7 @@ export function makeTableClient<T extends TableSchema>(
                 baseId,
                 tableId,
                 fetcher,
+                onUnexpectedField: clientOptions?.onReadUnexpectedField,
             });
         },
         get(recordId: RecordId, options?: GetRecordOptions) {
@@ -285,6 +293,7 @@ export function makeTableClient<T extends TableSchema>(
                 baseId,
                 tableId,
                 fetcher,
+                onUnexpectedField: clientOptions?.onReadUnexpectedField,
             });
         },
         update(
@@ -298,6 +307,7 @@ export function makeTableClient<T extends TableSchema>(
                 baseId,
                 tableId,
                 fetcher,
+                onUnexpectedField: clientOptions?.onReadUnexpectedField,
             });
         },
         delete(recordIds: ReadonlyArray<RecordId>) {
@@ -347,11 +357,13 @@ export async function createMany<T extends FieldSchema>(
         fetcher,
         baseId,
         tableId,
+        onUnexpectedField
     }: {
         fieldSpecs: ReadonlyArray<T>;
         baseId: BaseId;
         tableId: TableId;
         fetcher: Fetcher;
+        onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
     },
 ) {
     if (records.length === 0) {
@@ -378,7 +390,7 @@ export async function createMany<T extends FieldSchema>(
     });
     const result = raw.records.map((record) => ({
         id: record.id,
-        fields: convertFieldIdKeysToNames(record.fields, fieldSpecs),
+        fields: convertRecordForRead(record.fields, fieldSpecs, onUnexpectedField),
         createdTime: record.createdTime,
     }));
     return result;
@@ -403,12 +415,14 @@ export async function list<T extends FieldSchema>(
         fetcher,
         baseId,
         tableId,
+        onUnexpectedField,
     }: {
         options?: ListRecordsOptions<T>;
         fieldSpecs: ReadonlyArray<T>;
         baseId: BaseId;
         tableId: TableId;
         fetcher: Fetcher;
+        onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
     },
 ): Promise<ListRecordsResponse<T>> {
     const queryParams = new URLSearchParams();
@@ -455,7 +469,7 @@ export async function list<T extends FieldSchema>(
             return {
                 id: record.id,
                 createdTime: record.createdTime,
-                fields: convertFieldIdKeysToNames(record.fields, fieldSpecs),
+                fields: convertRecordForRead(record.fields, fieldSpecs, onUnexpectedField),
                 commentCount: record.commentCount,
             };
         }),
@@ -476,6 +490,7 @@ export async function getRecord<T extends FieldSchema>(
         fetcher,
         baseId,
         tableId,
+        onUnexpectedField,
     }: {
         recordId: RecordId;
         fieldSpecs: ReadonlyArray<T>;
@@ -483,6 +498,7 @@ export async function getRecord<T extends FieldSchema>(
         baseId: BaseId;
         tableId: TableId;
         fetcher: Fetcher;
+        onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
     },
 ): Promise<{
     id: RecordId;
@@ -505,7 +521,7 @@ export async function getRecord<T extends FieldSchema>(
     return {
         id: result.id,
         createdTime: result.createdTime,
-        fields: convertFieldIdKeysToNames(result.fields, fieldSpecs),
+        fields: convertRecordForRead(result.fields, fieldSpecs, onUnexpectedField),
     }
 }
 
@@ -542,6 +558,7 @@ export async function update<T extends FieldSchema>(
         fetcher,
         baseId,
         tableId,
+        onUnexpectedField,
     }: {
         records: Array<{ id?: string; fields: RecordWrite<T> }>;
         options?: UpdateRecordsOptions<T>;
@@ -549,6 +566,7 @@ export async function update<T extends FieldSchema>(
         baseId: BaseId;
         tableId: TableId;
         fetcher: Fetcher;
+        onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
     },
 ): Promise<UpdateRecordsResponse<T>> {
     if (records.length === 0) {
@@ -591,10 +609,11 @@ export async function update<T extends FieldSchema>(
 
     return {
         records: rawResponse.records.map((record: any) => {
+            const converted = convertRecordForRead(record.fields, fieldSpecs, onUnexpectedField);
             return {
                 id: record.id,
                 createdTime: record.createdTime,
-                fields: convertFieldIdKeysToNames(record.fields, fieldSpecs),
+                fields: converted,
             };
         }),
         details: rawResponse.details,
