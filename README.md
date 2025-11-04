@@ -19,6 +19,7 @@ This has several advantages:
 
 - **Rename-Resistant**: When someone modifies the name of a field in airtable, your code won't break because the client always sends field IDs to the API under the hood.
 - **Complete Type-Safety**: Not just the basics. Eg get type safety on the valid options for single-select and multi-select fields, date formats, etc.
+- **More-sane read behavior**: The raw API (and vanilla [airtable.js](https://github.com/airtable/airtable.js/)) don't include "falsy" values when reading records. We fill in those missing values with sane defaults, eg the empty string for text-like fields, empty arrays for multi-value fields, or an explicit `null` for eg number and date fields.
 - **Typesafe Formula Builder**: Build Airtable formulas programmatically with full type-safety and autocompletion, eg `formulaToString(tableSchema, ["<=", { field: "Due Date" }, ["DATEADD", ["TODAY"], 7, "days"]])` yields `{fld123xyz} <= DATEADD(TODAY(), 7, "days")`.
 - **Zero-Dependencies**: No required dependencies! `zod` is optional if you want runtime validation (eg for MCP tools).
 - **Portable**: Works in Node.js, Deno, and the browser, including in sandboxed environments, e.g. where `process.env` and `os.homedir()` are not available.
