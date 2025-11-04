@@ -1,32 +1,9 @@
 import { FieldSchema } from "../fields/types";
 import { convertFieldForRead, convertFieldForWrite, FieldRead, FieldWrite } from "./field-converters";
 
-export type ReadRecordByName<T extends FieldSchema> = {
-    [K in T["name"]]: FieldRead<Extract<T, { name: K }>>;
-};
-export type ReadRecordById<T extends FieldSchema> = {
-    [K in T["id"]]: FieldRead<Extract<T, { id: K }>>;
-};
 export type WriteRecordById<T extends FieldSchema> = {
     [K in T["id"]]?: FieldWrite<Extract<T, { id: K }>>;
 };
-
-export function convertFieldIdKeysToNames<T extends FieldSchema>(
-    record: ReadRecordById<T>,
-    fieldSpecs: ReadonlyArray<T>,
-): ReadRecordByName<T> {
-    return Object.fromEntries(Object.entries(record).map(([fieldId, value]) => {
-        const fieldSchema = fieldSpecs.find((f) => f.id === fieldId);
-        if (!fieldSchema) {
-            throw new Error(`Unknown field ID in response: ${fieldId}`);
-        }
-        const fieldName = fieldSchema.name;
-        if (fieldName === 'id') {
-            throw new Error(`Field name "id" is not allowed`);
-        }
-        return [fieldName, value];
-    })) as ReadRecordByName<T>;
-}
 
 /**
  * Given the {@link FieldSchema}s for a table, return the format of a record a {@link TableClient} accepts for writing, eg for creating or updating records.
