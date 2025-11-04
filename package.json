@@ -42,6 +42,7 @@
     "test": "vitest run",
     "test:watch": "vitest watch",
     "build": "zshy && cp README.md dist/README.md && cp LICENSE dist/LICENSE",
+    "build:watch": "pnpx onchange@7.1.0 \"src/**\" -- pnpm run build",
     "pub": "npm run build && npm publish"
   },
   "peerDependencies": {
