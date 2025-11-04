@@ -256,8 +256,8 @@ export function makeTableClient<T extends TableSchema>(
     return {
         baseId,
         tableSchema,
-        createMany(records: ReadonlyArray<RecordWrite<FieldType<T>>>) {
-            return createMany<FieldType<T>>(records, {
+        async createMany(records: ReadonlyArray<RecordWrite<FieldType<T>>>) {
+            return await createMany<FieldType<T>>(records, {
                 fieldSpecs,
                 baseId,
                 tableId,
@@ -275,8 +275,8 @@ export function makeTableClient<T extends TableSchema>(
             });
             return raw[0];
         },
-        list(options?: ListRecordsOptions<FieldType<T>>) {
-            return list<FieldType<T>>({
+        async list(options?: ListRecordsOptions<FieldType<T>>) {
+            return await list<FieldType<T>>({
                 options,
                 fieldSpecs,
                 baseId,
@@ -285,8 +285,8 @@ export function makeTableClient<T extends TableSchema>(
                 onUnexpectedField: clientOptions?.onReadUnexpectedField,
             });
         },
-        get(recordId: RecordId, options?: GetRecordOptions) {
-            return getRecord<FieldType<T>>({
+        async get(recordId: RecordId, options?: GetRecordOptions) {
+            return await getRecord<FieldType<T>>({
                 recordId,
                 fieldSpecs,
                 options,
@@ -296,11 +296,11 @@ export function makeTableClient<T extends TableSchema>(
                 onUnexpectedField: clientOptions?.onReadUnexpectedField,
             });
         },
-        update(
+        async update(
             records: Array<{ id?: string; fields: Partial<RecordWrite<FieldType<T>>> }>,
             options?: UpdateRecordsOptions<FieldType<T>>
         ) {
-            return update<FieldType<T>>({
+            return await update<FieldType<T>>({
                 records,
                 options,
                 fieldSpecs,
@@ -310,20 +310,20 @@ export function makeTableClient<T extends TableSchema>(
                 onUnexpectedField: clientOptions?.onReadUnexpectedField,
             });
         },
-        delete(recordIds: ReadonlyArray<RecordId>) {
-            return deleteRecords({
+        async delete(recordIds: ReadonlyArray<RecordId>) {
+            return await deleteRecords({
                 recordIds,
                 baseId,
                 tableId,
                 fetcher,
             });
         },
-        uploadAttachment(
+        async uploadAttachment(
             recordId: RecordId,
             attachmentFieldIdOrName: FieldId | string,
             options: UploadAttachmentOptions
         ) {
-            return uploadAttachment({
+            return await uploadAttachment({
                 recordId,
                 attachmentFieldIdOrName,
                 options,
@@ -636,20 +636,30 @@ export async function deleteRecords(
         fetcher: Fetcher;
     },
 ): Promise<DeleteRecordsResponse> {
-    const queryParams = new URLSearchParams();
-    recordIds.forEach(id => {
-        queryParams.append('records[]', id);
-    });
-
-    const query = queryParams.toString();
-    const path = `/${baseId}/${tableId}${query ? `?${query}` : ''}`;
-
-    const result = await fetcher.fetch<DeleteRawResponse>({
-        path,
-        method: "DELETE",
-    });
-
-    return result;
+    if (recordIds.length === 0) {
+        return { records: [] };
+    }
+    const batches: RecordId[][] = [];
+    for (let i = 0; i < recordIds.length; i += 10) {
+        batches.push(recordIds.slice(i, i + 10));
+    }
+    const results = await Promise.all(
+        batches.map(async (batch) => {
+            const queryParams = new URLSearchParams();
+            batch.forEach(id => {
+                queryParams.append('records[]', id);
+            });
+            const query = queryParams.toString();
+            const path = `/${baseId}/${tableId}${query ? `?${query}` : ''}`;
+            return await fetcher.fetch<DeleteRawResponse>({
+                path,
+                method: "DELETE",
+            });
+        })
+    );
+    return {
+        records: results.flatMap(r => r.records)
+    };
 }
 
 export async function uploadAttachment<T extends FieldId | string>(
