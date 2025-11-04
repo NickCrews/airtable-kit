@@ -1,6 +1,6 @@
 {
   "name": "airtable-kit",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "description": "A better ts/js airtable toolkit",
   "license": "MIT",
   "author": "Nick Crews",
