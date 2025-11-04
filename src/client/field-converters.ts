@@ -4,6 +4,7 @@ import {
     SingleSelect,
 } from "../fields/index.ts";
 import { RecordId, type FieldSchema, type FieldType } from "../types.ts";
+import * as exceptions from "../exceptions.ts";
 
 type ToAirtableConverter<T> = (value: T) => unknown;
 type FromAirtableConverter<T> = (value: unknown) => T;
@@ -612,8 +613,9 @@ export type FieldWrite<F extends FieldSchema> = F extends FieldOfType<"aiText">
  * @param value The value in the appropriate TypeScript type
  * @param fieldSchema The {@link FieldSchema} describing the field
  * @returns The raw value to write to Airtable
- * 
- * @throws Error if the field type is read-only and cannot be written to.
+ *
+ * @throws {@link FieldNotWritableError} if the field type cannot be written to.
+ * @throws {@link WriteValueConversionError} if the value could not be converted for writing.
  */
 export function convertFieldForWrite<F extends FieldSchema>(
     value: FieldWrite<F>,
@@ -629,12 +631,14 @@ export function convertFieldForWrite<F extends FieldSchema>(
     };
     const makeTo = (converterObj as AnyConverter).makeTo;
     if (makeTo === null) {
-        throw new Error(
-            `Field type "${fieldSchema.type}" is read-only and cannot be written to.`,
-        );
+        throw new exceptions.FieldNotWritableError(fieldSchema);
     }
     const converter = makeTo(fieldSchema);
-    return converter(value);
+    try {
+        return converter(value);
+    } catch (e) {
+        throw new exceptions.WriteValueConversionError(value, fieldSchema, e as Error);
+    }
 }
 
 /**
@@ -643,7 +647,8 @@ export function convertFieldForWrite<F extends FieldSchema>(
  * @param value The raw value from Airtable
  * @param fieldSchema The {@link FieldSchema} describing the field
  * @returns The converted value in the appropriate TypeScript type
- * @throws Error if the field type is write-only and cannot be read from.
+ * @throws {@link FieldNotReadableError} if the field type cannot be read from.
+ * @throws {@link ReadValueConversionError} if the value could not be converted for reading.
  */
 export function convertFieldForRead<F extends FieldSchema>(
     value: unknown,
@@ -659,10 +664,12 @@ export function convertFieldForRead<F extends FieldSchema>(
     };
     const makeFrom = (converterObj as AnyConverter).makeFrom;
     if (makeFrom === null) {
-        throw new Error(
-            `Field type "${fieldSchema.type}" is write-only and cannot be read from.`,
-        );
+        throw new exceptions.FieldNotReadableError(fieldSchema);
     }
     const converter = makeFrom(fieldSchema);
-    return converter(value) as FieldRead<F>;
+    try {
+        return converter(value) as FieldRead<F>;
+    } catch (e) {
+        throw new exceptions.ReadValueConversionError(value, fieldSchema, e as Error);
+    }
 }

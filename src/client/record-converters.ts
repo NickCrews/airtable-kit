@@ -1,6 +1,7 @@
-import { FieldSchema } from "../fields/types";
-import { FieldId } from "../types";
-import { convertFieldForRead, convertFieldForWrite, FieldRead, FieldWrite } from "./field-converters";
+import { FieldSchema } from "../fields/types.ts";
+import { FieldId } from "../types.ts";
+import { convertFieldForRead, convertFieldForWrite, FieldRead, FieldWrite } from "./field-converters.ts";
+import * as exceptions from "../exceptions.ts";
 
 export type WriteRecordById<T extends FieldSchema> = {
     [K in T["id"]]?: FieldWrite<Extract<T, { id: K }>>;
@@ -60,26 +61,23 @@ export function convertRecordForRead<
     onUnexpectedField = onUnexpectedField ?? { warn: true, keep: true };
     const result: Record<string, unknown> = {};
     const lookup = makeFieldLookup(fieldSchemas);
-    // The airtable API omits empty fields, so ensure all fields are present in the output record
-    const fullRecord: Record<string, unknown> = { ...record };
-    for (const fieldSchema of fieldSchemas) {
-        if (!(fieldSchema.id in fullRecord)) {
-            fullRecord[fieldSchema.id] = null;
-        }
-    }
-    const errors = [];
-    for (const [fieldId, airtableValue] of Object.entries(fullRecord)) {
+    const errors: exceptions.AirtableKitError[] = [];
+    for (const [fieldId, airtableValue] of Object.entries(record)) {
         const fieldSchema = lookup.get(fieldId);
         if (fieldSchema) {
             try {
                 const value = convertFieldForRead(airtableValue, fieldSchema);
                 result[fieldSchema.name] = value;
             } catch (e) {
-                errors.push(`Error converting field ${fieldSchema.name} (id: ${fieldSchema.id}): ${(e as Error).message}`);
+                if (e instanceof exceptions.ReadValueConversionError) {
+                    errors.push(e as exceptions.ReadValueConversionError);
+                    continue
+                }
+                throw e;
             }
         } else {
             if (onUnexpectedField === "throw") {
-                errors.push(`Unknown field in record for read: ${fieldId}. Known fields: ${fieldSchemas.map((f) => `${f.name} (id: ${f.id})`).join(", ")}`);
+                errors.push(new exceptions.UnexpectedFieldReadError(fieldId as FieldId, airtableValue));
                 continue
             }
             if (onUnexpectedField.warn) {
@@ -90,9 +88,39 @@ export function convertRecordForRead<
             }
         }
     }
+    // Sometimes, there is a field defined in the schema that isn't returned in the record from Airtable.
+    // This can happen in two scenarios:
+    //    1. The field is simply empty in airtable, so Airtable omits it from the record.
+    //    2. The field was deleted in the upstream airtable, but we still expect it in our code/schema.
+    // Sometimes we can differentiate these cases, sometimes we can't:
+    // If someone deleted a `singleLineText` field,
+    // we can't differentiate that from an empty `singleLineText` field.
+    // So the best we can do is assume that the field still exists, our schema is correct, and return a default value for it.
+    // However, if there is a field that ALWAYS has a value (eg a createdTime or an autonumber),
+    // the airtable API always returns it in the record.
+    // So if it's missing, we can be sure that the field was deleted upstream,
+    // and we should throw an error to alert the user of this fact.
+    for (const fieldSchema of fieldSchemas) {
+        if (!(fieldSchema.id in record)) {
+            try {
+                const defaultValue = convertFieldForRead(null, fieldSchema);
+                result[fieldSchema.name] = defaultValue;
+            } catch (e) {
+                if (e instanceof exceptions.ReadValueConversionError) {
+                    errors.push(new exceptions.MissingFieldReadError(fieldSchema));
+                    continue;
+                } else {
+                    throw e;
+                }
+            }
+        }
+    }
     if (errors.length > 0) {
-        console.log(fullRecord);
-        throw new Error(errors.join("\n"));
+        throw new exceptions.RecordReadError({
+            errors,
+            rawRecord: record,
+            fieldSchemas: fieldSchemas,
+        });
     }
     return result as RecordRead<F>;
 }
