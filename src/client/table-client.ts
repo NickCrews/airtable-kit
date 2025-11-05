@@ -520,18 +520,26 @@ export async function listRaw<T extends FieldSchema>(
     if (options?.filterByFormula) queryParams.append('filterByFormula', typeof options.filterByFormula === 'string' ? options.filterByFormula : formulaToString(fieldSpecs, options.filterByFormula));
     if (options?.cellFormat) queryParams.append('cellFormat', options.cellFormat);
 
+    const toFieldId = (field: FieldNameOrId<T>): FieldId => {
+        const spec = fieldSpecs.find(f => f.id === field || f.name === field);
+        if (!spec) {
+            throw new Error(`Field "${field}" not found in table schema.`);
+        }
+        return spec.id;
+    }
+
     if (options?.sort) {
         // trying to build up something like
         // ...?sort[0][field]=fldabc&sort[0][direction]=asc
         options.sort.forEach((s, i) => {
-            queryParams.append(`sort[${i}][field]`, s.field);
+            queryParams.append(`sort[${i}][field]`, toFieldId(s.field));
             if (s.direction) queryParams.append(`sort[${i}][direction]`, s.direction);
         });
     }
 
     if (options?.fields) {
-        options.fields.forEach(field => {
-            queryParams.append('fields[]', field);
+        options.fields.forEach(fieldNameOrId => {
+            queryParams.append('fields[]', toFieldId(fieldNameOrId));
         });
     }
 
