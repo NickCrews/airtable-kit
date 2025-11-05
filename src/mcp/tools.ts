@@ -169,8 +169,8 @@ export function makeListTool<
   });
   async function execute(input: ListInput<T>) {
     const validated = zodInputValidator.parse(input);
-    const raw = await client.list(validated.options);
-    return raw.map((rec) => ({
+    const rawRecords = await client.list(validated.options);
+    return rawRecords.map((rec) => ({
       ...rec,
       url: `https://airtable.com/${client.baseId}/${client.tableSchema.id}/${rec.id}`,
     }));
@@ -178,7 +178,7 @@ export function makeListTool<
   return {
     name: `list-records-from-${toIdentifier(client.tableSchema.name)}-table`,
     description: `List records from the ${client.tableSchema.name} table with optional filtering and pagination.`,
-    zodInputValidator: zodInputValidator as any,
+    zodInputValidator: zodInputValidator,
     inputJsonSchema: z4.toJSONSchema(zodInputValidator),
     execute,
   };
