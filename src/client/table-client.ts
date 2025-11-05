@@ -556,7 +556,7 @@ export async function listRaw<T extends FieldSchema>(
             id: RecordId;
             createdTime: Timestamp;
             fields: RawReadRecord<T>;
-            commentCount: number;
+            commentCount?: number;
         }>;
         offset?: RecordId;
     };
@@ -582,7 +582,7 @@ export async function listRaw<T extends FieldSchema>(
                 id: record.id,
                 createdTime: record.createdTime,
                 fields: convertRecordForRead(record.fields, fieldSpecs, onUnexpectedField),
-                commentCount: record.commentCount,
+                commentCount: record.commentCount ?? 0,
             };
         }),
         offset: raw.offset,
