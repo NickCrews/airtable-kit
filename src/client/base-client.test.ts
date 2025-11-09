@@ -1,80 +1,45 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { createMockFetcher } from "./fetcher.ts";
-import { makeBaseClient } from "./index.ts";
-
-import TaskSchema from "../tests/taskBase.ts";
+import { testBaseClient } from "../tests/test-utils.ts";
 
 describe("BaseClient", () => {
-    const mockFetcher = createMockFetcher();
-    const client = makeBaseClient({
-        baseSchema: TaskSchema,
-        fetcher: mockFetcher,
+    const { baseClient, resetBaseData } = testBaseClient();
+
+    beforeEach(async () => {
+        await resetBaseData();
     });
-    beforeEach(() => {
-        mockFetcher.reset();
+
+    it("can access table clients", () => {
+        expect(baseClient.tables.tasks).toBeDefined();
+        expect(baseClient.tables.linkedItems).toBeDefined();
+        expect(baseClient.tables.allTypes).toBeDefined();
     });
-    it("can create records", async () => {
-        mockFetcher.setReturnValue({
-            records: [
-                {
-                    id: "rec123",
-                    createdTime: "2024-01-01T00:00:00.000Z",
-                    fields: {
-                        fldName: "do laundry",
-                        fldDueDate: "1990-01-01",
-                        fldTags: ["selUrgent", "selImportant"],
-                        fldCreatedAt: "2024-01-01T00:00:00.000Z",
-                        fldUpdatedAt: "2024-01-02T00:00:00.000Z",
-                    },
-                }
-            ]
-        })
-        const result = await client.tables.tasks.createMany(
-            [{
-                "Name": "do laundry",
-                "fldDueDate": "1990-01-01",
-                "Tags": ["Urgent", "Important"]
-            }],
-        );
-        expect(mockFetcher.getCallHistory()).toEqual([{
-            path: "/appTaskBase/tblTasks",
-            method: "POST",
-            data: {
-                records: [
-                    {
-                        fields: {
-                            fldName: "do laundry",
-                            fldDueDate: "1990-01-01",
-                            fldTags: ["selUrgent", "selImportant"],
-                        },
-                    },
-                ],
-                returnFieldsByFieldId: true,
+
+    it("can create records via table clients", async () => {
+        const result = await baseClient.tables.tasks.createMany([
+            {
+                name: "do laundry",
+                dueDate: "1990-01-01",
+                tags: ["Urgent", "Important"],
             },
-        }]);
-        expect(result).toMatchObject(
-            [
-                {
-                    "createdTime": "2024-01-01T00:00:00.000Z",
-                    "fields": {
-                        "Assigned To": [],
-                        "Attachments": [],
-                        "Completed": false,
-                        "Created At": "2024-01-01T00:00:00.000Z",
-                        "Due Date": "1990-01-01",
-                        "Name": "do laundry",
-                        "Notes": "",
-                        "Priority": null,
-                        "Status": null,
-                        "Tags": [
-                            "selUrgent",
-                            "selImportant",
-                        ],
-                        "Updated At": "2024-01-02T00:00:00.000Z",
-                    },
-                    "id": "rec123",
-                },
-            ]
-        );
+        ]);
+
+        expect(result).toHaveLength(1);
+        expect(result[0]).toMatchObject({
+            fields: {
+                name: "do laundry",
+                "Due Date": "1990-01-01",
+                Tags: ["Urgent", "Important"],
+                Completed: false,
+                "Assigned To": [],
+                Attachments: [],
+                Notes: "",
+                Priority: null,
+                Status: null,
+            },
+        });
+        expect(result[0].id).toMatch(/^rec/);
+        expect(result[0].createdTime).toBeDefined();
+        expect(result[0].fields["Created At"]).toBeDefined();
+        expect(result[0].fields["Updated At"]).toBeDefined();
     });
 });

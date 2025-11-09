@@ -135,7 +135,7 @@ type FieldType<T extends TableSchema> = T['fields'][number];
  * 
  * Usually created via {@link makeTableClient}.
  */
-export interface TableClient<T extends TableSchema> {
+export interface TableClient<T extends TableSchema = TableSchema> {
     /** The ID of the base this table belongs to, e.g. "appXXXXXXXXXXXXXXX" */
     baseId: BaseId;
     /** The {@link TableSchema} of the table this client interacts with */

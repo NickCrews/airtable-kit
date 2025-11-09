@@ -13,75 +13,146 @@
 import { type Timezone } from "./timezones.ts";
 import { type BrightColor, type SelectColor } from "./colors.ts";
 import { type FieldSchema } from "./types.ts";
-import { FieldId, TableId } from "../types.ts";
+import { FieldId, TableId, type SelectId } from "../types.ts";
 
-interface FieldBase {
-  id: `fld${string}`;
-  /** Any name you want to refer to the field in your code. The name "id" is not allowed, as that is reserved for the record's record ID */
-  name: Exclude<string, "id">;
-  description?: string;
-}
+type FieldTypeAndOptions = Omit<FieldSchema, "id" | "name" | "description">
 
-export type SelectChoice<
-  I extends `sel${string}` = `sel${string}`,
-  N extends string = string,
-> = {
-  id: I;
-  name: N;
+export type SelectChoice = {
+  id: SelectId;
+  name: string;
   color?: SelectColor;
 };
-
-export interface AiText extends FieldBase {
-  type: "aiText";
-  options?:
-  | {
-    state: "empty" | "loading" | "generated";
-    isStale: boolean;
-    value: string | null;
-  }
-  | {
-    state: "error";
-    errorType: string;
-    isStale: boolean;
-    value: string | null;
-  };
+export type SelectChoiceSchemaRead = {
+  id: SelectId;
+  name: string;
+  color: SelectColor;
 }
-export interface AutoNumber extends FieldBase {
+export type SelectChoiceSchemaWrite = {
+  name: string;
+  color: SelectColor;
+}
+
+export interface AiText {
+  id: FieldId;
+  name: string;
+  description?: string;
+  type: "aiText";
+}
+export interface AiTextSchemaRead extends AiText {
+  options: {
+    /** The prompt that is used to generate the results in the AI field, additional object types may be added in the future. Currently, this is an array of strings or objects that identify any fields interpolated into the prompt. */
+    prompt: Array<string | { fieldId: FieldId }>
+    referencedFieldIds: Array<FieldId>
+  }
+}
+export type AiTextSchemaWrite = never
+
+export type AiTextValueRead = {
+  state: "empty" | "loading" | "generated";
+  isStale: boolean;
+  value: string | null;
+} | {
+  state: "error";
+  errorType: string;
+  isStale: boolean;
+  value: string | null;
+};
+export type AiTextValueWrite = never
+
+export interface AutoNumber {
+  id: FieldId;
+  name: string;
+  type: "autoNumber";
+  description?: string;
+}
+export type AutoNumberSchemaRead = AutoNumber
+export interface AutoNumberSchemaWrite {
+  name: string;
+  description?: string;
   type: "autoNumber";
 }
-export interface Barcode extends FieldBase {
+
+export interface Barcode {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "barcode";
 }
-export interface Button extends FieldBase {
+export type BarcodeSchemaRead = Barcode;
+export type BarcodeSchemaWrite = Omit<Barcode, "id">;
+export interface Button {
+  id: FieldId;
+  name: string;
   type: "button";
+  description?: string;
 }
-export interface Checkbox extends FieldBase {
+export type ButtonSchemaRead = Button;
+export type ButtonSchemaWrite = Omit<Button, "id">;
+type CheckboxIcon =
+  | "check"
+  | "xCheckbox"
+  | "star"
+  | "heart"
+  | "thumbsUp"
+  | "flag"
+  | "dot";
+export interface Checkbox {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "checkbox";
   options?: {
-    icon?:
-    | "check"
-    | "xCheckbox"
-    | "star"
-    | "heart"
-    | "thumbsUp"
-    | "flag"
-    | "dot";
+    icon?: CheckboxIcon;
     color?: BrightColor;
-  };
+  }
 }
-export interface Count extends FieldBase {
+export interface CheckboxSchemaRead extends Checkbox {
+  options: {
+    icon: CheckboxIcon;
+    color: BrightColor;
+  }
+}
+export type CheckboxSchemaWrite = Omit<CheckboxSchemaRead, "id">
+
+export interface Count {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "count";
   options?: {
-    recordLinkFieldId?: FieldId;
+    /** false when recordLinkFieldId is null, e.g. the referenced column was deleted. */
+    isValid?: boolean;
+    recordLinkFieldId?: FieldId | null;
   };
 }
-export interface CreatedBy extends FieldBase {
+export interface CountSchemaRead extends Count {
+  options: {
+    /** false when recordLinkFieldId is null, e.g. the referenced column was deleted. */
+    isValid: boolean;
+    recordLinkFieldId?: FieldId | null;
+  };
+}
+export type CountSchemaWrite = Omit<CountSchemaRead, "id">
+export interface CreatedBy {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "createdBy";
 }
-export interface CreatedTime extends FieldBase {
+export type CreatedBySchemaRead = CreatedBy;
+export type CreatedBySchemaWrite = Omit<CreatedBy, "id">;
+export interface CreatedTime {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "createdTime";
 }
-export interface Currency extends FieldBase {
+export type CreatedTimeSchemaRead = CreatedTime;
+export type CreatedTimeSchemaWrite = Omit<CreatedTime, "id">;
+export interface Currency {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "currency";
   options?: {
     /** Indicates the number of digits shown to the right of the decimal point for this field. (0-7 inclusive) */
@@ -89,38 +160,97 @@ export interface Currency extends FieldBase {
     symbol?: string;
   };
 }
-
-export interface DateFormatOptions {
-  name: "local" | "friendly" | "us" | "european" | "iso";
-  format: "l" | "LL" | "M/D/YYYY" | "D/M/YYYY" | "YYYY-MM-DD";
+export interface CurrencySchemaRead extends Currency {
+  options: {
+    /** Indicates the number of digits shown to the right of the decimal point for this field. (0-7 inclusive) */
+    precision: number;
+    symbol: string;
+  };
 }
+export type CurrencySchemaWrite = Omit<CurrencySchemaRead, "id">;
 
-export interface TimeFormatOptions {
-  name: "12hour" | "24hour";
-  format: "h:mma" | "HH:mm";
-}
+type DateFormatName = "local" | "friendly" | "us" | "european" | "iso";
+type DateFormatFormat = "l" | "LL" | "M/D/YYYY" | "D/M/YYYY" | "YYYY-MM-DD";
+type TimeFormatName = "12hour" | "24hour";
+type TimeFormatFormat = "h:mma" | "HH:mm";
 
-export interface Date extends FieldBase {
+export interface Date {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "date";
-  options?: {
-    dateFormat?: DateFormatOptions;
+}
+export interface DateSchemaRead {
+  id: FieldId;
+  name: string;
+  description?: string;
+  type: "date";
+  options: {
+    dateFormat: {
+      name: DateFormatName;
+      format: DateFormatFormat;
+    };
+  };
+}
+export interface DateSchemaWrite {
+  name: string;
+  type: "date";
+  description?: string;
+  options: {
+    dateFormat: {
+      name: DateFormatName;
+      /** When writing, the format may be omitted. */
+      format?: DateFormatFormat;
+    };
   };
 }
 
-export interface DateTime extends FieldBase {
+export interface DateTime {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "dateTime";
-  options?: {
-    dateFormat?: DateFormatOptions;
-    timeFormat?: TimeFormatOptions;
-    timeZone?: Timezone;
+}
+export interface DateTimeSchemaRead extends DateTime {
+  options: {
+    timeZone: Timezone;
+    dateFormat: {
+      name: DateFormatName;
+      format: DateFormatFormat;
+    };
+    timeFormat: {
+      name: TimeFormatName;
+      format: TimeFormatFormat;
+    }
+  };
+}
+export interface DateTimeSchemaWrite {
+  name: string;
+  description?: string;
+  type: "dateTime";
+  options: {
+    timeZone: Timezone;
+    dateFormat: {
+      name: DateFormatName;
+      format?: DateFormatFormat;
+    };
+    timeFormat: {
+      name: TimeFormatName;
+      format?: TimeFormatFormat;
+    }
   };
 }
 
 /** An integer representing number of seconds. */
-export interface Duration extends FieldBase {
+export interface Duration {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "duration";
-  options?: {
-    durationFormat?:
+}
+export interface DurationSchemaRead extends Duration {
+  options: {
+    durationFormat:
     | "h:mm"
     | "h:mm:ss"
     | "h:mm:ss.S"
@@ -128,119 +258,342 @@ export interface Duration extends FieldBase {
     | "h:mm:ss.SSS";
   };
 }
-export interface Email extends FieldBase {
+export type DurationSchemaWrite = Omit<DurationSchemaRead, "id">;
+
+export interface Email {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "email";
 }
-export interface ExternalSyncSource<C extends SelectChoice = SelectChoice>
-  extends FieldBase {
+export type EmailSchemaRead = Email;
+export type EmailSchemaWrite = Omit<Email, "id">;
+export interface ExternalSyncSource {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "externalSyncSource";
-  options?: {
-    choices: readonly C[];
-  };
 }
-export interface Formula extends FieldBase {
+export type ExternalSyncSourceSchemaRead = ExternalSyncSource;
+export type ExternalSyncSourceSchemaWrite = never;
+export interface Formula {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "formula";
-  options?: {
-    isValid?: boolean;
+  options: {
     formula?: string;
     referencedFieldIds?: readonly FieldId[];
-    result?: Omit<FieldSchema, "id" | "name">;
+    isValid: boolean;
+    // This determines the type when reading from the API,
+    // so we need it for type inference
+    result: FieldTypeAndOptions;
   };
 }
-export interface LastModifiedBy extends FieldBase {
+export interface FormulaSchemaRead extends Formula {
+  options: {
+    formula: string;
+    referencedFieldIds: readonly FieldId[];
+    result: FieldTypeAndOptions;
+    isValid: boolean;
+  };
+}
+// TODO: is this correct?
+export interface FormulaSchemaWrite {
+  name: string;
+  description?: string;
+  type: "formula";
+  options: {
+    formula: string;
+  };
+}
+export interface LastModifiedBy {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "lastModifiedBy";
 }
-export interface LastModifiedTime extends FieldBase {
+export type LastModifiedBySchemaRead = LastModifiedBy;
+export type LastModifiedBySchemaWrite = Omit<LastModifiedBy, "id">;
+export interface LastModifiedTime {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "lastModifiedTime";
 }
-export interface MultilineText extends FieldBase {
+export type LastModifiedTimeSchemaRead = LastModifiedTime;
+export type LastModifiedTimeSchemaWrite = never;
+export interface MultilineText {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "multilineText";
 }
-export interface MultipleAttachments extends FieldBase {
+export type MultilineTextSchemaRead = MultilineText;
+export type MultilineTextSchemaWrite = Omit<MultilineText, "id">;
+export interface MultipleAttachments {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "multipleAttachments";
   option?: {
     isReversed?: boolean;
   };
 }
-export interface MultipleCollaborators extends FieldBase {
-  type: "multipleCollaborators";
-}
-export interface MultipleLookupValues extends FieldBase {
-  type: "multipleLookupValues";
-  options?: {
-    /** Is the field currently valid (e.g. false if the linked record field has been deleted) */
-    isValid?: boolean;
-    recordLinkFieldId?: FieldId;
-    fieldIdInLinkedTable?: FieldId;
-    result?: Omit<FieldSchema, "id" | "name">;
+export interface MultipleAttachmentsSchemaRead extends MultipleAttachments {
+  option: {
+    isReversed: boolean;
   };
 }
-export interface MultipleRecordLinks extends FieldBase {
+export interface MultipleAttachmentsSchemaWrite {
+  name: string;
+  description?: string;
+  type: "multipleAttachments";
+};
+export interface MultipleCollaborators {
+  id: FieldId;
+  name: string;
+  description?: string;
+  type: "multipleCollaborators";
+}
+export type MultipleCollaboratorsSchemaRead = MultipleCollaborators;
+export type MultipleCollaboratorsSchemaWrite = Omit<MultipleCollaborators, "id">;
+export interface MultipleLookupValues {
+  id: FieldId;
+  name: string;
+  description?: string;
+  type: "multipleLookupValues";
+  options: {
+    // This determines the type when reading from the API,
+    // so we need it for type inference
+    result: FieldTypeAndOptions;
+    /** Is the field currently valid (e.g. false if the linked record field has been deleted) */
+    isValid: boolean;
+    recordLinkFieldId?: FieldId;
+    fieldIdInLinkedTable?: FieldId;
+  };
+}
+export interface MultipleLookupValuesSchemaRead extends MultipleLookupValues {
+  options: {
+    recordLinkFieldId: FieldId;
+    fieldIdInLinkedTable: FieldId;
+    result: FieldTypeAndOptions;
+    /** Is the field currently valid (e.g. false if the linked record field has been deleted) */
+    isValid: boolean;
+  };
+}
+export interface MultipleLookupValuesSchemaWrite {
+  name: string;
+  description?: string;
+  type: "multipleLookupValues";
+  options: {
+    recordLinkFieldId: FieldId;
+    fieldIdInLinkedTable: FieldId;
+  }
+}
+export interface MultipleRecordLinks {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "multipleRecordLinks";
   options?: {
     linkedTableId?: TableId;
-    isReversed?: boolean;
-    prefersSingleRecordLink?: boolean;
     inverseLinkFieldId?: FieldId;
+    prefersSingleRecordLink?: boolean;
+    isReversed?: boolean;
+
+  }
+}
+export interface MultipleRecordLinksSchemaRead extends MultipleRecordLinks {
+  options: {
+    linkedTableId: TableId;
+    inverseLinkFieldId: FieldId;
+    prefersSingleRecordLink: boolean;
+    isReversed: boolean;
   };
 }
-export interface MultipleSelects<C extends SelectChoice = SelectChoice>
-  extends FieldBase {
+export interface MultipleRecordLinksSchemaWrite {
+  name: string;
+  description?: string;
+  type: "multipleRecordLinks"
+  options: {
+    linkedTableId: TableId;
+    inverseLinkFieldId: FieldId;
+    prefersSingleRecordLink: boolean;
+  };
+}
+export interface MultipleSelects<C extends SelectChoice = SelectChoice> {
+  id: FieldId;
+  name: string;
+  description?: string;
+  type: "multipleSelects";
+  options: {
+    choices: readonly C[];
+  };
+}
+export interface MultipleSelectsSchemaRead<C extends SelectChoiceSchemaRead = SelectChoiceSchemaRead> {
+  id: FieldId;
+  name: string;
+  description?: string;
+  type: "multipleSelects";
+  options: {
+    choices: readonly C[];
+  };
+}
+export interface MultipleSelectsSchemaWrite<C extends SelectChoiceSchemaWrite = SelectChoiceSchemaWrite> {
+  name: string;
+  description?: string;
   type: "multipleSelects";
   options: {
     choices: readonly C[];
   };
 }
 /** An integer or decimal number showing decimal digits. Precision set with the field config. */
-export interface Number extends FieldBase {
+export interface Number {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "number";
   options?: {
     /** The number of digits shown to the right of the decimal point for this field. (0-8 inclusive) */
     precision?: number;
   };
 }
-export interface Percent extends FieldBase {
+export interface NumberSchemaRead {
+  id: FieldId;
+  name: string;
+  description?: string;
+  type: "number";
+  options: {
+    /** The number of digits shown to the right of the decimal point for this field. (0-8 inclusive) */
+    precision: number;
+  };
+}
+export type NumberSchemaWrite = Omit<NumberSchemaRead, "id">
+export interface Percent {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "percent";
   options?: {
     /** The number of digits shown to the right of the decimal point for this field. (0-8 inclusive) */
     precision?: number;
   };
 }
-export interface PhoneNumber extends FieldBase {
+export interface PercentSchemaRead extends Percent {
+  options: {
+    /** The number of digits shown to the right of the decimal point for this field. (0-8 inclusive) */
+    precision: number;
+  };
+}
+export type PercentSchemaWrite = Omit<PercentSchemaRead, "id">;
+export interface PhoneNumber {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "phoneNumber";
 }
-export interface Rating extends FieldBase {
+export type PhoneNumberSchemaRead = PhoneNumber;
+export type PhoneNumberSchemaWrite = Omit<PhoneNumber, "id">;
+export interface Rating {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "rating";
   options?: {
-    /** from 1 to 10, inclusive */
-    max?: number;
+    max?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
     icon?: "star" | "heart" | "thumbsUp" | "flag" | "dot";
     color?: BrightColor;
   };
 }
-export interface RichText extends FieldBase {
-  type: "richText";
-}
-export interface Rollup extends FieldBase {
-  type: "rollup";
-  options?: {
-    recordLinkFieldId?: FieldId;
-    fieldIdInLinkedTable?: FieldId;
+export interface RatingSchemaRead extends Rating {
+  options: {
+    max: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+    icon: "star" | "heart" | "thumbsUp" | "flag" | "dot";
+    color: BrightColor;
   };
 }
-export interface SingleCollaborator extends FieldBase {
+export type RatingSchemaWrite = Omit<RatingSchemaRead, "id">;
+export interface RichText {
+  id: FieldId;
+  name: string;
+  description?: string;
+  type: "richText";
+}
+export type RichTextSchemaRead = RichText;
+export type RichTextSchemaWrite = Omit<RichText, "id">;
+export interface Rollup {
+  id: FieldId;
+  name: string;
+  description?: string;
+  type: "rollup";
+  options: {
+    recordLinkFieldId?: FieldId;
+    fieldIdInLinkedTable?: FieldId;
+    referencedFieldIds?: FieldId[];
+    // This determines the type when reading from the API,
+    // so we need it for type inference
+    result: FieldTypeAndOptions;
+    isValid: boolean;
+  };
+}
+export interface RollupSchemaRead extends Rollup {
+  options: {
+    recordLinkFieldId: FieldId;
+    fieldIdInLinkedTable: FieldId;
+    referencedFieldIds?: FieldId[];
+    result: FieldTypeAndOptions;
+    isValid: boolean;
+  };
+}
+export type RollupSchemaWrite = Omit<RollupSchemaRead, "id">;
+export interface SingleCollaborator {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "singleCollaborator";
 }
-export interface SingleLineText extends FieldBase {
+export type SingleCollaboratorSchemaRead = SingleCollaborator;
+export type SingleCollaboratorSchemaWrite = Omit<SingleCollaborator, "id">;
+export interface SingleLineText {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "singleLineText";
 }
-export interface SingleSelect<C extends SelectChoice = SelectChoice>
-  extends FieldBase {
+export type SingleLineTextSchemaRead = SingleLineText;
+export type SingleLineTextSchemaWrite = Omit<SingleLineText, "id">;
+export interface SingleSelect<C extends SelectChoice = SelectChoice> {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "singleSelect";
   options: {
     choices: readonly C[];
   };
 }
-export interface Url extends FieldBase {
+export interface SingleSelectSchemaRead<C extends SelectChoiceSchemaRead = SelectChoiceSchemaRead> {
+  id: FieldId;
+  name: string;
+  description?: string;
+  type: "singleSelect";
+  options: {
+    choices: readonly C[];
+  };
+}
+export interface SingleSelectSchemaWrite<C extends SelectChoiceSchemaWrite = SelectChoiceSchemaWrite> {
+  name: string;
+  description?: string;
+  type: "singleSelect";
+  options: {
+    choices: readonly C[];
+  };
+}
+export interface Url {
+  id: FieldId;
+  name: string;
+  description?: string;
   type: "url";
 }
+export type UrlSchemaRead = Url;
+export type UrlSchemaWrite = Omit<Url, "id">;

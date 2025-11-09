@@ -1,3 +1,4 @@
+import { is } from 'zod/locales';
 import * as fields from './index.ts';
 
 export const AI_TEXT = {
@@ -100,6 +101,7 @@ export const FORMULA = {
     id: 'fldFormula',
     name: 'Formula Field',
     options: {
+        isValid: true,
         result: {
             type: 'number',
         }
@@ -141,7 +143,10 @@ export const MULTIPLE_LOOKUP_VALUES = {
     id: 'fldMultipleLookupValues',
     name: 'Multiple Lookup Values Field',
     options: {
-        recordLinkFieldId: 'fldSourceField',
+        isValid: true,
+        result: {
+            type: 'singleLineText',
+        },
     },
 } as const satisfies fields.MultipleLookupValues;
 
@@ -149,9 +154,6 @@ export const MULTIPLE_RECORD_LINKS = {
     type: 'multipleRecordLinks',
     id: 'fldMultipleRecordLinks',
     name: 'Multiple Record Links Field',
-    options: {
-        linkedTableId: 'tblLinkedTable',
-    },
 } as const satisfies fields.MultipleRecordLinks;
 
 export const MULTIPLE_SELECTS = {
@@ -211,8 +213,10 @@ export const ROLLUP = {
     id: 'fldRollup',
     name: 'Rollup Field',
     options: {
-        recordLinkFieldId: 'fldLinkedRecords',
-        fieldIdInLinkedTable: 'fldFieldToRollup',
+        result: {
+            type: 'number',
+        },
+        isValid: true,
     },
 } as const satisfies fields.Rollup;
 

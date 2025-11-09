@@ -1,8 +1,4 @@
-import {
-    MultipleSelects,
-    SelectChoice,
-    SingleSelect,
-} from "../fields/index.ts";
+import * as fields from "../fields/index.ts";
 import { RecordId, type FieldSchema, type FieldType } from "../types.ts";
 import * as exceptions from "../exceptions.ts";
 
@@ -29,9 +25,9 @@ const AiTextConverters = {
     type: "aiText",
     makeTo: null,
     makeFrom:
-        (_fieldSchema: FieldOfType<"aiText">) => (value: unknown): string =>
-            value as string,
-} as const satisfies IConverters<never, string, FieldOfType<"aiText">>;
+        (_fieldSchema: FieldOfType<"aiText">) =>
+            (value: fields.AiTextValueRead): fields.AiTextValueRead => value,
+} as const satisfies IConverters<never, fields.AiTextValueRead, FieldOfType<"aiText">>;
 
 const AutoNumberConverters = {
     type: "autoNumber",
@@ -240,15 +236,16 @@ const ExternalSyncSourceConverters = {
     FieldOfType<"externalSyncSource">
 >;
 
-type FormulaReadType<F extends FieldOfType<"formula">> = F["options"] extends { result: infer R } ? R : never;
+type FormulaResultType<F extends FieldOfType<"formula">> = F["options"]["result"]
+type FormulaReadType<F extends FieldOfType<"formula">> = FieldRead<FormulaResultType<F>>;
 const FormulaConverters = {
     type: "formula",
     makeTo: null,
     makeFrom:
-        <F extends FieldOfType<"formula">>(_fieldSchema: F) => (value: unknown): FormulaReadType<F> => {
-            return value as FormulaReadType<F>;
+        <F extends FieldOfType<"formula">>(_fieldSchema: F) => (value: FormulaReadType<F>): FormulaReadType<F> => {
+            return value;
         }
-} as const satisfies IConverters<never, string | number, FieldOfType<"formula">>;
+} as const;
 
 const LastModifiedByConverters = {
     type: "lastModifiedBy",
@@ -335,17 +332,15 @@ const MultipleCollaboratorsConverters = {
     FieldOfType<"multipleCollaborators">
 >;
 
+type MultipleLookupValuesResultType<F extends fields.MultipleLookupValues> = F["options"]["result"]
+type MultipleLookupValuesReadType<F extends fields.MultipleLookupValues> = FieldRead<MultipleLookupValuesResultType<F>>;
 const MultipleLookupValuesConverters = {
     type: "multipleLookupValues",
     makeTo: null,
     makeFrom:
-        (_fieldSchema: FieldOfType<"multipleLookupValues">) =>
-            (value: null | unknown[]): unknown[] => value ? value : [],
-} as const satisfies IConverters<
-    never,
-    unknown[],
-    FieldOfType<"multipleLookupValues">
->;
+        <T extends fields.MultipleLookupValues>(_fieldSchema: T) =>
+            (value: null | MultipleLookupValuesReadType<T>[]): MultipleLookupValuesReadType<T>[] => value ? value : [],
+} as const;
 
 const MultipleRecordLinksConverters = {
     type: "multipleRecordLinks",
@@ -369,7 +364,7 @@ const MultipleRecordLinksConverters = {
 const MultipleSelectsConverters = {
     type: "multipleSelects",
     makeTo:
-        <C extends SelectChoice>(fieldSchema: MultipleSelects<C>) =>
+        <C extends fields.SelectChoice>(fieldSchema: fields.MultipleSelects<C>) =>
             (idsOrValues: Array<C["id"] | C["name"]> | null | undefined): Array<C["id"]> => {
                 if (!idsOrValues) return [];
                 const choices = fieldSchema.options.choices;
@@ -391,7 +386,7 @@ const MultipleSelectsConverters = {
                 });
             },
     makeFrom:
-        <C extends SelectChoice>(_fieldSchema: MultipleSelects<C>) =>
+        <C extends fields.SelectChoice>(_fieldSchema: fields.MultipleSelects<C>) =>
             (value: unknown): C[] => {
                 if (!value) return [];
                 return value as C[];
@@ -446,13 +441,16 @@ const RichTextConverters = {
     FieldOfType<"richText">
 >;
 
+type RollupResultType<F extends FieldOfType<"rollup">> = F["options"]["result"]
+type RollupReadType<F extends FieldOfType<"rollup">> = FieldRead<RollupResultType<F>>;
 const RollupConverters = {
     type: "rollup",
     makeTo: null,
     makeFrom:
-        (_fieldSchema: FieldOfType<"rollup">) => (value: unknown): unknown =>
-            value,
-} as const satisfies IConverters<never, unknown, FieldOfType<"rollup">>;
+        <T extends FieldOfType<"rollup">>(_fieldSchema: T) => (value: RollupReadType<T>): RollupReadType<T> => {
+            return value;
+        },
+} as const;
 
 const SingleCollaboratorConverters = {
     type: "singleCollaborator",
@@ -481,7 +479,7 @@ const SingleLineTextConverters = {
 const SingleSelectConverters = {
     type: "singleSelect",
     makeTo:
-        <C extends SelectChoice>(fieldSchema: SingleSelect<C>) =>
+        <C extends fields.SelectChoice>(fieldSchema: fields.SingleSelect<C>) =>
             (idOrValue: C["id"] | C["name"] | null | undefined): C["id"] | null | undefined => {
                 // If already an ID in the spec, return it.
                 // Otherwise, try to lookup the ID from the value.
@@ -506,7 +504,7 @@ const SingleSelectConverters = {
                 );
             },
     makeFrom:
-        <C extends SelectChoice>(_fieldSchema: SingleSelect<C>) =>
+        <C extends fields.SelectChoice>(_fieldSchema: fields.SingleSelect<C>) =>
             (value: unknown): C => value as C,
 } as const;
 
@@ -555,8 +553,8 @@ export const CONVERTERS = {
 export type Converters = typeof CONVERTERS[keyof typeof CONVERTERS];
 
 /** Given a FieldSchema, return the typescript type will be returned when you read from it */
-export type FieldRead<F extends FieldSchema> = F extends FieldOfType<"aiText">
-    ? string
+export type FieldRead<F extends Omit<FieldSchema, "id" | "name">> =
+    F extends FieldOfType<"aiText"> ? fields.AiTextValueRead
     : F extends FieldOfType<"autoNumber"> ? number | null
     : F extends FieldOfType<"barcode"> ? BarcodeValue | null
     : F extends FieldOfType<"button"> ? never
@@ -576,18 +574,18 @@ export type FieldRead<F extends FieldSchema> = F extends FieldOfType<"aiText">
     : F extends FieldOfType<"multilineText"> ? string
     : F extends FieldOfType<"multipleAttachments"> ? MultipleAttachment[]
     : F extends FieldOfType<"multipleCollaborators"> ? User[]
-    : F extends FieldOfType<"multipleLookupValues"> ? unknown[]
+    : F extends FieldOfType<"multipleLookupValues"> ? MultipleLookupValuesReadType<F>
     : F extends FieldOfType<"multipleRecordLinks"> ? RecordId[]
-    : F extends MultipleSelects<infer C> ? C[]
+    : F extends fields.MultipleSelects<infer C> ? C[]
     : F extends FieldOfType<"number"> ? number | null
     : F extends FieldOfType<"percent"> ? number | null
     : F extends FieldOfType<"phoneNumber"> ? string
     : F extends FieldOfType<"rating"> ? number | null
     : F extends FieldOfType<"richText"> ? string
-    : F extends FieldOfType<"rollup"> ? unknown
+    : F extends FieldOfType<"rollup"> ? RollupReadType<F>
     : F extends FieldOfType<"singleCollaborator"> ? User | null
     : F extends FieldOfType<"singleLineText"> ? string
-    : F extends SingleSelect<infer C> ? C | null
+    : F extends fields.SingleSelect<infer C> ? C | null
     : F extends FieldOfType<"url"> ? string
     : never;
 
@@ -615,7 +613,7 @@ export type FieldWrite<F extends FieldSchema> = F extends FieldOfType<"aiText">
     : F extends FieldOfType<"multipleCollaborators"> ? ReadonlyArray<User> | null | undefined
     : F extends FieldOfType<"multipleLookupValues"> ? never
     : F extends FieldOfType<"multipleRecordLinks"> ? ReadonlyArray<RecordId> | null | undefined
-    : F extends MultipleSelects<infer C> ? ReadonlyArray<C["id"] | C["name"]> | null | undefined
+    : F extends fields.MultipleSelects<infer C> ? ReadonlyArray<C["id"] | C["name"]> | null | undefined
     : F extends FieldOfType<"number"> ? number | null | undefined
     : F extends FieldOfType<"percent"> ? number | null | undefined
     : F extends FieldOfType<"phoneNumber"> ? string | null | undefined
@@ -624,7 +622,7 @@ export type FieldWrite<F extends FieldSchema> = F extends FieldOfType<"aiText">
     : F extends FieldOfType<"rollup"> ? never
     : F extends FieldOfType<"singleCollaborator"> ? UserWrite | null | undefined
     : F extends FieldOfType<"singleLineText"> ? string | null | undefined
-    : F extends SingleSelect<infer C> ? C["id"] | C["name"] | null | undefined
+    : F extends fields.SingleSelect<infer C> ? C["id"] | C["name"] | null | undefined
     : F extends FieldOfType<"url"> ? string | null | undefined
     : never;
 
@@ -679,10 +677,7 @@ export function convertFieldForRead<F extends FieldSchema>(
     if (!converterObj) {
         throw new Error(`No converter found for field type: ${type}`);
     }
-    type AnyConverter = {
-        makeFrom: null | ((fs: FieldSchema) => ((v: unknown) => unknown));
-    };
-    const makeFrom = (converterObj as AnyConverter).makeFrom;
+    const makeFrom = (converterObj as any).makeFrom;
     if (makeFrom === null) {
         throw new exceptions.FieldNotReadableError(fieldSchema);
     }

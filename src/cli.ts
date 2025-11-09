@@ -14,32 +14,35 @@ import * as packageJson from '../package.json';
 async function doCodegenBase({
   baseId,
   fetcher,
-  outPath,
-  baseName,
+  outFile,
   format,
 }: {
   baseId: BaseId;
-  outPath: string;
-  baseName?: string;
+  outFile?: string;
   format?: "ts" | "js";
   fetcher: IntoFetcher;
 }, console: Consolish = globalThis.console): Promise<void> {
   console.log("🔍 Fetching schema from Airtable...");
-  const resolvedBaseName = getBaseName(outPath, baseName);
-  const baseSchema = await fetchBaseSchema({ baseId, fetcher, baseName: resolvedBaseName });
+  const baseSchema = await fetchBaseSchema({ baseId, fetcher });
   const firstTable = baseSchema.tables[0];
 
   console.log(`✓ Found base with ${baseSchema.tables.length} tables`);
   console.log(`  Using Base Name: ${baseSchema.name}`);
-  console.log(`  Tables:\n${baseSchema.tables.map((t) => t.name).join("\n    - ")}`);
+  console.log(`  Tables:\n${baseSchema.tables.map((t) => '    - ' + t.name).join("\n")}`);
 
-  const inferred = outPath.endsWith(".ts") ? "ts" : outPath.endsWith(".js") ? "js" : undefined;
-  const finalFormat = format ?? inferred ?? "ts";
-  await generateCode(baseSchema, { format: finalFormat, outPath });
+  const inferredFormat = outFile?.endsWith(".ts") ? "ts" : outFile?.endsWith(".js") ? "js" : undefined;
+  const finalFormat = format ?? inferredFormat ?? "ts";
 
-  console.log(`\n✅ Generated schema at ${outPath}`);
+  if (!outFile) {
+    const safeBaseName = toIdentifier(baseSchema.name) || baseSchema.name;
+    outFile = `./${safeBaseName}-schema.${finalFormat}`;
+  }
+
+  await generateCode(baseSchema, { format: finalFormat, outPath: outFile });
+
+  console.log(`\n✅ Generated schema at ${outFile}`);
   console.log("\n📚 Example usage:");
-  const importPath = outPath.startsWith("/") ? outPath : outPath.startsWith(".") ? outPath : `./${outPath}`;
+  const importPath = outFile.startsWith("/") ? outFile : outFile.startsWith(".") ? outFile : `./${outFile}`;
   console.log(
     `import myBaseSchema from '${importPath}';
 import { makeBaseClient } from 'airtable-kit';
@@ -99,9 +102,6 @@ Global Options:
 
 Options for "codegen base" command:
   <BASE_ID>       The ID of the Airtable base to generate the schema from.
-  --base-name     Optional custom name for the base in the generated schema.
-                  If not provided, will be inferred from the output filename,
-                  if provided, or else the base ID.
   --outfile       The output file path for the generated schema file. (default: ./<BASE_NAME>-schema.ts or .js)
 
 Options for "codegen all" command:
@@ -113,14 +113,6 @@ type Consolish = {
   log: (...args: unknown[]) => void;
   error: (...args: unknown[]) => void;
 };
-
-function getBaseName(outPath: string, baseName?: string): string {
-  if (baseName) {
-    return baseName;
-  }
-  const filename = path.basename(outPath);
-  return filename.split(".")[0];
-}
 
 export async function cli(args: string[], fetcher?: IntoFetcher, console: Consolish = globalThis.console): Promise<void> {
   const options = {
@@ -157,14 +149,11 @@ export async function cli(args: string[], fetcher?: IntoFetcher, console: Consol
       }
       const providedOut = values.outfile;
       const providedFormat = getFormat(values.format);
-      const finalBaseName = values["base-name"] ?? (providedOut ? getBaseName(providedOut) : baseId);
       const finalFormat = providedFormat ?? (providedOut?.endsWith('.js') ? 'js' : providedOut?.endsWith('.ts') ? 'ts' : undefined) ?? 'ts';
-      const outPath = providedOut ?? `./${finalBaseName}.${finalFormat}`;
       await doCodegenBase({
         baseId: baseId as BaseId,
         fetcher: fetcher ?? apiKey,
-        outPath,
-        baseName: finalBaseName,
+        outFile: providedOut,
         format: finalFormat,
       }, console);
       return;

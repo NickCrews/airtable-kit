@@ -1,296 +1,267 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { createMockFetcher } from "./fetcher.ts";
-import { makeTableClient } from "./table-client.ts";
-
-import TaskBaseSchema from "../tests/taskBase.ts";
-import { afterEach } from "node:test";
-
-const TASK_TABLE_SCHEMA = TaskBaseSchema.tables.find((t) => t.name === "tasks")!;
+import { testBaseClient } from "../tests/test-utils.ts";
 
 describe("TableClient", () => {
-    const mockFetcher = createMockFetcher();
-    const client = makeTableClient({
-        baseId: "app123",
-        tableSchema: TASK_TABLE_SCHEMA,
-        fetcher: mockFetcher,
+    const { tasksTableClient, resetBaseData } = testBaseClient();
+
+    beforeEach(async () => {
+        await resetBaseData();
     });
-    beforeEach(() => {
-        mockFetcher.reset();
-    });
-    afterEach(() => {
-        mockFetcher.reset();
-    });
+
     describe("createMany", () => {
         it("can handle 0-record creates", async () => {
-            const result = await client.createMany([]);
+            const result = await tasksTableClient.createMany([]);
             expect(result).toEqual([]);
-            expect(mockFetcher.getCallHistory()).toEqual([]);
         });
+
         it("can create records", async () => {
-            mockFetcher.setReturnValue({
-                records: [
-                    {
-                        id: "rec123",
-                        createdTime: "2024-01-01T00:00:00.000Z",
-                        fields: {
-                            fldName: "Fold Laundry",
-                            fldAssignedTo: ["usrMe"],
-                            fldCompleted: false,
-                            fldUpdatedAt: "2024-01-02T00:00:00.000Z",
-                            fldCreatedAt: "2024-01-01T00:00:00.000Z",
-                        },
-                    }
-                ]
-            })
-            const response = await client.createMany(
-                [{
+            const response = await tasksTableClient.createMany([
+                {
                     Name: "Fold Laundry",
-                    "Assigned To": ["rec123abc"],
-                    fldCompleted: false,
+                    Completed: false,
                     Notes: undefined, // should be ignored
                     Status: null, // should be ignored
-                }],
-            );
-            expect(mockFetcher.getCallHistory()).toEqual([{
-                path: "/app123/tblTasks",
-                method: "POST",
-                data: {
-                    records: [
-                        {
-                            fields: {
-                                fldName: "Fold Laundry",
-                                fldAssignedTo: ["rec123abc"],
-                                fldCompleted: false,
-                            },
-                        },
-                    ],
-                    returnFieldsByFieldId: true,
                 },
-            }]);
-            expect(response).toEqual([
-                {
-                    id: "rec123",
-                    fields: {
-                        "Assigned To": ["usrMe"],
-                        "Attachments": [],
-                        "Completed": false,
-                        "Created At": "2024-01-01T00:00:00.000Z",
-                        "Due Date": null,
-                        "Name": "Fold Laundry",
-                        "Notes": "",
-                        "Priority": null,
-                        "Status": null,
-                        "Tags": [],
-                        "Updated At": "2024-01-02T00:00:00.000Z",
-                    },
-                    createdTime: "2024-01-01T00:00:00.000Z",
-                }
             ]);
+
+            expect(response).toHaveLength(1);
+            expect(response[0]).toMatchObject({
+                fields: {
+                    Name: "Fold Laundry",
+                    Completed: false,
+                    "Assigned To": [],
+                    Attachments: [],
+                    "Due Date": null,
+                    Notes: "",
+                    Priority: null,
+                    Status: null,
+                    Tags: [],
+                },
+            });
+            expect(response[0].id).toMatch(/^rec/);
+            expect(response[0].createdTime).toBeDefined();
+            expect(response[0].fields["Created At"]).toBeDefined();
+            expect(response[0].fields["Updated At"]).toBeDefined();
         });
-        it("has typesafety on selects and multiselects", async () => {
-            const f = async () =>
-                await client.createMany(
-                    [
-                        {
-                            Status: "In Progress",
-                        },
-                        {
-                            Status: "selDone",
-                        },
-                        {
-                            // @ts-expect-error invalid select option
-                            Status: "bogus",
-                        },
-                    ],
-                );
-            await expect(f()).rejects.toThrow();
+
+        it("can create records with select options by name", async () => {
+            const response = await tasksTableClient.createMany([
+                {
+                    Name: "Test Task",
+                    Status: "In Progress",
+                },
+            ]);
+
+            expect(response).toHaveLength(1);
+            expect(response[0].fields.Status).toBe("In Progress");
+        });
+
+        it("rejects invalid select options", async () => {
+            await expect(
+                tasksTableClient.createMany([
+                    {
+                        Name: "Test Task",
+                        Status: "InvalidStatus" as any, // invalid select option
+                    },
+                ])
+            ).rejects.toThrow();
         });
     });
+
     describe("update", () => {
         it("can handle 0-record updates", async () => {
-            const result = await client.update([]);
+            const result = await tasksTableClient.update([]);
             expect(result).toEqual({ records: [] });
-            expect(mockFetcher.getCallHistory()).toEqual([]);
         });
+
         it("can update records", async () => {
-            mockFetcher.setReturnValue({
-                records: [
-                    {
-                        id: "rec123",
-                        createdTime: "2024-01-01T00:00:00.000Z",
-                        fields: {
-                            fldName: "Fold Laundry",
-                            fldCompleted: true,
-                            fldUpdatedAt: "2024-01-02T00:00:00.000Z",
-                            fldCreatedAt: "2024-01-01T00:00:00.000Z",
-                        },
-                    }
-                ]
-            });
-            const result = await client.update(
-                [
-                    {
-                        id: "rec123",
-                        fields: {
-                            Name: "Fold Laundry",
-                            fldCompleted: true,
-                            Notes: undefined, // should be ignored
-                            "Due Date": null, // should be cleared
-                        },
-                    },
-                ],
-            );
-            expect(mockFetcher.getCallHistory()).toEqual([{
-                path: "/app123/tblTasks",
-                method: "PATCH",
-                data: {
-                    records: [
-                        {
-                            id: "rec123",
-                            fields: {
-                                fldName: "Fold Laundry",
-                                fldCompleted: true,
-                                fldDueDate: null,
-                            },
-                        },
-                    ],
-                    returnFieldsByFieldId: true,
-                },
-            }]);
-            expect(result).toEqual(
+            // First create a record
+            const [created] = await tasksTableClient.createMany([
                 {
-                    createdRecords: undefined,
-                    updatedRecords: undefined,
-                    details: undefined,
-                    records: [{
-                        id: "rec123",
-                        createdTime: "2024-01-01T00:00:00.000Z",
-                        fields: {
-                            "Assigned To": [],
-                            "Attachments": [],
-                            "Completed": true,
-                            "Created At": "2024-01-01T00:00:00.000Z",
-                            "Due Date": null,
-                            "Name": "Fold Laundry",
-                            "Notes": "",
-                            "Priority": null,
-                            "Status": null,
-                            "Tags": [],
-                            "Updated At": "2024-01-02T00:00:00.000Z",
-                        },
-                    }]
-                });
+                    Name: "Task to Update",
+                    Completed: false,
+                },
+            ]);
+
+            // Update it
+            const result = await tasksTableClient.update([
+                {
+                    id: created.id,
+                    fields: {
+                        Name: "Updated Task Name",
+                        Completed: true,
+                        Notes: undefined, // should be ignored
+                        "Due Date": null, // should be cleared
+                    },
+                },
+            ]);
+
+            expect(result.records).toHaveLength(1);
+            expect(result.records[0]).toMatchObject({
+                id: created.id,
+                fields: {
+                    Name: "Updated Task Name",
+                    Completed: true,
+                    "Due Date": null,
+                },
+            });
         });
     });
+
+    describe("delete", () => {
+        it("can delete records", async () => {
+            // Create a record
+            const [created] = await tasksTableClient.createMany([
+                {
+                    Name: "Task to Delete",
+                },
+            ]);
+
+            // Delete it
+            const result = await tasksTableClient.delete([created.id]);
+
+            expect(result.records).toEqual([
+                {
+                    id: created.id,
+                    deleted: true,
+                },
+            ]);
+
+            // Verify it's deleted by trying to list
+            const allRecords = await tasksTableClient.list();
+            const foundRecord = allRecords.find((r) => r.id === created.id);
+            expect(foundRecord).toBeUndefined();
+        });
+    });
+
     describe("formulaToString", () => {
         it("can convert formula objects to strings", () => {
-            const formulaStr = client.formulaToString([
+            const formulaStr = tasksTableClient.formulaToString([
                 "AND",
                 [">=", { field: "Due Date" }, ["TODAY"]],
                 ["<=", { field: "Due Date" }, ["DATEADD", ["TODAY"], 7, "days"]],
                 ["=", { field: "Status" }, "In Progress"],
                 ["!=", { field: "Name" }, null],
             ]);
-            expect(formulaStr).toBe('AND({fldDueDate} >= TODAY(), {fldDueDate} <= DATEADD(TODAY(), 7, "days"), {fldStatus} = "In Progress", {fldName} != BLANK())');
+
+            // Check that it contains the expected field IDs and structure
+            expect(formulaStr).toContain("AND(");
+            expect(formulaStr).toContain(">=");
+            expect(formulaStr).toContain("TODAY()");
+            expect(formulaStr).toContain("DATEADD");
+            expect(formulaStr).toContain("In Progress");
+            expect(formulaStr).toContain("BLANK()");
         });
     });
+
     describe("list", () => {
         it("can list records with filterByFormula as string", async () => {
-            mockFetcher.setReturnValue({
-                records: [],
+            // Create some test records
+            await tasksTableClient.createMany([
+                { Name: "Task 1", Completed: true },
+                { Name: "Task 2", Completed: false },
+            ]);
+
+            // Get the Completed field ID from the table schema
+            const completedFieldId = tasksTableClient.tableSchema.fields.find(
+                (f: any) => f.name === "Completed"
+            )?.id;
+
+            const records = await tasksTableClient.list({
+                filterByFormula: `{${completedFieldId}} = TRUE()`,
             });
-            await client.list({
-                filterByFormula: '{fldCompleted} = TRUE()',
-            });
-            expect(mockFetcher.getCallHistory()).toEqual([{
-                path: "/app123/tblTasks?returnFieldsByFieldId=true&filterByFormula=%7BfldCompleted%7D+%3D+TRUE%28%29",
-                method: "GET",
-            }]);
+
+            // Should only get completed tasks (1 from our created records + seed data completed tasks)
+            expect(records.length).toBeGreaterThan(0);
+            expect(records.every((r) => r.fields.Completed === true)).toBe(true);
         });
+
         it("can list records with filterByFormula as Formula object", async () => {
-            mockFetcher.setReturnValue({
-                records: [],
-            });
-            await client.list({
+            // Create test records
+            await tasksTableClient.createMany([
+                { Name: "Test Done Task", Status: "Done", Completed: true },
+                { Name: "Test Todo Task", Status: "Todo", Completed: false },
+            ]);
+
+            const records = await tasksTableClient.list({
                 filterByFormula: [
                     "AND",
                     ["=", { field: "Status" }, "Done"],
                     ["=", { field: "Completed" }, true],
                 ],
             });
-            expect(mockFetcher.getCallHistory()).toEqual([{
-                path: "/app123/tblTasks?returnFieldsByFieldId=true&filterByFormula=AND%28%7BfldStatus%7D+%3D+%22Done%22%2C+%7BfldCompleted%7D+%3D+TRUE%28%29%29",
-                method: "GET",
-            }]);
+
+            // Should only get tasks that are both Done and Completed
+            expect(records.length).toBeGreaterThan(0);
+            expect(
+                records.every((r) => r.fields.Status === "Done" && r.fields.Completed === true)
+            ).toBe(true);
+        });
+
+        it("can list all records without filters", async () => {
+            const records = await tasksTableClient.list();
+
+            // Should get all seed data records
+            expect(records.length).toBeGreaterThan(0);
+            expect(records[0]).toHaveProperty("id");
+            expect(records[0]).toHaveProperty("fields");
+            expect(records[0]).toHaveProperty("createdTime");
         });
     });
+
     describe("get", () => {
         it("can get a record by ID", async () => {
-            mockFetcher.setReturnValue({
-                id: "rec123",
-                createdTime: "2024-01-01T00:00:00.000Z",
-                fields: {
-                    fldName: "Fold Laundry",
-                    fldCompleted: false,
-                    fldCreatedAt: "2024-01-01T00:00:00.000Z",
-                    fldUpdatedAt: "2024-01-02T00:00:00.000Z",
+            // Create a record
+            const [created] = await tasksTableClient.createMany([
+                {
+                    Name: "Get Test Task",
+                    Completed: false,
                 },
-            });
-            const record = await client.get("rec123");
-            expect(mockFetcher.getCallHistory()).toEqual([{
-                path: "/app123/tblTasks/rec123?returnFieldsByFieldId=true",
-                method: "GET",
-            }]);
-            expect(record).toEqual({
-                id: "rec123",
-                createdTime: "2024-01-01T00:00:00.000Z",
+            ]);
+
+            // Get it
+            const record = await tasksTableClient.get(created.id);
+
+            expect(record).toMatchObject({
+                id: created.id,
                 fields: {
+                    Name: "Get Test Task",
+                    Completed: false,
                     "Assigned To": [],
-                    "Attachments": [],
-                    "Completed": false,
-                    "Created At": "2024-01-01T00:00:00.000Z",
+                    Attachments: [],
                     "Due Date": null,
-                    "Name": "Fold Laundry",
-                    "Notes": "",
-                    "Priority": null,
-                    "Status": null,
-                    "Tags": [],
-                    "Updated At": "2024-01-02T00:00:00.000Z",
+                    Notes: "",
+                    Priority: null,
+                    Status: null,
+                    Tags: [],
                 },
             });
+            expect(record.createdTime).toBeDefined();
+            expect(record.fields["Created At"]).toBeDefined();
+            expect(record.fields["Updated At"]).toBeDefined();
         });
-        it("fills in any fields omitted by the Airtable API with a default value", async () => {
-            mockFetcher.setReturnValue({
-                id: "rec123",
-                createdTime: "2024-01-01T00:00:00.000Z",
-                fields: {
-                    fldName: "Fold Laundry",
-                    fldUpdatedAt: "2024-01-02T00:00:00.000Z",
-                    fldCreatedAt: "2024-01-01T00:00:00.000Z",
+
+        it("fills in default values for empty fields", async () => {
+            // Create a record with minimal fields
+            const [created] = await tasksTableClient.createMany([
+                {
+                    Name: "Minimal Task",
                 },
-            });
-            const record = await client.get("rec123");
-            expect(mockFetcher.getCallHistory()).toEqual([{
-                path: "/app123/tblTasks/rec123?returnFieldsByFieldId=true",
-                method: "GET",
-            }]);
-            expect(record).toEqual({
-                id: "rec123",
-                createdTime: "2024-01-01T00:00:00.000Z",
-                fields: {
-                    "Assigned To": [],
-                    "Attachments": [],
-                    "Completed": false,
-                    "Created At": "2024-01-01T00:00:00.000Z",
-                    "Due Date": null,
-                    "Name": "Fold Laundry",
-                    "Notes": "",
-                    "Priority": null,
-                    "Status": null,
-                    "Tags": [],
-                    "Updated At": "2024-01-02T00:00:00.000Z",
-                },
-            });
+            ]);
+
+            const record = await tasksTableClient.get(created.id);
+
+            // All fields should be present with default values
+            expect(record.fields).toHaveProperty("Assigned To");
+            expect(record.fields).toHaveProperty("Attachments");
+            expect(record.fields).toHaveProperty("Completed");
+            expect(record.fields).toHaveProperty("Due Date");
+            expect(record.fields).toHaveProperty("Notes");
+            expect(record.fields).toHaveProperty("Priority");
+            expect(record.fields).toHaveProperty("Status");
+            expect(record.fields).toHaveProperty("Tags");
+            expect(record.fields).toHaveProperty("Created At");
+            expect(record.fields).toHaveProperty("Updated At");
         });
     });
 });

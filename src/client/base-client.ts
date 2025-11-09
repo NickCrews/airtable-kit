@@ -12,7 +12,7 @@ type TableClients<T extends ReadonlyArray<TableSchema>> = {
  * This contains a value, `tables`, which is an object
  * mapping table names to their respective {@link TableClient}.
  */
-export interface BaseClient<T extends BaseSchema> {
+export interface BaseClient<T extends BaseSchema = any> {
     baseSchema: T;
     tables: TableClients<T["tables"]>;
 }

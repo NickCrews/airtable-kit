@@ -6,3 +6,6 @@ dist/
 .env.local
 .test
 docs
+
+# Generated test files
+src/tests/test-base-schema.generated.ts

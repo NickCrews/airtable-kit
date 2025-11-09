@@ -15,6 +15,7 @@ export {
     type TableSchema,
     type ViewSchema,
     type BaseSchema,
+    type WorkspaceId,
     type ViewType,
 } from "./types.ts";
 
