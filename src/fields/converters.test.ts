@@ -3,10 +3,10 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { BarcodeValue, MultipleAttachment, convertFieldForWrite, convertFieldForRead } from "./field-converters.ts";
+import { BarcodeValue, MultipleAttachment, convertFieldForWrite, convertFieldForRead } from "./converters.ts";
 import type { FieldSchema } from "../types.ts";
-import { MultipleSelects, SingleSelect } from "../fields/index.ts";
-import * as FIELDS from "../fields/_example-fields.ts";
+import { MultipleSelects, SingleSelect } from "./index.ts";
+import * as FIELDS from "./_example-fields.ts";
 
 describe("Converters", () => {
   describe("aiText", () => {

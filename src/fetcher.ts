@@ -100,3 +100,7 @@ export function createMockFetcher(): Fetcher & {
         },
     };
 }
+
+export function doFetch<T = unknown>(args: FetchArgs & { fetcher?: IntoFetcher }): Promise<T> {
+    return makeFetcher(args.fetcher).fetch<T>(args);
+}

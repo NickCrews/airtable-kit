@@ -4,9 +4,9 @@ import process from 'node:process';
 import fs from 'node:fs';
 
 import { BaseId } from "./types.ts";
-import { fetchAllSchemas, fetchBaseSchema } from "./client/index.ts";
+import { fetchAllSchemas, getBaseSchema } from "./bases/api.ts";
 import { generateCode } from "./codegen/index.ts";
-import { IntoFetcher } from './client/fetcher.ts';
+import { IntoFetcher } from './fetcher.ts';
 import { toIdentifier } from './codegen/identifiers.ts';
 
 import * as packageJson from '../package.json';
@@ -23,7 +23,7 @@ async function doCodegenBase({
   fetcher: IntoFetcher;
 }, console: Consolish = globalThis.console): Promise<void> {
   console.log("🔍 Fetching schema from Airtable...");
-  const baseSchema = await fetchBaseSchema({ baseId, fetcher });
+  const baseSchema = await getBaseSchema({ baseId, fetcher });
   const firstTable = baseSchema.tables[0];
 
   console.log(`✓ Found base with ${baseSchema.tables.length} tables`);

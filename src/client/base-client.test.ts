@@ -39,7 +39,5 @@ describe("BaseClient", () => {
         });
         expect(result[0].id).toMatch(/^rec/);
         expect(result[0].createdTime).toBeDefined();
-        expect(result[0].fields["Created At"]).toBeDefined();
-        expect(result[0].fields["Updated At"]).toBeDefined();
     });
 });

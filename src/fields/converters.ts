@@ -1,4 +1,4 @@
-import * as fields from "../fields/index.ts";
+import * as fields from "./index.ts";
 import { RecordId, type FieldSchema, type FieldType } from "../types.ts";
 import * as exceptions from "../exceptions.ts";
 

@@ -20,6 +20,23 @@ export {
 } from "./types.ts";
 
 export {
+    type Fetcher,
+    type IntoFetcher,
+    type FetchArgs,
+    type FetchFunction,
+    makeFetcher,
+} from "./fetcher.ts";
+
+export {
+    type GetBaseSchemaParams,
+    getBaseSchema,
+    type CreateBaseSchema,
+    type CreateBaseOptions,
+    createBase,
+    fetchAllSchemas
+} from "./bases/api.ts";
+
+export {
     type Formula,
     formulaToString,
 } from "./formula/index.ts";
@@ -27,12 +44,17 @@ export {
 export {
     convertFieldForRead,
     convertFieldForWrite,
-    convertRecordForRead,
-    convertRecordForWrite,
     type FieldRead,
     type FieldWrite,
+} from "./fields/converters.ts";
+export {
     type RecordRead,
     type RecordWrite,
+    convertRecordForRead,
+    convertRecordForWrite,
+} from "./records/index.ts";
+
+export {
     makeTableClient,
     makeBaseClient,
     makeOrgClient,
@@ -42,10 +64,6 @@ export {
     type BaseClientOptions,
     type OrgClient,
     type OrgClientOptions,
-    type Fetcher,
-    type IntoFetcher,
-    makeFetcher,
-    fetchBaseSchema,
 } from "./client/index.ts";
 
 export {

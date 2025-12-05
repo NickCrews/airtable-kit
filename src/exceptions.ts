@@ -1,5 +1,5 @@
-import { ListRecordsOptions } from "./client/table-client.ts";
 import { FieldSchema } from "./fields/types.ts";
+import { ListRecordsOptions } from "./records/api.ts";
 import { FieldId } from "./types.ts";
 
 export class AirtableKitError extends Error {

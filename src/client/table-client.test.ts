@@ -17,51 +17,48 @@ describe("TableClient", () => {
         it("can create records", async () => {
             const response = await tasksTableClient.createMany([
                 {
-                    Name: "Fold Laundry",
-                    Completed: false,
-                    Notes: undefined, // should be ignored
-                    Status: null, // should be ignored
+                    name: "Fold Laundry",
+                    completed: false,
+                    notes: undefined, // should be ignored
+                    status: null, // should be ignored
                 },
             ]);
 
             expect(response).toHaveLength(1);
             expect(response[0]).toMatchObject({
                 fields: {
-                    Name: "Fold Laundry",
-                    Completed: false,
-                    "Assigned To": [],
-                    Attachments: [],
-                    "Due Date": null,
-                    Notes: "",
-                    Priority: null,
-                    Status: null,
-                    Tags: [],
+                    name: "Fold Laundry",
+                    completed: false,
+                    attachments: [],
+                    dueDate: null,
+                    notes: "",
+                    priority: null,
+                    status: null,
+                    tags: [],
                 },
             });
             expect(response[0].id).toMatch(/^rec/);
             expect(response[0].createdTime).toBeDefined();
-            expect(response[0].fields["Created At"]).toBeDefined();
-            expect(response[0].fields["Updated At"]).toBeDefined();
         });
 
         it("can create records with select options by name", async () => {
             const response = await tasksTableClient.createMany([
                 {
-                    Name: "Test Task",
-                    Status: "In Progress",
+                    name: "Test Task",
+                    status: "In Progress",
                 },
             ]);
 
             expect(response).toHaveLength(1);
-            expect(response[0].fields.Status).toBe("In Progress");
+            expect(response[0].fields.status).toBe("In Progress");
         });
 
         it("rejects invalid select options", async () => {
             await expect(
                 tasksTableClient.createMany([
                     {
-                        Name: "Test Task",
-                        Status: "InvalidStatus" as any, // invalid select option
+                        name: "Test Task",
+                        status: "InvalidStatus" as any, // invalid select option
                     },
                 ])
             ).rejects.toThrow();
@@ -78,8 +75,8 @@ describe("TableClient", () => {
             // First create a record
             const [created] = await tasksTableClient.createMany([
                 {
-                    Name: "Task to Update",
-                    Completed: false,
+                    name: "Task to Update",
+                    completed: false,
                 },
             ]);
 
@@ -88,10 +85,10 @@ describe("TableClient", () => {
                 {
                     id: created.id,
                     fields: {
-                        Name: "Updated Task Name",
-                        Completed: true,
-                        Notes: undefined, // should be ignored
-                        "Due Date": null, // should be cleared
+                        name: "Updated Task Name",
+                        completed: true,
+                        notes: undefined, // should be ignored
+                        dueDate: null, // should be cleared
                     },
                 },
             ]);
@@ -100,9 +97,9 @@ describe("TableClient", () => {
             expect(result.records[0]).toMatchObject({
                 id: created.id,
                 fields: {
-                    Name: "Updated Task Name",
-                    Completed: true,
-                    "Due Date": null,
+                    name: "Updated Task Name",
+                    completed: true,
+                    dueDate: null,
                 },
             });
         });
@@ -113,7 +110,7 @@ describe("TableClient", () => {
             // Create a record
             const [created] = await tasksTableClient.createMany([
                 {
-                    Name: "Task to Delete",
+                    name: "Task to Delete",
                 },
             ]);
 
@@ -138,10 +135,10 @@ describe("TableClient", () => {
         it("can convert formula objects to strings", () => {
             const formulaStr = tasksTableClient.formulaToString([
                 "AND",
-                [">=", { field: "Due Date" }, ["TODAY"]],
-                ["<=", { field: "Due Date" }, ["DATEADD", ["TODAY"], 7, "days"]],
-                ["=", { field: "Status" }, "In Progress"],
-                ["!=", { field: "Name" }, null],
+                [">=", { field: "dueDate" }, ["TODAY"]],
+                ["<=", { field: "dueDate" }, ["DATEADD", ["TODAY"], 7, "days"]],
+                ["=", { field: "status" }, "In Progress"],
+                ["!=", { field: "name" }, null],
             ]);
 
             // Check that it contains the expected field IDs and structure
@@ -158,13 +155,13 @@ describe("TableClient", () => {
         it("can list records with filterByFormula as string", async () => {
             // Create some test records
             await tasksTableClient.createMany([
-                { Name: "Task 1", Completed: true },
-                { Name: "Task 2", Completed: false },
+                { name: "Task 1", completed: true },
+                { name: "Task 2", completed: false },
             ]);
 
-            // Get the Completed field ID from the table schema
+            // Get the completed field ID from the table schema
             const completedFieldId = tasksTableClient.tableSchema.fields.find(
-                (f: any) => f.name === "Completed"
+                (f: any) => f.name === "completed"
             )?.id;
 
             const records = await tasksTableClient.list({
@@ -173,28 +170,28 @@ describe("TableClient", () => {
 
             // Should only get completed tasks (1 from our created records + seed data completed tasks)
             expect(records.length).toBeGreaterThan(0);
-            expect(records.every((r) => r.fields.Completed === true)).toBe(true);
+            expect(records.every((r) => r.fields.completed === true)).toBe(true);
         });
 
         it("can list records with filterByFormula as Formula object", async () => {
             // Create test records
             await tasksTableClient.createMany([
-                { Name: "Test Done Task", Status: "Done", Completed: true },
-                { Name: "Test Todo Task", Status: "Todo", Completed: false },
+                { name: "Test Done Task", status: "Done", completed: true },
+                { name: "Test Todo Task", status: "Todo", completed: false },
             ]);
 
             const records = await tasksTableClient.list({
                 filterByFormula: [
                     "AND",
-                    ["=", { field: "Status" }, "Done"],
-                    ["=", { field: "Completed" }, true],
+                    ["=", { field: "status" }, "Done"],
+                    ["=", { field: "completed" }, true],
                 ],
             });
 
             // Should only get tasks that are both Done and Completed
             expect(records.length).toBeGreaterThan(0);
             expect(
-                records.every((r) => r.fields.Status === "Done" && r.fields.Completed === true)
+                records.every((r) => r.fields.status?.name === "Done" && r.fields.completed === true)
             ).toBe(true);
         });
 
@@ -214,8 +211,8 @@ describe("TableClient", () => {
             // Create a record
             const [created] = await tasksTableClient.createMany([
                 {
-                    Name: "Get Test Task",
-                    Completed: false,
+                    name: "Get Test Task",
+                    completed: false,
                 },
             ]);
 
@@ -225,43 +222,37 @@ describe("TableClient", () => {
             expect(record).toMatchObject({
                 id: created.id,
                 fields: {
-                    Name: "Get Test Task",
-                    Completed: false,
-                    "Assigned To": [],
-                    Attachments: [],
-                    "Due Date": null,
-                    Notes: "",
-                    Priority: null,
-                    Status: null,
-                    Tags: [],
+                    name: "Get Test Task",
+                    completed: false,
+                    attachments: [],
+                    dueDate: null,
+                    notes: "",
+                    priority: null,
+                    status: null,
+                    tags: [],
                 },
             });
             expect(record.createdTime).toBeDefined();
-            expect(record.fields["Created At"]).toBeDefined();
-            expect(record.fields["Updated At"]).toBeDefined();
         });
 
         it("fills in default values for empty fields", async () => {
             // Create a record with minimal fields
             const [created] = await tasksTableClient.createMany([
                 {
-                    Name: "Minimal Task",
+                    name: "Minimal Task",
                 },
             ]);
 
             const record = await tasksTableClient.get(created.id);
 
             // All fields should be present with default values
-            expect(record.fields).toHaveProperty("Assigned To");
-            expect(record.fields).toHaveProperty("Attachments");
-            expect(record.fields).toHaveProperty("Completed");
-            expect(record.fields).toHaveProperty("Due Date");
-            expect(record.fields).toHaveProperty("Notes");
-            expect(record.fields).toHaveProperty("Priority");
-            expect(record.fields).toHaveProperty("Status");
-            expect(record.fields).toHaveProperty("Tags");
-            expect(record.fields).toHaveProperty("Created At");
-            expect(record.fields).toHaveProperty("Updated At");
+            expect(record.fields).toHaveProperty("attachments");
+            expect(record.fields).toHaveProperty("completed");
+            expect(record.fields).toHaveProperty("dueDate");
+            expect(record.fields).toHaveProperty("notes");
+            expect(record.fields).toHaveProperty("priority");
+            expect(record.fields).toHaveProperty("status");
+            expect(record.fields).toHaveProperty("tags");
         });
     });
 });

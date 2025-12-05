@@ -44,7 +44,7 @@
     "build": "zshy && cp README.md dist/README.md && cp LICENSE dist/LICENSE",
     "build:watch": "pnpx onchange@7.1.0 \"src/**\" -- pnpm run build",
     "pub": "npm run build && npm publish",
-    "create-test-base": "pnpx tsx scripts/create-test-base.ts"
+    "ensure-test-base": "pnpx tsx src/tests/test-base.ts"
   },
   "peerDependencies": {
     "zod": "^4"
@@ -56,6 +56,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
+    "dotenv": "^17.2.3",
     "typescript": "^5.7.2",
     "vitest": "~2.1.9",
     "zod": "^4",

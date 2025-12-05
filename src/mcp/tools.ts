@@ -10,7 +10,7 @@ import {
   type ListRecordsOptions,
   type ListRecordsResponse,
 } from '../client/table-client.ts';
-import { type RecordRead, type RecordWrite } from '../client/record-converters.ts';
+import { type RecordRead, type RecordWrite } from '../records/converters.ts';
 import * as z4 from 'zod/v4';
 import { makeRecordWriteValidator } from '../validators/schema-to-zod.ts';
 import { toIdentifier } from '../codegen/identifiers.ts';
