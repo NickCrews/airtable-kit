@@ -108,7 +108,15 @@ describe('Field to Zod Conversion', () => {
     });
 
     it('should throw error for rollup (read-only)', () => {
-      const field: FieldSchema = { id: 'fld1', name: 'Rollup', type: 'rollup' };
+      const field: FieldSchema = {
+        id: 'fld1',
+        name: 'Rollup',
+        type: 'rollup',
+        options: {
+          result: { type: 'number' },
+          isValid: true,
+        },
+      };
       const schema = makeFieldWriteValidator(field);
       expect(schema.type).toBe('never');
       expect(() => schema.parse('any value')).toThrow();
