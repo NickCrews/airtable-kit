@@ -459,7 +459,7 @@ function partitionIntoInitialAndPostCreateFields(
     };
 }
 
-async function createField({
+async function _createField({
     baseId,
     tableId,
     field,

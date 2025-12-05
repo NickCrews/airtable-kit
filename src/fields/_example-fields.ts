@@ -1,4 +1,3 @@
-import { is } from 'zod/locales';
 import * as fields from './index.ts';
 
 export const AI_TEXT = {

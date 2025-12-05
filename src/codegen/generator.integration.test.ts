@@ -6,7 +6,6 @@
 import { describe, it, expect } from 'vitest';
 import { generateCode } from './index.ts';
 import taskBase from '../tests/taskBase.ts';
-import { de } from 'zod/locales';
 
 describe('Code Generator Integration', () => {
   it('should match snapshot with no options', async () => {

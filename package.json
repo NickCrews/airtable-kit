@@ -44,7 +44,9 @@
     "build": "zshy && cp README.md dist/README.md && cp LICENSE dist/LICENSE",
     "build:watch": "pnpx onchange@7.1.0 \"src/**\" -- pnpm run build",
     "pub": "npm run build && npm publish",
-    "create-test-base": "pnpx tsx scripts/create-test-base.ts"
+    "create-test-base": "pnpx tsx scripts/create-test-base.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "peerDependencies": {
     "zod": "^4"
@@ -55,8 +57,12 @@
     }
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/eslint__js": "^9.14.0",
     "@types/node": "^22.10.5",
+    "eslint": "^9.39.1",
     "typescript": "^5.7.2",
+    "typescript-eslint": "^8.48.1",
     "vitest": "~2.1.9",
     "zod": "^4",
     "zshy": "^0.4.4"

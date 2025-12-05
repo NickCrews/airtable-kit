@@ -1,4 +1,4 @@
-import { type RecordId, type BaseId, type TableId, type TableSchema, type FieldSchema, FieldId, AttachmentId, BaseSchema } from "../types.ts";
+import { type RecordId, type BaseId, type TableId, type TableSchema, type FieldSchema, FieldId, AttachmentId } from "../types.ts";
 import { Fetcher, IntoFetcher } from "./fetcher.ts";
 import {
     convertRecordForWrite,

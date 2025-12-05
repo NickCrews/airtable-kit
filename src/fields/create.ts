@@ -1,6 +1,6 @@
 import * as fields from './index.ts'
 
-const CREATE_FIELD_SCHEMAS = {
+const _CREATE_FIELD_SCHEMAS = {
     aiText: null as unknown as fields.AiTextSchemaCreate,
     autoNumber: null as unknown as fields.AutoNumberSchemaCreate,
     barcode: null as unknown as fields.BarcodeSchemaCreate,
@@ -50,4 +50,4 @@ const CREATE_FIELD_SCHEMAS = {
  * - without the ID
  * - the the options being required (if relevant for that type)
 */
-export type CreateFieldSchema = typeof CREATE_FIELD_SCHEMAS[keyof typeof CREATE_FIELD_SCHEMAS];
+export type CreateFieldSchema = typeof _CREATE_FIELD_SCHEMAS[keyof typeof _CREATE_FIELD_SCHEMAS];

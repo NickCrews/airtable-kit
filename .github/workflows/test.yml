@@ -77,6 +77,31 @@ jobs:
           name: airtable-kit-coverage
         continue-on-error: true
 
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint
+        run: pnpm lint
+
   validate-package:
     name: Validate Package Structure
     runs-on: ubuntu-latest
@@ -121,19 +146,21 @@ jobs:
   all-checks-passed:
     name: All Checks Passed
     runs-on: ubuntu-latest
-    needs: [test, coverage, validate-package]
+    needs: [test, coverage, lint, validate-package]
     if: always()
 
     steps:
       - name: Check all jobs
         run: |
           if [[ "${{ needs.test.result }}" == "success" && \
+                "${{ needs.lint.result }}" == "success" && \
                 "${{ needs.validate-package.result }}" == "success" ]]; then
             echo "✅ All required checks passed!"
           else
             echo "❌ Some checks failed"
             echo "test: ${{ needs.test.result }}"
             echo "coverage: ${{ needs.coverage.result }}"
+            echo "lint: ${{ needs.lint.result }}"
             echo "validate-package: ${{ needs.validate-package.result }}"
             exit 1
           fi

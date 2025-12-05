@@ -5,7 +5,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { type BaseSchema } from "../types.ts";
-import { fetchBaseSchema } from "../client/index.ts";
 import { toIdentifier } from "./identifiers.ts";
 
 export interface CodegenOptions {

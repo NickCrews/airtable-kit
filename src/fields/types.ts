@@ -1,6 +1,6 @@
 import * as fields from "./index.ts";
 
-const FIELD_SCHEMAS = {
+const _FIELD_SCHEMAS = {
   aiText: null as unknown as fields.AiText,
   autoNumber: null as unknown as fields.AutoNumber,
   barcode: null as unknown as fields.Barcode,
@@ -53,7 +53,7 @@ const FIELD_SCHEMAS = {
  *    During Zod validator generation, this is added as a description to the Zod schema,
  *    so that it shows up in any generate JSON Schema or OpenAPI docs.
  */
-export type FieldSchema = typeof FIELD_SCHEMAS[keyof typeof FIELD_SCHEMAS];
+export type FieldSchema = typeof _FIELD_SCHEMAS[keyof typeof _FIELD_SCHEMAS];
 /**
  * One of the string type codes from the [Airtable API](https://airtable.com/developers/web/api/field-model), eg 'singleSelect'
  */
