@@ -45,7 +45,7 @@ export interface AiTextSchemaRead extends AiText {
     referencedFieldIds: Array<FieldId>
   }
 }
-export type AiTextSchemaWrite = never
+export type AiTextSchemaCreate = never
 
 export type AiTextValueRead = {
   state: "empty" | "loading" | "generated";
@@ -57,7 +57,7 @@ export type AiTextValueRead = {
   isStale: boolean;
   value: string | null;
 };
-export type AiTextValueWrite = never
+export type AiTextValueCreate = never
 
 export interface AutoNumber {
   id: FieldId;
@@ -66,11 +66,7 @@ export interface AutoNumber {
   description?: string;
 }
 export type AutoNumberSchemaRead = AutoNumber
-export interface AutoNumberSchemaWrite {
-  name: string;
-  description?: string;
-  type: "autoNumber";
-}
+export type AutoNumberSchemaCreate = Omit<AutoNumber, "id">;
 
 export interface Barcode {
   id: FieldId;
@@ -79,7 +75,7 @@ export interface Barcode {
   type: "barcode";
 }
 export type BarcodeSchemaRead = Barcode;
-export type BarcodeSchemaWrite = Omit<Barcode, "id">;
+export type BarcodeSchemaCreate = Omit<Barcode, "id">;
 export interface Button {
   id: FieldId;
   name: string;
@@ -87,7 +83,7 @@ export interface Button {
   description?: string;
 }
 export type ButtonSchemaRead = Button;
-export type ButtonSchemaWrite = Omit<Button, "id">;
+export type ButtonSchemaCreate = Omit<Button, "id">;
 type CheckboxIcon =
   | "check"
   | "xCheckbox"
@@ -112,7 +108,7 @@ export interface CheckboxSchemaRead extends Checkbox {
     color: BrightColor;
   }
 }
-export type CheckboxSchemaWrite = Omit<CheckboxSchemaRead, "id">
+export type CheckboxSchemaCreate = Omit<CheckboxSchemaRead, "id">
 
 export interface Count {
   id: FieldId;
@@ -132,7 +128,7 @@ export interface CountSchemaRead extends Count {
     recordLinkFieldId?: FieldId | null;
   };
 }
-export type CountSchemaWrite = Omit<CountSchemaRead, "id">
+export type CountSchemaCreate = Omit<CountSchemaRead, "id">
 export interface CreatedBy {
   id: FieldId;
   name: string;
@@ -140,7 +136,7 @@ export interface CreatedBy {
   type: "createdBy";
 }
 export type CreatedBySchemaRead = CreatedBy;
-export type CreatedBySchemaWrite = Omit<CreatedBy, "id">;
+export type CreatedBySchemaCreate = Omit<CreatedBy, "id">;
 export interface CreatedTime {
   id: FieldId;
   name: string;
@@ -148,7 +144,7 @@ export interface CreatedTime {
   type: "createdTime";
 }
 export type CreatedTimeSchemaRead = CreatedTime;
-export type CreatedTimeSchemaWrite = Omit<CreatedTime, "id">;
+export type CreatedTimeSchemaCreate = Omit<CreatedTime, "id">;
 export interface Currency {
   id: FieldId;
   name: string;
@@ -167,7 +163,7 @@ export interface CurrencySchemaRead extends Currency {
     symbol: string;
   };
 }
-export type CurrencySchemaWrite = Omit<CurrencySchemaRead, "id">;
+export type CurrencySchemaCreate = Omit<CurrencySchemaRead, "id">;
 
 type DateFormatName = "local" | "friendly" | "us" | "european" | "iso";
 type DateFormatFormat = "l" | "LL" | "M/D/YYYY" | "D/M/YYYY" | "YYYY-MM-DD";
@@ -192,7 +188,7 @@ export interface DateSchemaRead {
     };
   };
 }
-export interface DateSchemaWrite {
+export interface DateSchemaCreate {
   name: string;
   type: "date";
   description?: string;
@@ -224,7 +220,7 @@ export interface DateTimeSchemaRead extends DateTime {
     }
   };
 }
-export interface DateTimeSchemaWrite {
+export interface DateTimeSchemaCreate {
   name: string;
   description?: string;
   type: "dateTime";
@@ -258,7 +254,7 @@ export interface DurationSchemaRead extends Duration {
     | "h:mm:ss.SSS";
   };
 }
-export type DurationSchemaWrite = Omit<DurationSchemaRead, "id">;
+export type DurationSchemaCreate = Omit<DurationSchemaRead, "id">;
 
 export interface Email {
   id: FieldId;
@@ -267,7 +263,7 @@ export interface Email {
   type: "email";
 }
 export type EmailSchemaRead = Email;
-export type EmailSchemaWrite = Omit<Email, "id">;
+export type EmailSchemaCreate = Omit<Email, "id">;
 export interface ExternalSyncSource {
   id: FieldId;
   name: string;
@@ -275,7 +271,7 @@ export interface ExternalSyncSource {
   type: "externalSyncSource";
 }
 export type ExternalSyncSourceSchemaRead = ExternalSyncSource;
-export type ExternalSyncSourceSchemaWrite = never;
+export type ExternalSyncSourceSchemaCreate = never;
 export interface Formula {
   id: FieldId;
   name: string;
@@ -299,7 +295,7 @@ export interface FormulaSchemaRead extends Formula {
   };
 }
 // TODO: is this correct?
-export interface FormulaSchemaWrite {
+export interface FormulaSchemaCreate {
   name: string;
   description?: string;
   type: "formula";
@@ -307,6 +303,7 @@ export interface FormulaSchemaWrite {
     formula: string;
   };
 }
+// https://airtable.com/developers/web/api/field-model#lastmodifiedby
 export interface LastModifiedBy {
   id: FieldId;
   name: string;
@@ -314,7 +311,8 @@ export interface LastModifiedBy {
   type: "lastModifiedBy";
 }
 export type LastModifiedBySchemaRead = LastModifiedBy;
-export type LastModifiedBySchemaWrite = Omit<LastModifiedBy, "id">;
+export type LastModifiedBySchemaCreate = never;
+// https://airtable.com/developers/web/api/field-model#lastmodifiedtime
 export interface LastModifiedTime {
   id: FieldId;
   name: string;
@@ -322,7 +320,7 @@ export interface LastModifiedTime {
   type: "lastModifiedTime";
 }
 export type LastModifiedTimeSchemaRead = LastModifiedTime;
-export type LastModifiedTimeSchemaWrite = never;
+export type LastModifiedTimeSchemaCreate = never;
 export interface MultilineText {
   id: FieldId;
   name: string;
@@ -330,7 +328,7 @@ export interface MultilineText {
   type: "multilineText";
 }
 export type MultilineTextSchemaRead = MultilineText;
-export type MultilineTextSchemaWrite = Omit<MultilineText, "id">;
+export type MultilineTextSchemaCreate = Omit<MultilineText, "id">;
 export interface MultipleAttachments {
   id: FieldId;
   name: string;
@@ -345,7 +343,7 @@ export interface MultipleAttachmentsSchemaRead extends MultipleAttachments {
     isReversed: boolean;
   };
 }
-export interface MultipleAttachmentsSchemaWrite {
+export interface MultipleAttachmentsSchemaCreate {
   name: string;
   description?: string;
   type: "multipleAttachments";
@@ -357,7 +355,7 @@ export interface MultipleCollaborators {
   type: "multipleCollaborators";
 }
 export type MultipleCollaboratorsSchemaRead = MultipleCollaborators;
-export type MultipleCollaboratorsSchemaWrite = Omit<MultipleCollaborators, "id">;
+export type MultipleCollaboratorsSchemaCreate = Omit<MultipleCollaborators, "id">;
 export interface MultipleLookupValues {
   id: FieldId;
   name: string;
@@ -382,7 +380,7 @@ export interface MultipleLookupValuesSchemaRead extends MultipleLookupValues {
     isValid: boolean;
   };
 }
-export interface MultipleLookupValuesSchemaWrite {
+export interface MultipleLookupValuesSchemaCreate {
   name: string;
   description?: string;
   type: "multipleLookupValues";
@@ -412,7 +410,7 @@ export interface MultipleRecordLinksSchemaRead extends MultipleRecordLinks {
     isReversed: boolean;
   };
 }
-export interface MultipleRecordLinksSchemaWrite {
+export interface MultipleRecordLinksSchemaCreate {
   name: string;
   description?: string;
   type: "multipleRecordLinks"
@@ -440,7 +438,7 @@ export interface MultipleSelectsSchemaRead<C extends SelectChoiceSchemaRead = Se
     choices: readonly C[];
   };
 }
-export interface MultipleSelectsSchemaWrite<C extends SelectChoiceSchemaWrite = SelectChoiceSchemaWrite> {
+export interface MultipleSelectsSchemaCreate<C extends SelectChoiceSchemaWrite = SelectChoiceSchemaWrite> {
   name: string;
   description?: string;
   type: "multipleSelects";
@@ -469,7 +467,7 @@ export interface NumberSchemaRead {
     precision: number;
   };
 }
-export type NumberSchemaWrite = Omit<NumberSchemaRead, "id">
+export type NumberSchemaCreate = Omit<NumberSchemaRead, "id">
 export interface Percent {
   id: FieldId;
   name: string;
@@ -486,7 +484,7 @@ export interface PercentSchemaRead extends Percent {
     precision: number;
   };
 }
-export type PercentSchemaWrite = Omit<PercentSchemaRead, "id">;
+export type PercentSchemaCreate = Omit<PercentSchemaRead, "id">;
 export interface PhoneNumber {
   id: FieldId;
   name: string;
@@ -494,7 +492,7 @@ export interface PhoneNumber {
   type: "phoneNumber";
 }
 export type PhoneNumberSchemaRead = PhoneNumber;
-export type PhoneNumberSchemaWrite = Omit<PhoneNumber, "id">;
+export type PhoneNumberSchemaCreate = Omit<PhoneNumber, "id">;
 export interface Rating {
   id: FieldId;
   name: string;
@@ -513,7 +511,7 @@ export interface RatingSchemaRead extends Rating {
     color: BrightColor;
   };
 }
-export type RatingSchemaWrite = Omit<RatingSchemaRead, "id">;
+export type RatingSchemaCreate = Omit<RatingSchemaRead, "id">;
 export interface RichText {
   id: FieldId;
   name: string;
@@ -521,7 +519,7 @@ export interface RichText {
   type: "richText";
 }
 export type RichTextSchemaRead = RichText;
-export type RichTextSchemaWrite = Omit<RichText, "id">;
+export type RichTextSchemaCreate = Omit<RichText, "id">;
 export interface Rollup {
   id: FieldId;
   name: string;
@@ -546,7 +544,7 @@ export interface RollupSchemaRead extends Rollup {
     isValid: boolean;
   };
 }
-export type RollupSchemaWrite = Omit<RollupSchemaRead, "id">;
+export type RollupSchemaCreate = Omit<RollupSchemaRead, "id">;
 export interface SingleCollaborator {
   id: FieldId;
   name: string;
@@ -554,7 +552,7 @@ export interface SingleCollaborator {
   type: "singleCollaborator";
 }
 export type SingleCollaboratorSchemaRead = SingleCollaborator;
-export type SingleCollaboratorSchemaWrite = Omit<SingleCollaborator, "id">;
+export type SingleCollaboratorSchemaCreate = Omit<SingleCollaborator, "id">;
 export interface SingleLineText {
   id: FieldId;
   name: string;
@@ -562,7 +560,7 @@ export interface SingleLineText {
   type: "singleLineText";
 }
 export type SingleLineTextSchemaRead = SingleLineText;
-export type SingleLineTextSchemaWrite = Omit<SingleLineText, "id">;
+export type SingleLineTextSchemaCreate = Omit<SingleLineText, "id">;
 export interface SingleSelect<C extends SelectChoice = SelectChoice> {
   id: FieldId;
   name: string;
@@ -581,7 +579,7 @@ export interface SingleSelectSchemaRead<C extends SelectChoiceSchemaRead = Selec
     choices: readonly C[];
   };
 }
-export interface SingleSelectSchemaWrite<C extends SelectChoiceSchemaWrite = SelectChoiceSchemaWrite> {
+export interface SingleSelectSchemaCreate<C extends SelectChoiceSchemaWrite = SelectChoiceSchemaWrite> {
   name: string;
   description?: string;
   type: "singleSelect";
@@ -596,4 +594,4 @@ export interface Url {
   type: "url";
 }
 export type UrlSchemaRead = Url;
-export type UrlSchemaWrite = Omit<Url, "id">;
+export type UrlSchemaCreate = Omit<Url, "id">;
