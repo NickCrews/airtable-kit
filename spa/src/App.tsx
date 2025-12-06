@@ -331,6 +331,9 @@ function App() {
                   <a href="https://airtable.com/create/tokens" target="_blank" rel="noopener noreferrer">
                     airtable.com/create/tokens
                   </a>
+                  .
+                  <br />
+                  It needs at least 'schema.bases:read' permission.
                 </p>
               </div>
 
@@ -471,6 +474,16 @@ function App() {
                           <div class="tree-item base-item">
                             <div class="tree-label">
                               <span class="tree-name">{base.name}</span>
+                              <a
+                                href={`https://airtable.com/${base.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="tree-link"
+                                title="Open base in Airtable"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ExternalLink size={12} />
+                              </a>
                             </div>
                             <div class="tree-children">
                               <For each={base.tables}>
@@ -492,6 +505,16 @@ function App() {
                                           onChange={() => toggleTable(table.id)}
                                         />
                                         <span class="tree-name">{table.name}</span>
+                                        <a
+                                          href={`https://airtable.com/${base.id}/${table.id}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          class="tree-link"
+                                          title="Open table in Airtable"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <ExternalLink size={12} />
+                                        </a>
                                       </div>
 
                                       <Show when={isExpanded() && isSelected()}>

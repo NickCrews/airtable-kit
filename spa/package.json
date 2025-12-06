@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "airtable-kit": "workspace:*",
+    "lucide-solid": "^0.556.0",
     "solid-js": "^1.9.10"
   },
   "devDependencies": {
