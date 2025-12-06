@@ -569,7 +569,14 @@ function App() {
             <Show when={bases().length === 0}>
               <div class="content-empty">
                 <div class="empty-state">
-                  <p>No bases loaded</p>
+                  <p>Welcome!</p>
+                  <p style={{ "max-width": "600px" }}>
+                    Use this tool to generate the schema of your Airtable bases.
+                    Then, you can copy or download the generated code in .ts, .js, or .json
+                    formats to used in your{' '}
+                    <a href="https://github.com/NickCrews/airtable-kit" target="_blank" rel="noopener noreferrer">airtable-kit</a>
+                    {' '}projects.
+                  </p>
                   <button onClick={() => setShowKeyDialog(true)} class="add-key-btn">
                     🔑 Add API Key
                   </button>
