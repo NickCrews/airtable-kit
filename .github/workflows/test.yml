@@ -32,6 +32,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Write .env file from secrets
+        run: |
+          echo "update at https://github.com/NickCrews/airtable-kit/settings/secrets/actions/ENV_FILE_CONTENTS"
+          echo "${{ secrets.ENV_FILE_CONTENTS }}" > .env
+      
+      - name: Generate test base schema
+        run: |
+          pnpm ensure-test-base
+          cat src/tests/test-base-schema.generated.ts
+
       - name: Check types
         run: pnpm typecheck
 
@@ -48,11 +58,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Write .env file from secrets
-        run: |
-          echo "update at https://github.com/NickCrews/airtable-kit/settings/secrets/actions/ENV_FILE_CONTENTS"
-          echo "${{ secrets.ENV_FILE_CONTENTS }}" > .env
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -66,6 +71,11 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Write .env file from secrets
+        run: |
+          echo "update at https://github.com/NickCrews/airtable-kit/settings/secrets/actions/ENV_FILE_CONTENTS"
+          echo "${{ secrets.ENV_FILE_CONTENTS }}" > .env
       
       - name: Generate test base schema
         run: |
