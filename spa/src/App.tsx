@@ -38,7 +38,7 @@ function App() {
     tableIds: new Set(),
     fieldIdsByTable: new Map(),
   })
-  const [format, setFormat] = createSignal<'ts' | 'js'>('ts')
+  const [format, setFormat] = createSignal<'ts' | 'js' | 'json'>('ts')
   const [generatedCode, setGeneratedCode] = createSignal<string>('')
   const [copied, setCopied] = createSignal(false)
   const [addedKeys, setAddedKeys] = createSignal<AddedKey[]>([])
@@ -238,7 +238,12 @@ function App() {
     setError(null)
 
     try {
-      const code = await atk.codegen.generateCode(filteredBase, { format: format() })
+      let code: string
+      if (format() === 'json') {
+        code = JSON.stringify(filteredBase, null, 2)
+      } else {
+        code = await atk.codegen.generateCode(filteredBase, { format: format() as 'ts' | 'js' })
+      }
       setGeneratedCode(code)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate schema')
@@ -283,7 +288,7 @@ function App() {
   const downloadFile = () => {
     const base = bases().find((b) => b.id === selectedBaseId())
     const baseName = base ? atk.codegen.toIdentifier(base.name) : 'schema'
-    const ext = format()
+    const ext = format() === 'json' ? 'json' : format()
     const filename = `${baseName}.${ext}`
 
     const blob = new Blob([generatedCode()], { type: 'text/plain' })
@@ -401,6 +406,16 @@ function App() {
                   onChange={() => setFormat('js')}
                 />
                 JavaScript
+              </label>
+              <label class="radio-label">
+                <input
+                  type="radio"
+                  name="format"
+                  value="json"
+                  checked={format() === 'json'}
+                  onChange={() => setFormat('json')}
+                />
+                JSON
               </label>
             </div>
             <button onClick={copyToClipboard} class="action-btn" disabled={!generatedCode()}>
