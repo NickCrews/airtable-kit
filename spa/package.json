@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "deploy": "pnpx gh-pages -d dist -b gh-pages"
+    "publish-pages": "pnpx gh-pages -d dist -b gh-pages"
   },
   "dependencies": {
     "airtable-kit": "workspace:*",

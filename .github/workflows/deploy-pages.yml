@@ -43,5 +43,5 @@ jobs:
         working-directory: spa
 
       - name: Deploy to GitHub Pages
-        run: pnpm deploy
+        run: pnpm publish-pages
         working-directory: spa
