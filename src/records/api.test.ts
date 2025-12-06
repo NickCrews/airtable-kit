@@ -6,11 +6,12 @@ import testBaseSchema from "../tests/test-base-schema.generated.ts";
 
 dotenv.config();
 
-describe("Records API", () => {
+const hasApiKey = !!(process.env.AIRTABLE_KIT_TEST_API_KEY || process.env.AIRTABLE_API_KEY);
+const getApiKey = () => process.env.AIRTABLE_KIT_TEST_API_KEY || process.env.AIRTABLE_API_KEY;
+
+describe.skipIf(!hasApiKey)("Records API", () => {
     const tasksTable = testBaseSchema.tables.find((t) => t.name === "tasks")!;
     const linkedItemsTable = testBaseSchema.tables.find((t) => t.name === "linkedItems")!;
-
-    const getApiKey = () => process.env.AIRTABLE_KIT_TEST_API_KEY || process.env.AIRTABLE_API_KEY;
 
     beforeEach(async () => {
         const allRecords = await api.listRecords({

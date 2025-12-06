@@ -7,11 +7,20 @@ import {
   makeDeleteTool,
 } from './index.ts';
 import { testBaseClient } from '../tests/test-utils.ts';
+import dotenv from "dotenv";
 
-describe('MCP Tool - Create Tool', () => {
-  const { tasksTableClient, resetBaseData } = testBaseClient();
+dotenv.config();
+
+const hasApiKey = !!(process.env.AIRTABLE_KIT_TEST_API_KEY || process.env.AIRTABLE_API_KEY);
+
+describe.skipIf(!hasApiKey)('MCP Tool - Create Tool', () => {
+  let tasksTableClient: ReturnType<typeof testBaseClient>['tasksTableClient'];
+  let resetBaseData: ReturnType<typeof testBaseClient>['resetBaseData'];
 
   beforeEach(async () => {
+    const client = testBaseClient();
+    tasksTableClient = client.tasksTableClient;
+    resetBaseData = client.resetBaseData;
     await resetBaseData();
   });
 
@@ -47,10 +56,14 @@ describe('MCP Tool - Create Tool', () => {
   });
 });
 
-describe('MCP Tool - Update Tool', () => {
-  const { tasksTableClient, resetBaseData } = testBaseClient();
+describe.skipIf(!hasApiKey)('MCP Tool - Update Tool', () => {
+  let tasksTableClient: ReturnType<typeof testBaseClient>['tasksTableClient'];
+  let resetBaseData: ReturnType<typeof testBaseClient>['resetBaseData'];
 
   beforeEach(async () => {
+    const client = testBaseClient();
+    tasksTableClient = client.tasksTableClient;
+    resetBaseData = client.resetBaseData;
     await resetBaseData();
   });
 
@@ -105,10 +118,14 @@ describe('MCP Tool - Update Tool', () => {
   });
 });
 
-describe('MCP Tool - Get Tool', () => {
-  const { tasksTableClient, resetBaseData } = testBaseClient();
+describe.skipIf(!hasApiKey)('MCP Tool - Get Tool', () => {
+  let tasksTableClient: ReturnType<typeof testBaseClient>['tasksTableClient'];
+  let resetBaseData: ReturnType<typeof testBaseClient>['resetBaseData'];
 
   beforeEach(async () => {
+    const client = testBaseClient();
+    tasksTableClient = client.tasksTableClient;
+    resetBaseData = client.resetBaseData;
     await resetBaseData();
   });
 
@@ -139,8 +156,13 @@ describe('MCP Tool - Get Tool', () => {
   });
 });
 
-describe('MCP Tool - List Tool', () => {
-  const { tasksTableClient } = testBaseClient();
+describe.skipIf(!hasApiKey)('MCP Tool - List Tool', () => {
+  let tasksTableClient: ReturnType<typeof testBaseClient>['tasksTableClient'];
+
+  beforeEach(() => {
+    const client = testBaseClient();
+    tasksTableClient = client.tasksTableClient;
+  });
 
   it('should create a list tool with the correct metadata', () => {
     const listTool = makeListTool(tasksTableClient);
@@ -176,10 +198,14 @@ describe('MCP Tool - List Tool', () => {
   });
 });
 
-describe('MCP Tool - Delete Tool', () => {
-  const { tasksTableClient, resetBaseData } = testBaseClient();
+describe.skipIf(!hasApiKey)('MCP Tool - Delete Tool', () => {
+  let tasksTableClient: ReturnType<typeof testBaseClient>['tasksTableClient'];
+  let resetBaseData: ReturnType<typeof testBaseClient>['resetBaseData'];
 
   beforeEach(async () => {
+    const client = testBaseClient();
+    tasksTableClient = client.tasksTableClient;
+    resetBaseData = client.resetBaseData;
     await resetBaseData();
   });
 

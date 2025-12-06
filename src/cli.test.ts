@@ -11,15 +11,16 @@ import { makeInTmpDir } from './tests/inTmpDir.ts';
 
 describe('CLI', () => {
   const mockFetch = vi.fn(async (args: { path: string }) => {
-    if (args.path === '/meta/bases') {
+    if (args.path.startsWith('/meta/bases?')) {
       return {
         bases: [
           { id: 'appOne', name: 'Task Base', permissionLevel: 'edit' },
           { id: 'appTwo', name: 'Other Base', permissionLevel: 'edit' },
+          { id: 'appTestBase', name: 'Test Base', permissionLevel: 'edit' },
         ],
       };
     }
-    if (args.path === '/meta/bases/appOne/tables' || args.path === '/meta/bases/appTwo/tables') {
+    if (args.path === '/meta/bases/appOne/tables' || args.path === '/meta/bases/appTwo/tables' || args.path === '/meta/bases/appTestBase/tables') {
       return { tables: (tasksSchema as any).tables };
     }
     if (args.path.startsWith('/meta/bases/')) {
@@ -63,11 +64,11 @@ describe('CLI', () => {
       expect(fs.readFileSync(`${tmpDir}/schemas/frEvents.js`, 'utf-8')).toMatchSnapshot();
     });
 
-    it('should default outfile to ./<BASE_NAME>.ts when omitted', async (ctx) => {
+    it('should default outfile to ./<BASE_NAME>-schema.ts when omitted', async (ctx) => {
       const tmpDir = inTmpDir(ctx);
       await mockedCli(["codegen", "base", "appTestBase", "--api-key", "patTest123"]);
       expect(mockFetch).toHaveBeenCalledWith({ path: '/meta/bases/appTestBase/tables' });
-      expect(fs.readFileSync(`${tmpDir}/appTestBase.ts`, 'utf-8')).toMatchSnapshot();
+      expect(fs.readFileSync(`${tmpDir}/testBase-schema.ts`, 'utf-8')).toMatchSnapshot();
     });
 
     it('should generate all base schemas into outdir', async (ctx) => {
@@ -110,7 +111,7 @@ describe('CLI', () => {
       ).rejects.toThrow();
     });
 
-    it('should require api-key for codegen base command', async () => {
+    it.skipIf(!!process.env.AIRTABLE_API_KEY)('should require api-key for codegen base command', async () => {
       await expect(
         async () => await mockedCli(["codegen", "base", "appTestBase"])
       ).rejects.toThrow();

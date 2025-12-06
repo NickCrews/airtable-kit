@@ -1,10 +1,21 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { testBaseClient } from "../tests/test-utils.ts";
+import dotenv from "dotenv";
 
-describe("BaseClient", () => {
-    const { baseClient, resetBaseData } = testBaseClient();
+dotenv.config();
+
+const hasApiKey = !!(process.env.AIRTABLE_KIT_TEST_API_KEY || process.env.AIRTABLE_API_KEY);
+
+const describeOrSkip = hasApiKey ? describe : describe.skip;
+
+describeOrSkip("BaseClient", () => {
+    let baseClient: ReturnType<typeof testBaseClient>['baseClient'];
+    let resetBaseData: ReturnType<typeof testBaseClient>['resetBaseData'];
 
     beforeEach(async () => {
+        const client = testBaseClient();
+        baseClient = client.baseClient;
+        resetBaseData = client.resetBaseData;
         await resetBaseData();
     });
 

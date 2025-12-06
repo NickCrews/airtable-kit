@@ -36,13 +36,17 @@ type SingleSelectValidator<T extends f.SingleSelectSchemaRead | f.MultipleSelect
 type MultipleSelectValidator<T extends f.MultipleSelects> = z.ZodArray<SingleSelectValidator<T>>;
 
 function makeSingleSelectValidator<T extends f.SingleSelectSchemaRead>(field: T): SingleSelectValidator<T> {
-  const values = field.options.choices.map((c) => c.name);
-  return z.enum(values) as SingleSelectValidator<T>;
+  const names = field.options.choices.map((c) => c.name);
+  const ids = field.options.choices.map((c) => c.id);
+  const allValues = [...names, ...ids];
+  return z.enum(allValues as any) as SingleSelectValidator<T>;
 }
 
 function makeMultipleSelectValidator<T extends f.MultipleSelects>(field: T): MultipleSelectValidator<T> {
-  const values = field.options.choices.map((c) => c.name);
-  return z.array(z.enum(values)) as MultipleSelectValidator<T>;
+  const names = field.options.choices.map((c) => c.name);
+  const ids = field.options.choices.map((c) => c.id);
+  const allValues = [...names, ...ids];
+  return z.array(z.enum(allValues as any)) as MultipleSelectValidator<T>;
 }
 
 const writeValidators = {
