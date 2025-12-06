@@ -3,19 +3,14 @@
  */
 
 import type { RecordId, TableSchema } from '../types.ts';
-import {
-  type TableClient,
-  type UpdateRecordsOptions,
-  type UpdateRecordsResponse,
-  type ListRecordsOptions,
-  type ListRecordsResponse,
-} from '../client/table-client.ts';
+import { type TableClient } from '../client/table-client.ts';
 import { type RecordRead, type RecordWrite } from '../records/converters.ts';
 import * as z4 from 'zod/v4';
 import { makeRecordWriteValidator } from '../validators/schema-to-zod.ts';
 import { toIdentifier } from '../codegen/identifiers.ts';
 import { RecordIdSchema } from '../validators/index.ts';
 import { TIMEZONES } from '../fields/timezones.ts';
+import { ListRecordsOptions, ListRecordsResponse, UpdateRecordsOptions, UpdateRecordsResponse } from '../records/api.ts';
 
 export interface MCPToolDefinition<TInput = any, TOutput = any> {
   /**Must start with a letter or an underscore. Must be alphameric (a-z, A-Z, 0-9), underscores (_), dots (.), colons (:), or dashes (-), with a maximum length of 64 */
