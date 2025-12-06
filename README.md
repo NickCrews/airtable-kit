@@ -42,6 +42,12 @@ pnpm add airtable-kit
 
 ### Use Case 1: Statically Typed Client for a Known Base
 
+**Option A: Use the Web App (No Installation Required)**
+
+Visit [https://nickcrews.github.io/airtable-kit/](https://nickcrews.github.io/airtable-kit/) to generate schema files directly in your browser. Just enter your API key, select a base, and copy/download the generated code.
+
+**Option B: Use the CLI**
+
 Run the codegen CLI to fetch and save all your base schemas to local files:
 
 ```bash
