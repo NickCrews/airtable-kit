@@ -1,4 +1,4 @@
-import { createSignal, For, Show } from 'solid-js'
+import { createSignal, For, Show, onMount } from 'solid-js'
 import './App.css'
 
 interface BaseInfo {
@@ -28,6 +28,8 @@ interface BaseSchema {
   name: string
   tables: TableSchema[]
 }
+
+const STORAGE_KEY = 'airtable-kit:saved-api-keys'
 
 // Simple camelCase converter for identifiers (matches library behavior)
 function toIdentifier(name: string): string {
@@ -144,12 +146,57 @@ function App() {
   const [format, setFormat] = createSignal<'ts' | 'js'>('ts')
   const [generatedCode, setGeneratedCode] = createSignal<string>('')
   const [copied, setCopied] = createSignal(false)
+  const [savedKeys, setSavedKeys] = createSignal<string[]>([])
+
+  onMount(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (!raw) return
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) {
+        setSavedKeys(parsed.filter((k): k is string => typeof k === 'string'))
+      }
+    } catch {
+      setSavedKeys([])
+    }
+  })
+
+  const persistKeys = (keys: string[]) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(keys))
+    } catch { }
+  }
+
+  const rememberKey = (key: string) => {
+    if (!key) return
+    setSavedKeys((prev) => {
+      if (prev.includes(key)) return prev
+      const next = [key, ...prev]
+      persistKeys(next)
+      return next
+    })
+  }
+
+  const deleteKey = (key: string) => {
+    setSavedKeys((prev) => {
+      const next = prev.filter((k) => k !== key)
+      persistKeys(next)
+      if (apiKey() === key) setApiKey('')
+      return next
+    })
+  }
+
+  const displayKey = (key: string) => (key.length <= 10 ? key : `${key.slice(0, 4)}...${key.slice(-4)}`)
 
   const fetchBases = async () => {
-    if (!apiKey().trim()) {
+    const key = apiKey().trim()
+    if (!key) {
       setError('Please enter an API key')
       return
     }
+
+    rememberKey(key)
+    setApiKey(key)
 
     setLoading(true)
     setError(null)
@@ -158,8 +205,9 @@ function App() {
     setGeneratedCode('')
 
     try {
-      const fetchedBases = await listBases(apiKey())
+      const fetchedBases = await listBases(key)
       setBases(fetchedBases)
+      if (fetchedBases[0]) setSelectedBaseId(fetchedBases[0].id)
       if (fetchedBases.length === 0) {
         setError('No bases found. Make sure your API key has access to at least one base.')
       }
@@ -199,7 +247,7 @@ function App() {
 
   const copyToClipboard = async () => {
     const text = generatedCode()
-    
+
     // Try the modern Clipboard API first
     if (navigator.clipboard && window.isSecureContext) {
       try {
@@ -211,7 +259,7 @@ function App() {
         // Fall through to fallback
       }
     }
-    
+
     // Fallback for non-HTTPS environments
     try {
       const textarea = document.createElement('textarea')
@@ -234,7 +282,7 @@ function App() {
     const baseName = base ? toIdentifier(base.name) : 'schema'
     const ext = format()
     const filename = `${baseName}.${ext}`
-    
+
     const blob = new Blob([generatedCode()], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -276,6 +324,31 @@ function App() {
             {loading() ? 'Loading...' : 'Fetch Bases'}
           </button>
         </div>
+        <Show when={savedKeys().length > 0}>
+          <div class="saved-keys">
+            <div class="saved-keys-head">
+              <h3>Saved API Keys</h3>
+              <p class="hint">Stored locally in this browser.</p>
+            </div>
+            <ul class="saved-key-list">
+              <For each={savedKeys()}>
+                {(key) => (
+                  <li class="saved-key-row">
+                    <span class="saved-key-value">{displayKey(key)}</span>
+                    <div class="saved-key-actions">
+                      <button class="mini-btn" onClick={() => setApiKey(key)}>
+                        Use
+                      </button>
+                      <button class="mini-btn danger" onClick={() => deleteKey(key)}>
+                        Delete
+                      </button>
+                    </div>
+                  </li>
+                )}
+              </For>
+            </ul>
+          </div>
+        </Show>
       </section>
 
       <Show when={error()}>
@@ -290,7 +363,6 @@ function App() {
             onChange={(e) => setSelectedBaseId(e.currentTarget.value)}
             class="base-select"
           >
-            <option value="">Select a base...</option>
             <For each={bases()}>
               {(base) => (
                 <option value={base.id}>
