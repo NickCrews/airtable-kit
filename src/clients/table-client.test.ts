@@ -197,7 +197,7 @@ describe("TableClient", () => {
             // Should only get tasks that are both Done and Completed
             expect(records.length).toBeGreaterThan(0);
             expect(
-                records.every((r) => r.fields.status?.name === "Done" && r.fields.completed === true)
+                records.every((r) => r.fields.status === "Done" && r.fields.completed === true)
             ).toBe(true);
         });
 

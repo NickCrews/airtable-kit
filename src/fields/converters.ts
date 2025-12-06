@@ -392,11 +392,35 @@ const MultipleRecordLinksConverters = {
     RecordId[],
     FieldOfType<"multipleRecordLinks">
 >;
+/**
+* When reading from the API, we only get back the NAME of the select option,
+* we aren't given the selZZZZZZZZZZZZ ID.
+* Only the webhooks API provides the full choice object when reading select fields :(
+* 
+* Currently we error if we can't find the choice by name.
+* An alternative would be to return null, or the raw string value.
+* 
+* Or, we could even make it so this would trigger a fetch of the field schema's choices from the API,
+* but that would be an async operation, and would complicate this function significantly.
+* 
+* See
+* https://airtable.com/developers/web/api/field-model#select
+*/
+function convertFromReadSelectValue<C extends types.SelectChoiceSchemaRead>(
+    raw: string,
+    fieldSchema: types.SingleSelectSchemaRead<C> | types.MultipleSelectsSchemaRead<C>
+): C["name"] {
+    const foundChoiceByName = fieldSchema.options.choices.find((c) => c.name === raw);
+    if (foundChoiceByName) {
+        return raw;
+    }
+    throw new Error(`Choice "${raw}" not found in field "${fieldSchema.name}". Available choices: ${fieldSchema.options.choices.map((c) => c.name).join(", ")}`);
+}
 
 const MultipleSelectsConverters = {
     type: "multipleSelects",
     makeTo:
-        <C extends types.SelectChoice>(fieldSchema: types.MultipleSelects<C>) =>
+        <C extends types.SelectChoiceSchemaRead>(fieldSchema: types.MultipleSelectsSchemaRead<C>) =>
             (idsOrValues: Array<C["id"] | C["name"]> | null | undefined): Array<C["id"]> => {
                 if (!idsOrValues) return [];
                 const choices = fieldSchema.options.choices;
@@ -418,10 +442,10 @@ const MultipleSelectsConverters = {
                 });
             },
     makeFrom:
-        <C extends types.SelectChoice>(_fieldSchema: types.MultipleSelects<C>) =>
-            (value: unknown): C[] => {
+        <C extends types.SelectChoiceSchemaRead>(fieldSchema: types.MultipleSelectsSchemaRead<C>) =>
+            (value: unknown): Array<C["name"]> => {
                 if (!value) return [];
-                return value as C[];
+                return (value as Array<string>).map((item) => convertFromReadSelectValue(item, fieldSchema));
             },
 } as const;
 
@@ -536,8 +560,13 @@ const SingleSelectConverters = {
                 );
             },
     makeFrom:
-        <C extends types.SelectChoiceSchemaRead>(_fieldSchema: types.SingleSelectSchemaRead<C>) =>
-            (value: unknown): C => value as C,
+        <C extends types.SelectChoiceSchemaRead>(fieldSchema: types.SingleSelectSchemaRead<C>) =>
+            (value: unknown): C["name"] | null => {
+                if (value === null || value === undefined) {
+                    return null;
+                }
+                return convertFromReadSelectValue(value as string, fieldSchema);
+            },
 } as const;
 
 const UrlConverters = {
@@ -608,7 +637,7 @@ export type ValueFromRead<F extends Omit<FieldSchemaRead, "id" | "name">> =
     : F extends FieldOfType<"multipleCollaborators"> ? User[]
     : F extends FieldOfType<"multipleLookupValues"> ? MultipleLookupValuesReadType<F>
     : F extends FieldOfType<"multipleRecordLinks"> ? Array<RecordId>
-    : F extends types.MultipleSelects<infer C> ? Array<C>
+    : F extends types.MultipleSelectsSchemaRead<infer C> ? Array<C["name"]>
     : F extends FieldOfType<"number"> ? number | null
     : F extends FieldOfType<"percent"> ? number | null
     : F extends FieldOfType<"phoneNumber"> ? string
@@ -617,7 +646,7 @@ export type ValueFromRead<F extends Omit<FieldSchemaRead, "id" | "name">> =
     : F extends FieldOfType<"rollup"> ? RollupReadType<F>
     : F extends FieldOfType<"singleCollaborator"> ? User | null
     : F extends FieldOfType<"singleLineText"> ? string
-    : F extends types.SingleSelectSchemaRead<infer C> ? C | null
+    : F extends types.SingleSelectSchemaRead<infer C> ? C["name"] | null
     : F extends FieldOfType<"url"> ? string
     : never;
 
@@ -645,7 +674,7 @@ export type ValueForWrite<F extends FieldSchemaRead> = F extends FieldOfType<"ai
     : F extends FieldOfType<"multipleCollaborators"> ? ReadonlyArray<User> | null | undefined
     : F extends FieldOfType<"multipleLookupValues"> ? never
     : F extends FieldOfType<"multipleRecordLinks"> ? ReadonlyArray<RecordId> | null | undefined
-    : F extends types.MultipleSelects<infer C> ? ReadonlyArray<C["id"] | C["name"]> | null | undefined
+    : F extends types.MultipleSelectsSchemaRead<infer C> ? ReadonlyArray<C["id"] | C["name"]> | null | undefined
     : F extends FieldOfType<"number"> ? number | null | undefined
     : F extends FieldOfType<"percent"> ? number | null | undefined
     : F extends FieldOfType<"phoneNumber"> ? string | null | undefined

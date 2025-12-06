@@ -311,11 +311,11 @@ describe("Converters", () => {
       expect(() => convertValueForWrite(["invalid"], FIELDS.MULTIPLE_SELECTS)).toThrow();
     });
     it("multipleSelects should convert to array of choices for read", () => {
-      const choices = [
-        { id: "selGood", name: "good", color: "greenLight1" },
-        { id: "selBad", name: "bad", color: "redLight1" }
-      ];
-      expect(convertValueFromRead(choices, FIELDS.MULTIPLE_SELECTS)).toEqual(choices);
+      expect(convertValueFromRead(["good", "bad"], FIELDS.MULTIPLE_SELECTS)).toEqual(["good", "bad"]);
+      expect(convertValueFromRead([], FIELDS.MULTIPLE_SELECTS)).toEqual([]);
+      expect(convertValueFromRead(null, FIELDS.MULTIPLE_SELECTS)).toEqual([]);
+      expect(convertValueFromRead(undefined, FIELDS.MULTIPLE_SELECTS)).toEqual([]);
+      expect(() => convertValueFromRead(["selGood"], FIELDS.MULTIPLE_SELECTS)).toThrow();
     });
   });
   describe("number", () => {
@@ -419,9 +419,12 @@ describe("Converters", () => {
       // @ts-expect-error should be never
       expect(() => convertValueForWrite("invalid", FIELDS.SINGLE_SELECT)).toThrow();
     });
-    it("singleSelect should convert to choice for read", () => {
-      const choice = { id: "selTodo", name: "todo", color: "yellowLight1" };
-      expect(convertValueFromRead(choice, FIELDS.SINGLE_SELECT)).toEqual(choice);
+    it("singleSelect should convert choice names for read", () => {
+      expect(convertValueFromRead("todo", FIELDS.SINGLE_SELECT)).toEqual("todo");
+      expect(convertValueFromRead(null, FIELDS.SINGLE_SELECT)).toBeNull();
+      expect(convertValueFromRead(undefined, FIELDS.SINGLE_SELECT)).toBeNull();
+      expect(() => convertValueFromRead("selTodo", FIELDS.SINGLE_SELECT)).toThrow();
+      expect(() => convertValueFromRead("selTodo", FIELDS.SINGLE_SELECT)).toThrow();
     });
   });
   describe("url", () => {

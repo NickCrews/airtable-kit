@@ -16,11 +16,6 @@ import { FieldId, TableId, type SelectId } from "../types.ts";
 
 type FieldTypeAndOptions = Omit<FieldSchemaRead, "id" | "name" | "description">
 
-export type SelectChoice = {
-  id: SelectId;
-  name: string;
-  color?: SelectColor;
-};
 export type SelectChoiceSchemaRead = {
   id: SelectId;
   name: string;
@@ -374,15 +369,6 @@ export interface MultipleRecordLinksSchemaCreate {
     linkedTableId: TableId;
     inverseLinkFieldId: FieldId;
     prefersSingleRecordLink: boolean;
-  };
-}
-export interface MultipleSelects<C extends SelectChoice = SelectChoice> {
-  id: FieldId;
-  name: string;
-  description?: string;
-  type: "multipleSelects";
-  options: {
-    choices: readonly C[];
   };
 }
 export interface MultipleSelectsSchemaRead<C extends SelectChoiceSchemaRead = SelectChoiceSchemaRead> {
