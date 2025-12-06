@@ -207,7 +207,6 @@ export function makeTableClient<T extends TableSchema>(
                 attachmentFieldIdOrName,
                 options,
                 baseId,
-                tableId,
                 fetcher,
             });
         },
