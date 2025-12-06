@@ -1,5 +1,5 @@
 import { createSignal, For, Show, onMount } from 'solid-js'
-import * as atk from '../../src/index.ts'
+import * as atk from 'airtable-kit'
 import './App.css'
 
 const STORAGE_KEY = 'airtable-kit:saved-api-keys'
