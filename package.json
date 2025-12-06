@@ -20,21 +20,6 @@
       "types": "./dist/index.d.cts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    },
-    "./exceptions": {
-      "types": "./dist/exceptions.d.cts",
-      "import": "./dist/exceptions.js",
-      "require": "./dist/exceptions.cjs"
-    },
-    "./fields": {
-      "types": "./dist/fields/index.d.cts",
-      "import": "./dist/fields/index.js",
-      "require": "./dist/fields/index.cjs"
-    },
-    "./mcp": {
-      "types": "./dist/mcp/index.d.cts",
-      "import": "./dist/mcp/index.js",
-      "require": "./dist/mcp/index.cjs"
     }
   },
   "scripts": {
@@ -65,10 +50,7 @@
   "zshy": {
     "bin": "./src/bin.ts",
     "exports": {
-      ".": "./src/index.ts",
-      "./exceptions": "./src/exceptions.ts",
-      "./fields": "./src/fields/index.ts",
-      "./mcp": "./src/mcp/index.ts"
+      ".": "./src/index.ts"
     }
   },
   "files": [

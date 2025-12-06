@@ -1,7 +1,4 @@
-import { type FieldSchema } from "./fields/types.ts";
-
-export { FieldSchema };
-export { type FieldType } from "./fields/types.ts";
+import { type FieldSchemaRead } from "./fields/types.ts";
 
 export type RecordId = `rec${string}`;
 export type FieldId = `fld${string}`;
@@ -22,13 +19,13 @@ export type AttachmentId = `att${string}`;
 export interface TableSchema<
     I extends TableId = TableId,
     N extends string = string,
-    F extends ReadonlyArray<FieldSchema> = ReadonlyArray<FieldSchema>,
+    F extends ReadonlyArray<FieldSchemaRead> = ReadonlyArray<FieldSchemaRead>,
 > {
     /** Table ID, eg 'tblXXXXXXXXXXXXXX' */
     id: I;
     /** Friendly name to work with the table in your code */
     name: N;
-    /** Array of {@link FieldSchema} in the table */
+    /** Array of {@link FieldSchemaRead} in the table */
     fields: F;
     primaryFieldId?: FieldId;
     description?: string;

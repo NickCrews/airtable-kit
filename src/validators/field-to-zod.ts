@@ -3,9 +3,8 @@
  */
 
 import { z } from 'zod';
-import { type FieldSchema } from '../types.ts';
 import { RecordIdSchema } from './index.ts';
-import * as fields from '../fields/index.ts';
+import * as f from '../fields/types.ts';
 import * as testFields from '../fields/_example-fields.ts';
 
 const BARCODE_VALIDATOR = z.strictObject({
@@ -32,96 +31,96 @@ const READONLY_VALIDATOR = z.never();
 const STRING_VALIDATOR = z.string();
 const URL_VALIDATOR = z.url();
 
-type SelectChoiceName<T extends fields.SingleSelect | fields.MultipleSelects> = T extends (fields.SingleSelect<infer C> | fields.MultipleSelects<infer C>) ? C["name"] : never;
-type SingleSelectValidator<T extends fields.SingleSelect | fields.MultipleSelects> = z.ZodEnum<{ [K in SelectChoiceName<T>]: K }>;
-type MultipleSelectValidator<T extends fields.MultipleSelects> = z.ZodArray<SingleSelectValidator<T>>;
+type SelectChoiceName<T extends f.SingleSelectSchemaRead | f.MultipleSelects> = T extends (f.SingleSelectSchemaRead<infer C> | f.MultipleSelects<infer C>) ? C["name"] : never;
+type SingleSelectValidator<T extends f.SingleSelectSchemaRead | f.MultipleSelects> = z.ZodEnum<{ [K in SelectChoiceName<T>]: K }>;
+type MultipleSelectValidator<T extends f.MultipleSelects> = z.ZodArray<SingleSelectValidator<T>>;
 
-function makeSingleSelectValidator<T extends fields.SingleSelect>(field: T): SingleSelectValidator<T> {
+function makeSingleSelectValidator<T extends f.SingleSelectSchemaRead>(field: T): SingleSelectValidator<T> {
   const values = field.options.choices.map((c) => c.name);
   return z.enum(values) as SingleSelectValidator<T>;
 }
 
-function makeMultipleSelectValidator<T extends fields.MultipleSelects>(field: T): MultipleSelectValidator<T> {
+function makeMultipleSelectValidator<T extends f.MultipleSelects>(field: T): MultipleSelectValidator<T> {
   const values = field.options.choices.map((c) => c.name);
   return z.array(z.enum(values)) as MultipleSelectValidator<T>;
 }
 
 const writeValidators = {
-  aiText: <T extends fields.AiText>(fieldSchema: T) => READONLY_VALIDATOR,
-  autoNumber: <T extends fields.AutoNumber>(fieldSchema: T) => READONLY_VALIDATOR,
-  barcode: <T extends fields.Barcode>(fieldSchema: T) => BARCODE_VALIDATOR,
-  button: <T extends fields.Button>(fieldSchema: T) => READONLY_VALIDATOR,
-  checkbox: <T extends fields.Checkbox>(fieldSchema: T) => BOOLEAN_VALIDATOR,
-  count: <T extends fields.Count>(fieldSchema: T) => READONLY_VALIDATOR,
-  createdBy: <T extends fields.CreatedBy>(fieldSchema: T) => READONLY_VALIDATOR,
-  createdTime: <T extends fields.CreatedTime>(fieldSchema: T) => READONLY_VALIDATOR,
-  currency: <T extends fields.Currency>(fieldSchema: T) => NUMBER_VALIDATOR,
-  date: <T extends fields.Date>(fieldSchema: T) => DATE_VALIDATOR,
-  dateTime: <T extends fields.DateTime>(fieldSchema: T) => DATE_TIME_VALIDATOR,
-  duration: <T extends fields.Duration>(fieldSchema: T) => NUMBER_VALIDATOR,
-  email: <T extends fields.Email>(fieldSchema: T) => EMAIL_VALIDATOR,
-  externalSyncSource: <T extends fields.ExternalSyncSource>(fieldSchema: T) => z.any(), // todo
-  formula: <T extends fields.Formula>(fieldSchema: T) => READONLY_VALIDATOR,
-  lastModifiedBy: <T extends fields.LastModifiedBy>(fieldSchema: T) => READONLY_VALIDATOR,
-  lastModifiedTime: <T extends fields.LastModifiedTime>(fieldSchema: T) => READONLY_VALIDATOR,
-  multilineText: <T extends fields.MultilineText>(fieldSchema: T) => STRING_VALIDATOR,
-  multipleAttachments: <T extends fields.MultipleAttachments>(fieldSchema: T) => MULTIPLE_ATTACHMENTS_VALIDATOR,
-  multipleCollaborators: <T extends fields.MultipleCollaborators>(fieldSchema: T) => MULTIPLE_COLLABORATORS_VALIDATOR,
-  multipleLookupValues: <T extends fields.MultipleLookupValues>(fieldSchema: T) => READONLY_VALIDATOR,
-  multipleRecordLinks: <T extends fields.MultipleRecordLinks>(fieldSchema: T) => MULTIPLE_RECORD_LINKS_VALIDATOR,
+  aiText: <T extends f.AiTextSchemaRead>(fieldSchema: T) => READONLY_VALIDATOR,
+  autoNumber: <T extends f.AutoNumberSchemaRead>(fieldSchema: T) => READONLY_VALIDATOR,
+  barcode: <T extends f.BarcodeSchemaRead>(fieldSchema: T) => BARCODE_VALIDATOR,
+  button: <T extends f.ButtonSchemaRead>(fieldSchema: T) => READONLY_VALIDATOR,
+  checkbox: <T extends f.CheckboxSchemaRead>(fieldSchema: T) => BOOLEAN_VALIDATOR,
+  count: <T extends f.CountSchemaRead>(fieldSchema: T) => READONLY_VALIDATOR,
+  createdBy: <T extends f.CreatedBySchemaRead>(fieldSchema: T) => READONLY_VALIDATOR,
+  createdTime: <T extends f.CreatedTimeSchemaRead>(fieldSchema: T) => READONLY_VALIDATOR,
+  currency: <T extends f.CurrencySchemaRead>(fieldSchema: T) => NUMBER_VALIDATOR,
+  date: <T extends f.DateSchemaRead>(fieldSchema: T) => DATE_VALIDATOR,
+  dateTime: <T extends f.DateTimeSchemaRead>(fieldSchema: T) => DATE_TIME_VALIDATOR,
+  duration: <T extends f.DurationSchemaRead>(fieldSchema: T) => NUMBER_VALIDATOR,
+  email: <T extends f.EmailSchemaRead>(fieldSchema: T) => EMAIL_VALIDATOR,
+  externalSyncSource: <T extends f.ExternalSyncSourceSchemaRead>(fieldSchema: T) => z.any(), // todo
+  formula: <T extends f.FormulaSchemaRead>(fieldSchema: T) => READONLY_VALIDATOR,
+  lastModifiedBy: <T extends f.LastModifiedBySchemaRead>(fieldSchema: T) => READONLY_VALIDATOR,
+  lastModifiedTime: <T extends f.LastModifiedTimeSchemaRead>(fieldSchema: T) => READONLY_VALIDATOR,
+  multilineText: <T extends f.MultilineTextSchemaRead>(fieldSchema: T) => STRING_VALIDATOR,
+  multipleAttachments: <T extends f.MultipleAttachmentsSchemaRead>(fieldSchema: T) => MULTIPLE_ATTACHMENTS_VALIDATOR,
+  multipleCollaborators: <T extends f.MultipleCollaboratorsSchemaRead>(fieldSchema: T) => MULTIPLE_COLLABORATORS_VALIDATOR,
+  multipleLookupValues: <T extends f.MultipleLookupValuesSchemaRead>(fieldSchema: T) => READONLY_VALIDATOR,
+  multipleRecordLinks: <T extends f.MultipleRecordLinksSchemaRead>(fieldSchema: T) => MULTIPLE_RECORD_LINKS_VALIDATOR,
   multipleSelects: makeMultipleSelectValidator,
-  number: <T extends fields.Number>(fieldSchema: T) => NUMBER_VALIDATOR,
-  percent: <T extends fields.Percent>(fieldSchema: T) => NUMBER_VALIDATOR,
-  phoneNumber: <T extends fields.PhoneNumber>(fieldSchema: T) => STRING_VALIDATOR,
-  rating: <T extends fields.Rating>(fieldSchema: T) => NUMBER_VALIDATOR,
-  richText: <T extends fields.RichText>(fieldSchema: T) => STRING_VALIDATOR,
-  rollup: <T extends fields.Rollup>(fieldSchema: T) => READONLY_VALIDATOR,
-  singleCollaborator: <T extends fields.SingleCollaborator>(fieldSchema: T) => SINGLE_COLLABORATOR_VALIDATOR,
-  singleLineText: <T extends fields.SingleLineText>(fieldSchema: T) => STRING_VALIDATOR,
+  number: <T extends f.NumberSchemaRead>(fieldSchema: T) => NUMBER_VALIDATOR,
+  percent: <T extends f.PercentSchemaRead>(fieldSchema: T) => NUMBER_VALIDATOR,
+  phoneNumber: <T extends f.PhoneNumberSchemaRead>(fieldSchema: T) => STRING_VALIDATOR,
+  rating: <T extends f.RatingSchemaRead>(fieldSchema: T) => NUMBER_VALIDATOR,
+  richText: <T extends f.RichTextSchemaRead>(fieldSchema: T) => STRING_VALIDATOR,
+  rollup: <T extends f.RollupSchemaRead>(fieldSchema: T) => READONLY_VALIDATOR,
+  singleCollaborator: <T extends f.SingleCollaboratorSchemaRead>(fieldSchema: T) => SINGLE_COLLABORATOR_VALIDATOR,
+  singleLineText: <T extends f.SingleLineTextSchemaRead>(fieldSchema: T) => STRING_VALIDATOR,
   singleSelect: makeSingleSelectValidator,
-  url: <T extends fields.Url>(fieldSchema: T) => URL_VALIDATOR,
+  url: <T extends f.UrlSchemaRead>(fieldSchema: T) => URL_VALIDATOR,
 } as const;
 
-export type inferFieldWriteValidator<F extends FieldSchema> =
-  F extends fields.AiText ? ReturnType<typeof writeValidators.aiText<F>> :
-  F extends fields.AutoNumber ? ReturnType<typeof writeValidators.autoNumber<F>> :
-  F extends fields.Barcode ? ReturnType<typeof writeValidators.barcode<F>> :
-  F extends fields.Button ? ReturnType<typeof writeValidators.button<F>> :
-  F extends fields.Checkbox ? ReturnType<typeof writeValidators.checkbox<F>> :
-  F extends fields.Count ? ReturnType<typeof writeValidators.count<F>> :
-  F extends fields.CreatedBy ? ReturnType<typeof writeValidators.createdBy<F>> :
-  F extends fields.CreatedTime ? ReturnType<typeof writeValidators.createdTime<F>> :
-  F extends fields.Currency ? ReturnType<typeof writeValidators.currency<F>> :
-  F extends fields.Date ? ReturnType<typeof writeValidators.date<F>> :
-  F extends fields.DateTime ? ReturnType<typeof writeValidators.dateTime<F>> :
-  F extends fields.Duration ? ReturnType<typeof writeValidators.duration<F>> :
-  F extends fields.Email ? ReturnType<typeof writeValidators.email<F>> :
-  F extends fields.ExternalSyncSource ? ReturnType<typeof writeValidators.externalSyncSource<F>> :
-  F extends fields.Formula ? ReturnType<typeof writeValidators.formula<F>> :
-  F extends fields.LastModifiedBy ? ReturnType<typeof writeValidators.lastModifiedBy<F>> :
-  F extends fields.LastModifiedTime ? ReturnType<typeof writeValidators.lastModifiedTime<F>> :
-  F extends fields.MultilineText ? ReturnType<typeof writeValidators.multilineText<F>> :
-  F extends fields.MultipleAttachments ? ReturnType<typeof writeValidators.multipleAttachments<F>> :
-  F extends fields.MultipleCollaborators ? ReturnType<typeof writeValidators.multipleCollaborators<F>> :
-  F extends fields.MultipleLookupValues ? ReturnType<typeof writeValidators.multipleLookupValues<F>> :
-  F extends fields.MultipleRecordLinks ? ReturnType<typeof writeValidators.multipleRecordLinks<F>> :
-  F extends fields.MultipleSelects ? ReturnType<typeof writeValidators.multipleSelects<F>> :
-  F extends fields.Number ? ReturnType<typeof writeValidators.number<F>> :
-  F extends fields.Percent ? ReturnType<typeof writeValidators.percent<F>> :
-  F extends fields.PhoneNumber ? ReturnType<typeof writeValidators.phoneNumber<F>> :
-  F extends fields.Rating ? ReturnType<typeof writeValidators.rating<F>> :
-  F extends fields.RichText ? ReturnType<typeof writeValidators.richText<F>> :
-  F extends fields.Rollup ? ReturnType<typeof writeValidators.rollup<F>> :
-  F extends fields.SingleCollaborator ? ReturnType<typeof writeValidators.singleCollaborator<F>> :
-  F extends fields.SingleLineText ? ReturnType<typeof writeValidators.singleLineText<F>> :
-  F extends fields.SingleSelect ? ReturnType<typeof writeValidators.singleSelect<F>> :
-  F extends fields.Url ? ReturnType<typeof writeValidators.url<F>> :
+export type inferFieldWriteValidator<F extends f.FieldSchemaRead> =
+  F extends f.AiTextSchemaRead ? ReturnType<typeof writeValidators.aiText<F>> :
+  F extends f.AutoNumberSchemaRead ? ReturnType<typeof writeValidators.autoNumber<F>> :
+  F extends f.BarcodeSchemaRead ? ReturnType<typeof writeValidators.barcode<F>> :
+  F extends f.ButtonSchemaRead ? ReturnType<typeof writeValidators.button<F>> :
+  F extends f.CheckboxSchemaRead ? ReturnType<typeof writeValidators.checkbox<F>> :
+  F extends f.CountSchemaRead ? ReturnType<typeof writeValidators.count<F>> :
+  F extends f.CreatedBySchemaRead ? ReturnType<typeof writeValidators.createdBy<F>> :
+  F extends f.CreatedTimeSchemaRead ? ReturnType<typeof writeValidators.createdTime<F>> :
+  F extends f.CurrencySchemaRead ? ReturnType<typeof writeValidators.currency<F>> :
+  F extends f.DateSchemaRead ? ReturnType<typeof writeValidators.date<F>> :
+  F extends f.DateTimeSchemaRead ? ReturnType<typeof writeValidators.dateTime<F>> :
+  F extends f.DurationSchemaRead ? ReturnType<typeof writeValidators.duration<F>> :
+  F extends f.EmailSchemaRead ? ReturnType<typeof writeValidators.email<F>> :
+  F extends f.ExternalSyncSourceSchemaRead ? ReturnType<typeof writeValidators.externalSyncSource<F>> :
+  F extends f.FormulaSchemaRead ? ReturnType<typeof writeValidators.formula<F>> :
+  F extends f.LastModifiedBySchemaRead ? ReturnType<typeof writeValidators.lastModifiedBy<F>> :
+  F extends f.LastModifiedTimeSchemaRead ? ReturnType<typeof writeValidators.lastModifiedTime<F>> :
+  F extends f.MultilineTextSchemaRead ? ReturnType<typeof writeValidators.multilineText<F>> :
+  F extends f.MultipleAttachmentsSchemaRead ? ReturnType<typeof writeValidators.multipleAttachments<F>> :
+  F extends f.MultipleCollaboratorsSchemaRead ? ReturnType<typeof writeValidators.multipleCollaborators<F>> :
+  F extends f.MultipleLookupValuesSchemaRead ? ReturnType<typeof writeValidators.multipleLookupValues<F>> :
+  F extends f.MultipleRecordLinksSchemaRead ? ReturnType<typeof writeValidators.multipleRecordLinks<F>> :
+  F extends f.MultipleSelectsSchemaRead ? ReturnType<typeof writeValidators.multipleSelects<F>> :
+  F extends f.NumberSchemaRead ? ReturnType<typeof writeValidators.number<F>> :
+  F extends f.PercentSchemaRead ? ReturnType<typeof writeValidators.percent<F>> :
+  F extends f.PhoneNumberSchemaRead ? ReturnType<typeof writeValidators.phoneNumber<F>> :
+  F extends f.RatingSchemaRead ? ReturnType<typeof writeValidators.rating<F>> :
+  F extends f.RichTextSchemaRead ? ReturnType<typeof writeValidators.richText<F>> :
+  F extends f.RollupSchemaRead ? ReturnType<typeof writeValidators.rollup<F>> :
+  F extends f.SingleCollaboratorSchemaRead ? ReturnType<typeof writeValidators.singleCollaborator<F>> :
+  F extends f.SingleLineTextSchemaRead ? ReturnType<typeof writeValidators.singleLineText<F>> :
+  F extends f.SingleSelectSchemaRead ? ReturnType<typeof writeValidators.singleSelect<F>> :
+  F extends f.UrlSchemaRead ? ReturnType<typeof writeValidators.url<F>> :
   never;
 
 /**
  * Convert a {@link FieldSchema} to a Zod schema that can be used to validate data being written to Airtable.
  */
-export function makeFieldWriteValidator<T extends FieldSchema>(field: T): inferFieldWriteValidator<T> {
+export function makeFieldWriteValidator<T extends f.FieldSchemaRead>(field: T): inferFieldWriteValidator<T> {
   const validatorMaker = writeValidators[field.type] as any;
   let validator = validatorMaker(field);
   if (field.description) {

@@ -3,9 +3,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { BarcodeValue, MultipleAttachmentReadType, convertFieldForWrite, convertFieldForRead } from "./converters.ts";
-import type { FieldSchema } from "../types.ts";
-import { MultipleSelects, SingleSelect } from "./index.ts";
+import { BarcodeValue, convertFieldForWrite, convertFieldForRead } from "./converters.ts";
 import * as FIELDS from "./_example-fields.ts";
 
 describe("Converters", () => {

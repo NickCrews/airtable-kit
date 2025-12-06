@@ -1,4 +1,4 @@
-import { FieldSchema } from "./fields/types.ts";
+import { FieldSchemaRead } from "./fields/types.ts";
 import { ListRecordsOptions } from "./records/api.ts";
 import { FieldId } from "./types.ts";
 
@@ -29,10 +29,10 @@ export class AirtableKitApiError extends AirtableKitError {
  * Thrown when a value read from the Airtable API could not be converted to the appropriate TypeScript type.
  */
 export class ReadValueConversionError extends AirtableKitError {
-    public readonly fieldSchema: FieldSchema;
+    public readonly fieldSchema: FieldSchemaRead;
     public readonly value: unknown;
     public readonly originalError?: Error;
-    constructor(value: unknown, fieldSchema: FieldSchema, originalError?: Error) {
+    constructor(value: unknown, fieldSchema: FieldSchemaRead, originalError?: Error) {
         super(`Value not convertible for field ${fieldSchema.name} (id: ${fieldSchema.id}, type: ${fieldSchema.type}): ${value}`);
         this.value = value;
         this.fieldSchema = fieldSchema;
@@ -47,10 +47,10 @@ export class ReadValueConversionError extends AirtableKitError {
  * Thrown when a value could not be converted to write to the Airtable API.
  */
 export class WriteValueConversionError extends AirtableKitError {
-    public readonly fieldSchema: FieldSchema;
+    public readonly fieldSchema: FieldSchemaRead;
     public readonly value: unknown;
     public readonly originalError?: Error;
-    constructor(value: unknown, fieldSchema: FieldSchema, originalError?: Error) {
+    constructor(value: unknown, fieldSchema: FieldSchemaRead, originalError?: Error) {
         super(`Value not convertible for writing to field ${fieldSchema.name} (id: ${fieldSchema.id}, type: ${fieldSchema.type}): ${value}`);
         this.value = value;
         this.fieldSchema = fieldSchema;
@@ -63,8 +63,8 @@ export class WriteValueConversionError extends AirtableKitError {
 
 /** Thrown when attempting to read from a field that is not readable, eg a 'button' field */
 export class FieldNotReadableError extends AirtableKitError {
-    public readonly fieldSchema: FieldSchema;
-    constructor(fieldSchema: FieldSchema) {
+    public readonly fieldSchema: FieldSchemaRead;
+    constructor(fieldSchema: FieldSchemaRead) {
         super(`Field not readable: ${fieldSchema.name} (id: ${fieldSchema.id}, type: ${fieldSchema.type})`);
         this.fieldSchema = fieldSchema;
         this.name = "FieldNotReadableError";
@@ -75,8 +75,8 @@ export class FieldNotReadableError extends AirtableKitError {
 
 /** Thrown when attempting to write to a field that is not writable, eg a 'createdTime' field */
 export class FieldNotWritableError extends AirtableKitError {
-    public readonly fieldSchema: FieldSchema;
-    constructor(fieldSchema: FieldSchema) {
+    public readonly fieldSchema: FieldSchemaRead;
+    constructor(fieldSchema: FieldSchemaRead) {
         super(`Field not writable: ${fieldSchema.name} (id: ${fieldSchema.id}, type: ${fieldSchema.type})`);
         this.fieldSchema = fieldSchema;
         this.name = "FieldNotWritableError";
@@ -92,8 +92,8 @@ export class FieldNotWritableError extends AirtableKitError {
  * but your code/schema still expects it to be there.
  */
 export class MissingFieldReadError extends AirtableKitError {
-    public readonly fieldSchema: FieldSchema;
-    constructor(fieldSchema: FieldSchema) {
+    public readonly fieldSchema: FieldSchemaRead;
+    constructor(fieldSchema: FieldSchemaRead) {
         super(`Missing required field on read: ${fieldSchema.name} (id: ${fieldSchema.id}, type: ${fieldSchema.type})`);
         this.fieldSchema = fieldSchema;
         this.name = "MissingFieldReadError";
@@ -121,7 +121,7 @@ export class UnexpectedFieldReadError extends AirtableKitError {
 export class RecordReadError extends AirtableKitError {
     public readonly errors: ReadonlyArray<AirtableKitError>;
     public readonly rawRecord: Record<FieldId, unknown>;
-    public readonly fieldSchemas: ReadonlyArray<FieldSchema>;
+    public readonly fieldSchemas: ReadonlyArray<FieldSchemaRead>;
     constructor({
         errors,
         rawRecord,
@@ -129,7 +129,7 @@ export class RecordReadError extends AirtableKitError {
     }: {
         errors: ReadonlyArray<AirtableKitError>;
         rawRecord: Record<FieldId, unknown>;
-        fieldSchemas: ReadonlyArray<FieldSchema>;
+        fieldSchemas: ReadonlyArray<FieldSchemaRead>;
     }) {
         super(`Errors reading record: \n${errors.map(e => `- ${e.message}`).join("\n")}`);
         this.errors = errors;

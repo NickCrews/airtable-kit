@@ -1,19 +1,19 @@
 import { type TableSchema, type BaseSchema, type BaseId, WorkspaceId } from "../types.ts";
-import { Fetcher, type IntoFetcher, makeFetcher } from "../fetcher.ts";
-import { CreateTableSchema } from "../tables/api.ts";
+import { doFetch, makeFetcher, type IntoFetcher } from "../fetcher.ts";
+import { TableSchemaCreate } from "../tables/index.ts";
 
-export interface CreateBaseSchema {
+export interface BaseSchemaCreate {
   /** The name of the base to create */
   name: string,
   /** The tables in the base to create */
-  tables: Array<CreateTableSchema>
+  tables: Array<TableSchemaCreate>
 }
 
 export interface CreateBaseOptions {
   /** The ID of the workspace where the base should be created */
   workspaceId: WorkspaceId,
   /** The schema of the base to create */
-  baseSchema: CreateBaseSchema,
+  baseSchema: BaseSchemaCreate,
   /** Optional fetcher to use for the API requests */
   fetcher?: IntoFetcher,
 }
@@ -28,10 +28,9 @@ export async function createBase(
   {
     workspaceId,
     baseSchema,
-    fetcher: fetcherArg,
+    fetcher,
   }: CreateBaseOptions,
 ): Promise<BaseSchema> {
-  const fetcher = makeFetcher(fetcherArg);
 
   interface ApiResponseSuccess {
     id: BaseId
@@ -43,7 +42,8 @@ export async function createBase(
       message?: string
     }
   }
-  const response = await fetcher.fetch<ApiResponseSuccess | ApiResponseError>({
+  const response = await doFetch<ApiResponseSuccess | ApiResponseError>({
+    fetcher,
     path: "/meta/bases",
     method: "POST",
     data: {
@@ -141,7 +141,7 @@ async function getBaseRaw({
 }
 
 
-async function listBasesRaw(fetcher: Fetcher): Promise<Array<{
+async function listBasesRaw(fetcher: IntoFetcher): Promise<Array<{
   id: BaseId;
   name: string;
   permissionLevel: "none" | "read" | "comment" | "edit" | "create";
@@ -161,7 +161,8 @@ async function listBasesRaw(fetcher: Fetcher): Promise<Array<{
     if (offset) {
       queryParams.append("offset", offset);
     }
-    const response = await fetcher.fetch<ApiResponse>({
+    const response = await doFetch<ApiResponse>({
+      fetcher,
       path: `/meta/bases?${queryParams.toString()}`
     });
     result.push(...response.bases);

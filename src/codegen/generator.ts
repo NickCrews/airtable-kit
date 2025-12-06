@@ -5,7 +5,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { type BaseSchema } from "../types.ts";
-import { fetchBaseSchema } from "../client/index.ts";
+import { getBaseSchema } from "../bases";
 import { toIdentifier } from "./identifiers.ts";
 
 export interface CodegenOptions {
@@ -17,7 +17,7 @@ export interface CodegenOptions {
 /**
  * Generate ts/js code representing the Airtable base schema.
  * 
- * @param schema The {@link BaseSchema} to generate code for. eg obtained from {@link fetchBaseSchema}
+ * @param schema The {@link BaseSchema} to generate code for. eg obtained from {@link getBaseSchema}
  * @param options.outPath Optional output path to write the generated code to a file.
  *                        If not provided, the code will only be returned as a string.
  * @param options.format Output file type, either "ts" or "js".

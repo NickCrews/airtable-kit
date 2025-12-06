@@ -1,44 +1,44 @@
-import { FieldSchema } from "../fields/types.ts";
+import { FieldSchemaRead } from "../fields/types.ts";
 import { FieldId } from "../types.ts";
 import { convertFieldForRead, convertFieldForWrite, FieldRead, FieldWrite } from "../fields/converters.ts";
 import * as exceptions from "../exceptions.ts";
 
-export type WriteRecordById<T extends FieldSchema> = {
+export type WriteRecordById<T extends FieldSchemaRead> = {
     [K in T["id"]]?: FieldWrite<Extract<T, { id: K }>>;
 };
 
 /**
- * Given the {@link FieldSchema}s for a table, return the format of a record a {@link TableClient} accepts for writing, eg for creating or updating records.
+ * Given the {@link FieldSchemaRead}s for a table, return the format of a record a {@link TableClient} accepts for writing, eg for creating or updating records.
  * 
  * Each key can be either the field name or field ID, and the value is the appropriate type for writing to that field.
  */
-export type RecordWrite<T extends FieldSchema> = {
+export type RecordWrite<T extends FieldSchemaRead> = {
     [K in T["name"] | T["id"]]?: K extends T["name"]
     ? Extract<T, { name: K }> extends infer F
-    ? F extends FieldSchema ? FieldWrite<F>
+    ? F extends FieldSchemaRead ? FieldWrite<F>
     : never
     : never
     : K extends T["id"]
     ? Extract<T, { id: K }> extends infer F
-    ? F extends FieldSchema ? FieldWrite<F>
+    ? F extends FieldSchemaRead ? FieldWrite<F>
     : never
     : never
     : never;
 };
 
 /**
- * Given the {@link FieldSchema}s for a table, return the format of a record a {@link TableClient} returns when reading records.
+ * Given the {@link FieldSchemaRead}s for a table, return the format of a record a {@link TableClient} returns when reading records.
  * 
  * Each key is the field name, and the value is the appropriate type for reading from that field.
  */
-export type RecordRead<T extends FieldSchema> = {
+export type RecordRead<T extends FieldSchemaRead> = {
     [K in T["name"]]: FieldRead<Extract<T, { name: K }>>;
 };
 
 /**
  * Convert a record, freshly read from Airtable, into the appropriate TypeScript types, keyed by field names.
  * @param record The raw record from Airtable, keyed by field IDs
- * @param fieldSchemas The array of {@link FieldSchema} objects describing the fields in the table
+ * @param fieldSchemas The array of {@link FieldSchemaRead} objects describing the fields in the table
  * @param onUnexpectedField Behavior when encountering a field in the record that is not described by the provided fieldSchemas.
  *                         This usually happens when someone adds a new field to a table after you've fetched the schema.
  *                         Defaults to { warn: true, keep: true }.
@@ -52,7 +52,7 @@ export type RecordRead<T extends FieldSchema> = {
  * which is null for most field types, but an empty array for some.
  */
 export function convertRecordForRead<
-    F extends FieldSchema,
+    F extends FieldSchemaRead,
 >(
     record: Readonly<Record<FieldId, unknown>>,
     fieldSchemas: ReadonlyArray<F>,
@@ -128,12 +128,12 @@ export function convertRecordForRead<
 /**
  * Convert a user-provided record into the appropriate format for writing to Airtable.
  * @param record The user-provided record, keyed by either field names or IDs as keys and appropriate TypeScript types as values
- * @param fieldSchemas The array of {@link FieldSchema} objects describing the fields in the table
+ * @param fieldSchemas The array of {@link FieldSchemaRead} objects describing the fields in the table
  * @returns The converted record with field IDs as keys and Airtable-compatible values
  */
 export function convertRecordForWrite<
     V extends RecordWrite<F>,
-    F extends FieldSchema,
+    F extends FieldSchemaRead,
 >(
     record: V,
     fieldSchemas: ReadonlyArray<F>,
@@ -154,8 +154,8 @@ export function convertRecordForWrite<
     return result as Partial<WriteRecordById<F>>;
 }
 
-function makeFieldLookup(fieldSchemas: readonly FieldSchema[]) {
-    const toField = new Map<string, FieldSchema>();
+function makeFieldLookup(fieldSchemas: readonly FieldSchemaRead[]) {
+    const toField = new Map<string, FieldSchemaRead>();
     for (const fs of fieldSchemas) {
         // Set ID second so ID lookup takes precedence if there's a name/ID clash
         toField.set(fs.name, fs);

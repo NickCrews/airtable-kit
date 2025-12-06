@@ -1,16 +1,17 @@
 import { IntoFetcher } from "../fetcher";
 import { generateCode } from "../codegen";
-import { type BaseId, type BaseSchema, type FieldSchema, type WorkspaceId } from "../types";
-import { createField, CreateFieldSchema, fieldCreationAbility, updateField } from "../fields/api";
-import { createTable, updateTable } from "../tables/api";
-import { createBase, CreateBaseSchema, getBaseSchema } from "../bases/api";
+import { type BaseId, type BaseSchema, type WorkspaceId } from "../types";
+import { createField, fieldCreationAbility, updateField } from "../fields/api";
+import { type FieldSchemaCreate, type FieldSchemaRead } from "../fields/types";
+import { createTable, updateTable } from "../tables";
+import { createBase, BaseSchemaCreate, getBaseSchema } from "../bases";
 import dotenv from "dotenv";
 
 // make this relative to the current file
 const TEST_BASE_SCHEMA_FILEPATH = new URL("./test-base-schema.generated.ts", import.meta.url).pathname;
 
 // Define the base structure to create
-const TEST_BASE_SCHEMA: CreateBaseSchema = {
+const TEST_BASE_SCHEMA: BaseSchemaCreate = {
     name: "airtable-kit Test Base",
     tables: [
         {
@@ -353,7 +354,7 @@ if (badFields.length > 0) {
  * @returns The created base schema with all table and field IDs
  */
 export async function ensureTestBaseReady(
-    desiredSchema: CreateBaseSchema,
+    desiredSchema: BaseSchemaCreate,
     workspaceId: WorkspaceId,
     generatedSchemaPath: string,
     apiKey: string,
@@ -385,7 +386,7 @@ export async function ensureTestBaseReady(
 async function ensureTestBaseCreated(
     workspaceId: WorkspaceId,
     fetcher: IntoFetcher,
-    desiredSchema: CreateBaseSchema,
+    desiredSchema: BaseSchemaCreate,
     baseId?: BaseId,
 ): Promise<BaseSchema> {
     if (baseId) {
@@ -419,7 +420,7 @@ async function ensureTestBaseCreated(
 
 async function ensureTestBaseSchemaUpToDate(
     currentSchema: BaseSchema,
-    desiredSchema: CreateBaseSchema,
+    desiredSchema: BaseSchemaCreate,
     fetcher: IntoFetcher
 ): Promise<BaseSchema> {
     // Create any missing tables
@@ -436,9 +437,9 @@ async function ensureTestBaseSchemaUpToDate(
         } else {
             // If any field types are incorrect, rename the table to a broken name
             // for manual deletion, and create a new table with the correct schema.
-            const mismatchesRequiringRecreation: Array<{ desiredField: CreateFieldSchema; existingField: FieldSchema, reason: "mismatch_type" | "mismatch_options" }> = [];
-            const mismatchesRequiringUpdate: Array<{ desiredField: CreateFieldSchema; existingField: FieldSchema }> = [];
-            const fieldsToCreate: CreateFieldSchema[] = [];
+            const mismatchesRequiringRecreation: Array<{ desiredField: FieldSchemaCreate; existingField: FieldSchemaRead, reason: "mismatch_type" | "mismatch_options" }> = [];
+            const mismatchesRequiringUpdate: Array<{ desiredField: FieldSchemaCreate; existingField: FieldSchemaRead }> = [];
+            const fieldsToCreate: FieldSchemaCreate[] = [];
             for (const desiredField of desiredTable.fields) {
                 const existingField = existingTable.fields.find(f => f.name === desiredField.name);
                 if (!existingField) {
@@ -508,7 +509,7 @@ async function ensureTestBaseSchemaUpToDate(
     return getBaseSchema({ baseId: currentSchema.id, fetcher });
 }
 
-function optionsMismatch(desired: CreateFieldSchema, existing: FieldSchema): boolean {
+function optionsMismatch(desired: FieldSchemaCreate, existing: FieldSchemaRead): boolean {
     if (!("options" in desired) && !("options" in existing)) {
         return false;
     }

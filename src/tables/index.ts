@@ -1,20 +1,20 @@
 import { IntoFetcher, makeFetcher } from "../fetcher";
-import { CreateFieldSchema } from "../fields/api";
+import { FieldSchemaCreate } from "../fields";
 import { BaseId, TableId, TableSchema } from "../types";
 
 
-export interface CreateTableSchema {
+export interface TableSchemaCreate {
     /** The name of the table to create */
     name: string,
     /** An optional description for the table */
     description?: string
     /** The fields in the table to create */
-    fields: Array<CreateFieldSchema>
+    fields: Array<FieldSchemaCreate>
 }
 
 export interface CreateTableParams {
     baseId: BaseId;
-    table: CreateTableSchema;
+    table: TableSchemaCreate;
     fetcher?: IntoFetcher;
 }
 

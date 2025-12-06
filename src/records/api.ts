@@ -1,31 +1,18 @@
 import { doFetch, IntoFetcher } from "../fetcher";
 import { FieldRead } from "../fields/converters";
 import { Timezone } from "../fields/timezones";
+import { FieldSchemaRead } from "../fields/types";
 import { Formula, formulaToString } from "../formula";
-import { AttachmentId, BaseId, FieldId, FieldSchema, RecordId, TableId } from "../types";
+import { AttachmentId, BaseId, FieldId, RecordId, TableId } from "../types";
 import { convertRecordForRead, convertRecordForWrite, RecordRead, RecordWrite, WriteRecordById } from "./converters";
 import * as exceptions from "../exceptions";
 
-type FieldNameOrId<T extends FieldSchema> = T['name'] | T['id'];
+type FieldNameOrId<T extends FieldSchemaRead> = T['name'] | T['id'];
 
 /** ISO 8601 format in UTC, eg `2024-01-01T12:00:00.000Z` */
 export type Timestamp = string;
 
-/**
- * Options for getting a single record
- */
-export interface GetRecordOptions {
-    /** Cell value format: "json" (default) or "string" */
-    cellFormat?: 'json' | 'string';
-}
-
-export interface GetRecordResponse<T extends FieldSchema> {
-    id: RecordId;
-    createdTime: Timestamp;
-    fields: RecordRead<T>;
-}
-
-export interface CreateRecordsParams<T extends FieldSchema> {
+export interface CreateRecordsParams<T extends FieldSchemaRead> {
     records: ReadonlyArray<RecordWrite<T>>;
     baseId: BaseId;
     tableId: TableId;
@@ -33,17 +20,17 @@ export interface CreateRecordsParams<T extends FieldSchema> {
     onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
     fetcher?: IntoFetcher;
 }
-export type CreateRecordsResponse<T extends FieldSchema> = Array<{
+export type CreateRecordsResponse<T extends FieldSchemaRead> = Array<{
     id: RecordId,
     fields: RecordRead<T>,
     createdTime: Timestamp,
 }>;
 
 // https://airtable.com/developers/web/api/create-records
-type RawReadRecord<T extends FieldSchema> = {
+type RawReadRecord<T extends FieldSchemaRead> = {
     [K in T["id"]]: FieldRead<Extract<T, { id: K }>>;
 }
-export async function createRecords<T extends FieldSchema>(
+export async function createRecords<T extends FieldSchemaRead>(
     {
         records,
         baseId,
@@ -74,7 +61,7 @@ export async function createRecords<T extends FieldSchema>(
     return result;
 }
 
-export interface CreateRecordsRawParams<T extends FieldSchema> {
+export interface CreateRecordsRawParams<T extends FieldSchemaRead> {
     records: ReadonlyArray<RecordWrite<T>>;
     baseId: BaseId;
     tableId: TableId;
@@ -82,13 +69,13 @@ export interface CreateRecordsRawParams<T extends FieldSchema> {
     fetcher?: IntoFetcher;
     onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
 }
-export type CreateRecordsRawResponse<T extends FieldSchema> = Array<{
+export type CreateRecordsRawResponse<T extends FieldSchemaRead> = Array<{
     id: RecordId,
     fields: RecordRead<T>,
     createdTime: Timestamp,
 }>;
 
-export async function createRecordsRaw<T extends FieldSchema>(
+export async function createRecordsRaw<T extends FieldSchemaRead>(
     {
         records,
         baseId,
@@ -112,7 +99,7 @@ export async function createRecordsRaw<T extends FieldSchema>(
             ),
         };
     });
-    type CreateApiResponse<T extends FieldSchema> = {
+    type CreateApiResponse<T extends FieldSchemaRead> = {
         records: Array<{
             id: `rec${string}`;
             createdTime: string;
@@ -139,7 +126,7 @@ export async function createRecordsRaw<T extends FieldSchema>(
 /**
  * Options for listing records
  */
-export interface ListRecordsOptions<T extends FieldSchema> {
+export interface ListRecordsOptions<T extends FieldSchemaRead> {
     /** Time zone for formatting dates when using cellFormat: "string" */
     timeZone?: Timezone;
     /** User locale for formatting dates when using cellFormat: "string" */
@@ -159,7 +146,7 @@ export interface ListRecordsOptions<T extends FieldSchema> {
     /** Include metadata like comment count */
     recordMetadata?: Array<'commentCount'>;
 }
-export interface ListRecordsParams<T extends FieldSchema> {
+export interface ListRecordsParams<T extends FieldSchemaRead> {
     baseId: BaseId;
     tableId: TableId;
     fields: ReadonlyArray<T>;
@@ -167,14 +154,14 @@ export interface ListRecordsParams<T extends FieldSchema> {
     fetcher?: IntoFetcher;
     onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
 }
-export type ListRecordsResponse<T extends FieldSchema> = Array<{
+export type ListRecordsResponse<T extends FieldSchemaRead> = Array<{
     id: RecordId;
     createdTime: Timestamp;
     fields: RecordRead<T>;
     commentCount?: number;
 }>;
 
-export async function listRecords<T extends FieldSchema>(
+export async function listRecords<T extends FieldSchemaRead>(
     {
         options,
         fields,
@@ -204,11 +191,11 @@ export async function listRecords<T extends FieldSchema>(
     return allRecords;
 }
 
-export type ListRecordsRawOptions<T extends FieldSchema> = ListRecordsOptions<T> & {
+export type ListRecordsRawOptions<T extends FieldSchemaRead> = ListRecordsOptions<T> & {
     pageSize?: number;
     offset?: string;
 };
-export interface ListRecordsRawParams<T extends FieldSchema> {
+export interface ListRecordsRawParams<T extends FieldSchemaRead> {
     baseId: BaseId;
     tableId: TableId;
     fields: ReadonlyArray<T>;
@@ -216,7 +203,7 @@ export interface ListRecordsRawParams<T extends FieldSchema> {
     fetcher?: IntoFetcher;
     onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
 }
-export type ListRecordsRawResponse<T extends FieldSchema> = {
+export type ListRecordsRawResponse<T extends FieldSchemaRead> = {
     records: Array<{
         id: RecordId;
         createdTime: Timestamp;
@@ -225,7 +212,7 @@ export type ListRecordsRawResponse<T extends FieldSchema> = {
     }>;
     offset?: RecordId;
 };
-export async function listRecordsRaw<T extends FieldSchema>(
+export async function listRecordsRaw<T extends FieldSchemaRead>(
     {
         options,
         fields,
@@ -278,7 +265,7 @@ export async function listRecordsRaw<T extends FieldSchema>(
     const query = queryParams.toString();
     const path = `/${baseId}/${tableId}${query ? `?${query}` : ''}`;
 
-    type ListApiSuccessResponse<T extends FieldSchema> = {
+    type ListApiSuccessResponse<T extends FieldSchemaRead> = {
         records: Array<{
             id: RecordId;
             createdTime: Timestamp;
@@ -298,7 +285,7 @@ export async function listRecordsRaw<T extends FieldSchema>(
         //     message: 'The formula for filtering records is invalid: Unknown field names: firstname, lastname'
         // }
     };
-    type ListApiResponse<T extends FieldSchema> = ListApiSuccessResponse<T> | ListApiErrorResponse;
+    type ListApiResponse<T extends FieldSchemaRead> = ListApiSuccessResponse<T> | ListApiErrorResponse;
     const raw = await doFetch<ListApiResponse<T>>({ fetcher, path, method: "GET" });
     if ('error' in raw) {
         console.log(fetcher);
@@ -320,7 +307,14 @@ export async function listRecordsRaw<T extends FieldSchema>(
     };
 }
 
-export interface GetRecordParams<T extends FieldSchema> {
+/**
+ * Options for getting a single record
+ */
+export interface GetRecordOptions {
+    /** Cell value format: "json" (default) or "string" */
+    cellFormat?: 'json' | 'string';
+}
+export interface GetRecordParams<T extends FieldSchemaRead> {
     recordId: RecordId;
     fields: ReadonlyArray<T>;
     baseId: BaseId;
@@ -329,12 +323,12 @@ export interface GetRecordParams<T extends FieldSchema> {
     fetcher?: IntoFetcher;
     onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
 }
-export interface GetRecordResponse<T extends FieldSchema> {
+export interface GetRecordResponse<T extends FieldSchemaRead> {
     id: RecordId;
     createdTime: Timestamp;
     fields: RecordRead<T>;
 }
-export async function getRecord<T extends FieldSchema>(
+export async function getRecord<T extends FieldSchemaRead>(
     {
         recordId,
         fields,
@@ -353,7 +347,7 @@ export async function getRecord<T extends FieldSchema>(
     const query = queryParams.toString();
     const path = `/${baseId}/${tableId}/${recordId}${query ? `?${query}` : ''}`;
 
-    type GetApiResponse<T extends FieldSchema> = {
+    type GetApiResponse<T extends FieldSchemaRead> = {
         id: RecordId;
         createdTime: Timestamp;
         fields: RawReadRecord<T>;
@@ -374,7 +368,7 @@ export async function getRecord<T extends FieldSchema>(
 /**
  * Options for updating records
  */
-export interface UpdateRecordsOptions<T extends FieldSchema> {
+export interface UpdateRecordsOptions<T extends FieldSchemaRead> {
     /**
      * If not destructive (the default), then only the fields included in the update will be modified; all other fields will remain unchanged.
      * If destructive, then ALL fields in the target record will be updated, meaning that any fields not included in the update will be cleared. 
@@ -388,7 +382,7 @@ export interface UpdateRecordsOptions<T extends FieldSchema> {
     /** Enable typecasting for string values */
     typecast?: boolean;
 }
-export interface UpdateRecordsParams<T extends FieldSchema> {
+export interface UpdateRecordsParams<T extends FieldSchemaRead> {
     records: Array<{ id?: string; fields: RecordWrite<T> }>;
     fields: ReadonlyArray<T>;
     baseId: BaseId;
@@ -400,7 +394,7 @@ export interface UpdateRecordsParams<T extends FieldSchema> {
 /**
  * Response from updating records
  */
-export interface UpdateRecordsResponse<T extends FieldSchema> {
+export interface UpdateRecordsResponse<T extends FieldSchemaRead> {
     records: Array<{
         id: RecordId;
         createdTime: Timestamp;
@@ -415,7 +409,7 @@ export interface UpdateRecordsResponse<T extends FieldSchema> {
 }
 
 /** Handles pagination for you, since Airtable can only handle 10 records to update at a time. */
-export async function updateRecords<T extends FieldSchema>(
+export async function updateRecords<T extends FieldSchemaRead>(
     {
         records,
         options,
@@ -450,7 +444,7 @@ export async function updateRecords<T extends FieldSchema>(
     return result;
 }
 
-export interface UpdateRawParams<T extends FieldSchema> {
+export interface UpdateRawParams<T extends FieldSchemaRead> {
     records: Array<{ id?: string; fields: RecordWrite<T> }>;
     options?: UpdateRecordsOptions<T>;
     fields: ReadonlyArray<T>;
@@ -459,9 +453,9 @@ export interface UpdateRawParams<T extends FieldSchema> {
     fetcher?: IntoFetcher;
     onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
 }
-export type UpdateRawResponse<T extends FieldSchema> = UpdateRecordsResponse<T>;
+export type UpdateRawResponse<T extends FieldSchemaRead> = UpdateRecordsResponse<T>;
 
-export async function updateRaw<T extends FieldSchema>(
+export async function updateRaw<T extends FieldSchemaRead>(
     {
         records,
         options,
@@ -479,7 +473,7 @@ export async function updateRaw<T extends FieldSchema>(
         throw new Error("Can only update up to 10 records at a time in updateRaw. Use update for automatic batching.");
     }
     // https://airtable.com/developers/web/api/update-multiple-records
-    type UpdateApiRequestBody<T extends FieldSchema> = {
+    type UpdateApiRequestBody<T extends FieldSchemaRead> = {
         records: Array<{
             id?: string;
             fields: WriteRecordById<T>;
@@ -490,7 +484,7 @@ export async function updateRaw<T extends FieldSchema>(
         returnFieldsByFieldId?: boolean;
         typecast?: boolean;
     };
-    type UpdateApiResponse<T extends FieldSchema> = {
+    type UpdateApiResponse<T extends FieldSchemaRead> = {
         records: Array<{
             id: RecordId;
             createdTime: Timestamp;
