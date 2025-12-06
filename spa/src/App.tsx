@@ -15,9 +15,19 @@ interface KeyValidation {
   [key: string]: boolean | undefined
 }
 
+interface BasesForKey {
+  key: string
+  bases: atk.types.BaseSchema[]
+}
+
+interface AddedKey {
+  key: string
+  enabled: boolean
+}
+
 function App() {
   const [showKeyDialog, setShowKeyDialog] = createSignal(false)
-  const [apiKey, setApiKey] = createSignal('')
+  const [apiKeyBeingAdded, setApiKeyBeingAdded] = createSignal('')
   const [loading, setLoading] = createSignal(false)
   const [error, setError] = createSignal<string | null>(null)
   const [bases, setBases] = createSignal<atk.types.BaseSchema[]>([])
@@ -31,9 +41,10 @@ function App() {
   const [format, setFormat] = createSignal<'ts' | 'js'>('ts')
   const [generatedCode, setGeneratedCode] = createSignal<string>('')
   const [copied, setCopied] = createSignal(false)
-  const [savedKeys, setSavedKeys] = createSignal<string[]>([])
+  const [addedKeys, setAddedKeys] = createSignal<AddedKey[]>([])
   const [keyValidation, setKeyValidation] = createSignal<KeyValidation>({})
   const [storageEnabled, setStorageEnabled] = createSignal(true)
+  const [allBasesForKeys, setAllBasesForKeys] = createSignal<BasesForKey[]>([])
 
   onMount(() => {
     try {
@@ -45,41 +56,44 @@ function App() {
 
       const raw = localStorage.getItem(STORAGE_KEY)
       if (!raw) return
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed)) {
-        const keys = parsed.filter((k): k is string => typeof k === 'string')
-        setSavedKeys(keys)
-        if (keys.length > 0) {
-          setApiKey(keys[0])
-          autoFetchBase(keys[0])
-        }
+      const keys = JSON.parse(raw)
+      if (Array.isArray(keys)) {
+        setAddedKeys(keys)
+        fetchAllEnabledBases()
       }
     } catch {
-      setSavedKeys([])
+      setAddedKeys([])
     }
   })
 
-  const autoFetchBase = async (key: string) => {
-    try {
-      const fetchedBases = await atk.bases.fetchAllSchemas({ fetcher: key })
-      if (fetchedBases.length > 0) {
-        setBases(fetchedBases)
-        setSelectedBaseId(fetchedBases[0].id)
+  const fetchAllEnabledBases = async () => {
+    const enabledKeys = Array.from(addedKeys().filter((k) => k.enabled).map((k) => k.key))
+    const results: BasesForKey[] = []
+    for (const key of enabledKeys) {
+      try {
+        const fetchedBases = await atk.bases.fetchAllSchemas({ fetcher: key })
+        results.push({ key, bases: fetchedBases })
         setKeyValidation((prev) => ({ ...prev, [key]: true }))
-        setSelectedItems({
-          baseId: fetchedBases[0].id,
-          tableIds: new Set(fetchedBases[0].tables.map((t) => t.id)),
-          fieldIdsByTable: new Map(
-            fetchedBases[0].tables.map((t) => [t.id, new Set(t.fields.map((f) => f.id))])
-          ),
-        })
+      } catch {
+        setKeyValidation((prev) => ({ ...prev, [key]: false }))
       }
-    } catch {
-      setKeyValidation((prev) => ({ ...prev, [key]: false }))
+    }
+    setAllBasesForKeys(results)
+    const allBases = results.flatMap(r => r.bases)
+    setBases(allBases)
+    if (allBases.length > 0 && !selectedBaseId()) {
+      setSelectedBaseId(allBases[0].id)
+      setSelectedItems({
+        baseId: allBases[0].id,
+        tableIds: new Set(allBases[0].tables.map((t) => t.id)),
+        fieldIdsByTable: new Map(
+          allBases[0].tables.map((t) => [t.id, new Set(t.fields.map((f) => f.id))])
+        ),
+      })
     }
   }
 
-  const persistKeys = (keys: string[]) => {
+  const persistKeys = (keys: AddedKey[]) => {
     try {
       if (storageEnabled()) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(keys))
@@ -87,63 +101,54 @@ function App() {
     } catch { }
   }
 
-  const rememberKey = (key: string) => {
+  const addKey = (key: string) => {
     if (!key) return
-    setSavedKeys((prev) => {
-      if (prev.includes(key)) return prev
-      const next = [key, ...prev]
+    setAddedKeys((prev) => {
+      const prevKeys = prev.map(k => k.key)
+      if (prevKeys.includes(key)) return prev
+      const next = [{ key, enabled: true }, ...prev]
       persistKeys(next)
       return next
     })
   }
 
-  const deleteKey = (key: string) => {
-    setSavedKeys((prev) => {
-      const next = prev.filter((k) => k !== key)
+  const setKeyEnabled = async (key: string, enabled: boolean) => {
+    setAddedKeys((prev) => {
+      const next = prev.map(k => k.key === key ? { ...k, enabled } : k)
       persistKeys(next)
-      if (apiKey() === key) {
-        setApiKey('')
-        setBases([])
-        setSelectedBaseId('')
-        setGeneratedCode('')
-      }
       return next
     })
+    await fetchAllEnabledBases()
+  }
+
+  const removeKey = async (key: string) => {
+    setAddedKeys((prev) => {
+      const next = prev.filter((k) => k.key !== key)
+      persistKeys(next)
+      return next
+    })
+    await fetchAllEnabledBases()
   }
 
   const displayKey = (key: string) => (key.length <= 17 ? key : `${key.slice(0, 17)}...`)
 
   const fetchBases = async () => {
-    const key = apiKey().trim()
+    const key = apiKeyBeingAdded().trim()
     if (!key) {
       setError('Please enter an API key')
       return
     }
-
     setLoading(true)
     setError(null)
-    setBases([])
-    setSelectedBaseId('')
-    setGeneratedCode('')
-
     try {
       const fetchedBases = await atk.bases.fetchAllSchemas({ fetcher: key })
       if (fetchedBases.length === 0) {
         setError('No bases found. Make sure your API key has access to at least one base.')
         setKeyValidation((prev) => ({ ...prev, [key]: false }))
       } else {
-        rememberKey(key)
-        setBases(fetchedBases)
-        setSelectedBaseId(fetchedBases[0].id)
+        addKey(key)
         setKeyValidation((prev) => ({ ...prev, [key]: true }))
-        setSelectedItems({
-          baseId: fetchedBases[0].id,
-          tableIds: new Set(fetchedBases[0].tables.map((t) => t.id)),
-          fieldIdsByTable: new Map(
-            fetchedBases[0].tables.map((t) => [t.id, new Set(t.fields.map((f) => f.id))])
-          ),
-        })
-        setApiKey('')
+        await fetchAllEnabledBases()
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch bases')
@@ -159,7 +164,10 @@ function App() {
       localStorage.setItem(STORAGE_ENABLED_KEY, String(enabled))
       if (!enabled) {
         localStorage.removeItem(STORAGE_KEY)
-        setSavedKeys([])
+        // don't clear keys from state, just from storage
+        // setAddedKeys([])
+      } else {
+        persistKeys(addedKeys())
       }
     } catch { }
   }
@@ -289,8 +297,6 @@ function App() {
     URL.revokeObjectURL(url)
   }
 
-  const currentBase = () => bases().find((b) => b.id === selectedItems().baseId)
-
   return (
     <div class="app">
       <Show when={showKeyDialog()}>
@@ -305,12 +311,12 @@ function App() {
                 <label>Add or select an API key</label>
                 <div class="input-group">
                   <input
-                    value={apiKey()}
-                    onInput={(e) => setApiKey(e.currentTarget.value)}
+                    value={apiKeyBeingAdded()}
+                    onInput={(e) => setApiKeyBeingAdded(e.currentTarget.value)}
                     placeholder="patJOweymLYMmBpd2..."
                     class="api-key-input"
                   />
-                  <button onClick={fetchBases} disabled={loading() || !apiKey().trim()} class="fetch-btn">
+                  <button onClick={fetchBases} disabled={loading() || !apiKeyBeingAdded().trim()} class="fetch-btn">
                     {loading() ? 'Loading...' : 'Add'}
                   </button>
                 </div>
@@ -322,24 +328,27 @@ function App() {
                 </p>
               </div>
 
-              <Show when={savedKeys().length > 0}>
+              <Show when={addedKeys().length > 0}>
                 <div class="saved-keys">
                   <h3>Saved Keys</h3>
                   <ul class="saved-key-list">
-                    <For each={savedKeys()}>
-                      {(key) => (
+                    <For each={addedKeys()}>
+                      {(addedKey) => (
                         <li class="saved-key-row">
                           <div class="key-info">
-                            <span class="saved-key-value">{displayKey(key)}</span>
-                            <Show when={keyValidation()[key] === false}>
+                            <input
+                              type="checkbox"
+                              checked={addedKey.enabled}
+                              onChange={(e) => setKeyEnabled(addedKey.key, e.currentTarget.checked)}
+                              title={addedKey.enabled ? 'Enabled' : 'Disabled'}
+                            />
+                            <span class="saved-key-value">{displayKey(addedKey.key)}</span>
+                            <Show when={keyValidation()[addedKey.key] === false}>
                               <span class="invalid-icon" title="Invalid key">⚠️</span>
                             </Show>
                           </div>
                           <div class="saved-key-actions">
-                            <button class="mini-btn" onClick={() => setApiKey(key)}>
-                              Use
-                            </button>
-                            <button class="mini-btn danger" onClick={() => deleteKey(key)}>
+                            <button class="mini-btn danger" onClick={() => removeKey(addedKey.key)}>
                               Delete
                             </button>
                           </div>
@@ -424,61 +433,75 @@ function App() {
 
             <Show when={bases().length > 0}>
               <div class="tree-view">
-                <div class="tree-item">
-                  <div class="tree-label">
-                    <span class="tree-name">{currentBase()?.name}</span>
-                  </div>
-
-                  <div class="tree-children">
-                    <For each={currentBase()?.tables || []}>
-                      {(table) => {
-                        const isExpanded = () => expandedTables().has(table.id)
-                        const isSelected = () => selectedItems().tableIds.has(table.id)
-                        return (
-                          <div class="tree-item nested">
+                <For each={allBasesForKeys()}>
+                  {(keyData) => (
+                    <>
+                      <div class="tree-item key-group">
+                        <div class="tree-label">
+                          <span class="tree-name key-name">🔑 {displayKey(keyData.key)}</span>
+                        </div>
+                      </div>
+                      <For each={keyData.bases}>
+                        {(base) => (
+                          <div class="tree-item base-item">
                             <div class="tree-label">
-                              <button
-                                class="expand-btn"
-                                onClick={() => toggleTableExpanded(table.id)}
-                              >
-                                {isExpanded() ? '▼' : '▶'}
-                              </button>
-                              <input
-                                type="checkbox"
-                                checked={isSelected()}
-                                onChange={() => toggleTable(table.id)}
-                              />
-                              <span class="tree-name">{table.name}</span>
+                              <span class="tree-name">{base.name}</span>
                             </div>
-
-                            <Show when={isExpanded() && isSelected()}>
-                              <div class="tree-children">
-                                <For each={table.fields}>
-                                  {(field) => {
-                                    const fieldIds = selectedItems().fieldIdsByTable.get(table.id) || new Set()
-                                    const isFieldSelected = () => fieldIds.has(field.id)
-                                    return (
-                                      <div class="tree-item nested nested-field">
-                                        <div class="tree-label">
-                                          <input
-                                            type="checkbox"
-                                            checked={isFieldSelected()}
-                                            onChange={() => toggleField(table.id, field.id)}
-                                          />
-                                          <span class="tree-name">{field.name}</span>
-                                        </div>
+                            <div class="tree-children">
+                              <For each={base.tables}>
+                                {(table) => {
+                                  const isExpanded = () => expandedTables().has(table.id)
+                                  const isSelected = () => selectedItems().tableIds.has(table.id)
+                                  return (
+                                    <div class="tree-item nested">
+                                      <div class="tree-label">
+                                        <button
+                                          class="expand-btn"
+                                          onClick={() => toggleTableExpanded(table.id)}
+                                        >
+                                          {isExpanded() ? '▼' : '▶'}
+                                        </button>
+                                        <input
+                                          type="checkbox"
+                                          checked={isSelected()}
+                                          onChange={() => toggleTable(table.id)}
+                                        />
+                                        <span class="tree-name">{table.name}</span>
                                       </div>
-                                    )
-                                  }}
-                                </For>
-                              </div>
-                            </Show>
+
+                                      <Show when={isExpanded() && isSelected()}>
+                                        <div class="tree-children">
+                                          <For each={table.fields}>
+                                            {(field) => {
+                                              const fieldIds = selectedItems().fieldIdsByTable.get(table.id) || new Set()
+                                              const isFieldSelected = () => fieldIds.has(field.id)
+                                              return (
+                                                <div class="tree-item nested nested-field">
+                                                  <div class="tree-label">
+                                                    <input
+                                                      type="checkbox"
+                                                      checked={isFieldSelected()}
+                                                      onChange={() => toggleField(table.id, field.id)}
+                                                    />
+                                                    <span class="tree-name">{field.name}</span>
+                                                  </div>
+                                                </div>
+                                              )
+                                            }}
+                                          </For>
+                                        </div>
+                                      </Show>
+                                    </div>
+                                  )
+                                }}
+                              </For>
+                            </div>
                           </div>
-                        )
-                      }}
-                    </For>
-                  </div>
-                </div>
+                        )}
+                      </For>
+                    </>
+                  )}
+                </For>
               </div>
             </Show>
           </aside>
