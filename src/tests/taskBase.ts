@@ -36,13 +36,23 @@ export default {
                     "id": "fldDueDate",
                     "name": "Due Date",
                     "type": "date",
-                    "description": "The due date of the task"
+                    "description": "The due date of the task",
+                    "options": {
+                        "dateFormat": {
+                            "format": "YYYY-MM-DD",
+                            "name": "iso"
+                        }
+                    },
                 },
                 {
                     "id": "fldCompleted",
                     "name": "Completed",
                     "type": "checkbox",
-                    "description": "Whether the task is completed"
+                    "description": "Whether the task is completed",
+                    options: {
+                        icon: 'check',
+                        color: 'blueBright',
+                    },
                 },
                 {
                     "id": "fldNotes",
@@ -66,7 +76,10 @@ export default {
                     "id": "fldAttachments",
                     "name": "Attachments",
                     "type": "multipleAttachments",
-                    "description": "Files attached to the task"
+                    "description": "Files attached to the task",
+                    "options": {
+                        "isReversed": false,
+                    },
                 },
                 {
                     "id": "fldCreatedAt",
@@ -86,7 +99,10 @@ export default {
                     "type": "multipleRecordLinks",
                     "description": "Users assigned to the task",
                     "options": {
-                        "linkedTableId": "tblUsers"
+                        "linkedTableId": "tblLinkedTable",
+                        "inverseLinkFieldId": "fldInverseLink",
+                        "isReversed": false,
+                        "prefersSingleRecordLink": false,
                     },
                 }
             ]

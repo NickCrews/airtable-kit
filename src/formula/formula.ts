@@ -1,4 +1,7 @@
-import { type FieldSchemaRead } from "../fields/types.ts";
+interface IdAndName {
+    id: string;
+    name: string;
+}
 
 export const FUNCTION_OPCODES = [
     "ABS",
@@ -103,9 +106,9 @@ type OperatorOpCode = typeof OPERATOR_OPCODES[number];
 type OpCode = FunctionOpCode | OperatorOpCode;
 
 // Formula types
-type FieldRef<T extends FieldSchemaRead> = { field: T["id"] | T["name"] };
-type ToIdMapping<T extends FieldSchemaRead> = Record<T["id"] | T["name"], T["id"]>;
-type FormulaValue<T extends FieldSchemaRead> =
+type FieldRef<T extends IdAndName> = { field: T["id"] | T["name"] };
+type ToIdMapping<T extends IdAndName> = Record<T["id"] | T["name"], T["id"]>;
+type FormulaValue<T extends IdAndName> =
     | undefined
     | null
     | string
@@ -114,7 +117,7 @@ type FormulaValue<T extends FieldSchemaRead> =
     | Date
     | FieldRef<T>
     | FormulaFunction<T>;
-type FormulaFunction<T extends FieldSchemaRead> = [OpCode, ...FormulaValue<T>[]];
+type FormulaFunction<T extends IdAndName> = [OpCode, ...FormulaValue<T>[]];
 
 /**
  * Formula type representing a formula expression for a given set of fields.
@@ -122,9 +125,9 @@ type FormulaFunction<T extends FieldSchemaRead> = [OpCode, ...FormulaValue<T>[]]
  * @typeParam T - A readonly array of {@link FieldSchema} objects representing the fields in the table
  * @see {@link formulaToString} for more info and examples
  */
-export type Formula<T extends FieldSchemaRead> = FormulaValue<T>;
+export type Formula<T extends IdAndName> = FormulaValue<T>;
 
-function _formulaToString<T extends FieldSchemaRead>(
+function _formulaToString<T extends IdAndName>(
     fields: ReadonlyArray<T>,
     value: FormulaValue<T>,
     toId: ToIdMapping<T>,
@@ -246,7 +249,7 @@ function _formulaToString<T extends FieldSchemaRead>(
  * which makes them vulnerable to renames.
  * See the above example, where we compare the "Priority" field by the choice name "High".
  */
-export function formulaToString<T extends FieldSchemaRead>(
+export function formulaToString<T extends IdAndName>(
     fields: ReadonlyArray<T>,
     formula: Formula<T>,
 ): string {
