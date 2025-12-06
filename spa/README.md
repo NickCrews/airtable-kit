@@ -4,9 +4,9 @@ A simple single page application that lets users generate TypeScript/JavaScript 
 
 ## Features
 
-- Enter your Airtable personal access token
+- Manage multiple API keys, optionally persisted in local storage.
 - Select from available bases
-- Choose output format (TypeScript or JavaScript)
+- Choose output format (ts, js, or json)
 - View, copy, or download the generated schema code
 
 ## Development
