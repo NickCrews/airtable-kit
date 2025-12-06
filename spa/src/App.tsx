@@ -313,6 +313,7 @@ function App() {
               <button class="close-btn" onClick={() => setShowKeyDialog(false)}>×</button>
             </div>
             <div class="dialog-body">
+              <p class="hint">Keys are stored only in this browser and never sent to any server.</p>
               <div class="key-input-section">
                 <label>Add or select an API key</label>
                 <div class="input-group">
@@ -384,9 +385,9 @@ function App() {
                     checked={storageEnabled()}
                     onChange={(e) => toggleStorageEnabled(e.currentTarget.checked)}
                   />
-                  Store API keys in local storage
+                  Persist API keys in local storage
+                  (otherwise they will be lost on page refresh)
                 </label>
-                <p class="hint">Keys are stored only in this browser and never sent to any server.</p>
               </div>
             </div>
           </div>
