@@ -1,5 +1,6 @@
 import { createSignal, For, Show, onMount, createEffect } from 'solid-js'
 import * as atk from 'airtable-kit'
+import { ExternalLink } from 'lucide-solid'
 import './App.css'
 
 const STORAGE_KEY = 'airtable-kit:saved-api-keys'
@@ -353,6 +354,15 @@ function App() {
                             </Show>
                           </div>
                           <div class="saved-key-actions">
+                            <a
+                              href={`https://airtable.com/create/tokens/${addedKey.key.slice(0, 17)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="mini-btn"
+                              title="Open token in Airtable"
+                            >
+                              <ExternalLink size={14} />
+                            </a>
                             <button class="mini-btn danger" onClick={() => removeKey(addedKey.key)}>
                               Delete
                             </button>
