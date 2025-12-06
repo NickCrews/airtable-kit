@@ -115,7 +115,7 @@ Read the code to see how.
 Now, use the generated schema to create a type-safe Airtable client:
 
 ```typescript
-import atk from 'airtable-kit';
+import * as atk from 'airtable-kit';
 import projectTrackerSchema from './schemas/projectTracker.ts';
 
 const client = atk.clients.makeBaseClient({
@@ -166,7 +166,7 @@ console.log(tasks);
 This also supports multi-base clients!
 
 ```typescript
-import atk from 'airtable-kit';
+import * as atk from 'airtable-kit';
 import projectTrackerSchema from './schemas/projectTracker.ts';
 import otherBase from './schemas/otherBase.ts';
 
@@ -182,7 +182,7 @@ client.bases.otherBase.tables.someTable.createRecords([ ... ]);
 ### Use Case 2: Dynamic Client for Unknown Bases, eg an MCP Tool
 
 ```typescript
-import atk from 'airtable-kit';
+import * as atk from 'airtable-kit';
 
 const fetcher = 'YOUR_API_KEY';
 const baseSchema = await atk.bases.getBaseSchema({ baseId: 'appXXXXXXXXXXXXXX', fetcher });
