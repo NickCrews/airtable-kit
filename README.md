@@ -32,6 +32,8 @@ This has several advantages:
 
 ## Installation
 
+This is [available on npm](https://www.npmjs.com/package/airtable-kit):
+
 ```bash
 pnpm add airtable-kit
 ```
@@ -102,9 +104,6 @@ which aren't present in the raw JSON.
 
 If you dropped the `as const` you would have a plain javascript file if you
 are working with javascript. You can get the CLI to do this with the `--format js` flag.
-
-There is also a typescript API to get and save the schema.
-Read the code to see how.
 
 Now, use the generated schema to create a type-safe Airtable client:
 
@@ -235,14 +234,6 @@ atk.records.updateRecords(
   }
 )
 ```
-## Architecture
-
-The package is organized into focused modules:
-
-- **Core** (`airtable-kit`): Basic types and utilities
-- **Fields Module** (`airtable-kit/fields`): Type definitions for all Airtable field schemas, eg 'singleSelect'
-- **Validators Module** (`airtable-kit/validators`): Generate Zod schemas for runtime validation
-- **MCP Module** (`airtable-kit/mcp`): MCP tools for LLM integration
 
 ## Comparison to Other Airtable Libraries
 
