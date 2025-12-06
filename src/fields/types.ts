@@ -25,14 +25,11 @@ export type SelectChoiceSchemaWrite = {
   name: string;
   color: SelectColor;
 }
-
-interface AiText {
+export interface AiTextSchemaRead {
   id: FieldId;
   name: string;
   description?: string;
   type: "aiText";
-}
-export interface AiTextSchemaRead extends AiText {
   options: {
     /** The prompt that is used to generate the results in the AI field, additional object types may be added in the future. Currently, this is an array of strings or objects that identify any fields interpolated into the prompt. */
     prompt: Array<string | { fieldId: FieldId }>
@@ -53,32 +50,32 @@ export type AiTextValueRead = {
 };
 export type AiTextValueCreate = never
 
-interface AutoNumber {
+export type AutoNumberSchemaRead = {
   id: FieldId;
   name: string;
   type: "autoNumber";
   description?: string;
 }
-export type AutoNumberSchemaRead = AutoNumber
-export type AutoNumberSchemaCreate = Omit<AutoNumber, "id">;
+export type AutoNumberSchemaCreate = Omit<AutoNumberSchemaRead, "id">;
 
-interface Barcode {
+export interface BarcodeSchemaRead {
   id: FieldId;
   name: string;
   description?: string;
   type: "barcode";
-}
-export type BarcodeSchemaRead = Barcode;
-export type BarcodeSchemaCreate = Omit<Barcode, "id">;
-interface Button {
+};
+export type BarcodeSchemaCreate = Omit<BarcodeSchemaRead, "id">;
+
+
+export type ButtonSchemaRead = {
   id: FieldId;
   name: string;
   type: "button";
   description?: string;
-}
-export type ButtonSchemaRead = Button;
-export type ButtonSchemaCreate = Omit<Button, "id">;
-type CheckboxIcon =
+};
+export type ButtonSchemaCreate = Omit<ButtonSchemaRead, "id">;
+
+export type CheckboxIcon =
   | "check"
   | "xCheckbox"
   | "star"
@@ -86,17 +83,11 @@ type CheckboxIcon =
   | "thumbsUp"
   | "flag"
   | "dot";
-interface Checkbox {
+export interface CheckboxSchemaRead {
   id: FieldId;
   name: string;
   description?: string;
   type: "checkbox";
-  options?: {
-    icon?: CheckboxIcon;
-    color?: BrightColor;
-  }
-}
-export interface CheckboxSchemaRead extends Checkbox {
   options: {
     icon: CheckboxIcon;
     color: BrightColor;
@@ -104,18 +95,11 @@ export interface CheckboxSchemaRead extends Checkbox {
 }
 export type CheckboxSchemaCreate = Omit<CheckboxSchemaRead, "id">
 
-interface Count {
+export interface CountSchemaRead {
   id: FieldId;
   name: string;
   description?: string;
   type: "count";
-  options?: {
-    /** false when recordLinkFieldId is null, e.g. the referenced column was deleted. */
-    isValid?: boolean;
-    recordLinkFieldId?: FieldId | null;
-  };
-}
-export interface CountSchemaRead extends Count {
   options: {
     /** false when recordLinkFieldId is null, e.g. the referenced column was deleted. */
     isValid: boolean;
@@ -123,34 +107,25 @@ export interface CountSchemaRead extends Count {
   };
 }
 export type CountSchemaCreate = Omit<CountSchemaRead, "id">
-interface CreatedBy {
+export interface CreatedBySchemaRead {
   id: FieldId;
   name: string;
   description?: string;
   type: "createdBy";
 }
-export type CreatedBySchemaRead = CreatedBy;
-export type CreatedBySchemaCreate = Omit<CreatedBy, "id">;
-interface CreatedTime {
+export type CreatedBySchemaCreate = Omit<CreatedBySchemaRead, "id">;
+export interface CreatedTimeSchemaRead {
   id: FieldId;
   name: string;
   description?: string;
   type: "createdTime";
-}
-export type CreatedTimeSchemaRead = CreatedTime;
-export type CreatedTimeSchemaCreate = Omit<CreatedTime, "id">;
-interface Currency {
+};
+export type CreatedTimeSchemaCreate = Omit<CreatedTimeSchemaRead, "id">;
+export interface CurrencySchemaRead {
   id: FieldId;
   name: string;
   description?: string;
   type: "currency";
-  options?: {
-    /** Indicates the number of digits shown to the right of the decimal point for this field. (0-7 inclusive) */
-    precision?: number;
-    symbol?: string;
-  };
-}
-export interface CurrencySchemaRead extends Currency {
   options: {
     /** Indicates the number of digits shown to the right of the decimal point for this field. (0-7 inclusive) */
     precision: number;
@@ -159,17 +134,11 @@ export interface CurrencySchemaRead extends Currency {
 }
 export type CurrencySchemaCreate = Omit<CurrencySchemaRead, "id">;
 
-type DateFormatName = "local" | "friendly" | "us" | "european" | "iso";
-type DateFormatFormat = "l" | "LL" | "M/D/YYYY" | "D/M/YYYY" | "YYYY-MM-DD";
-type TimeFormatName = "12hour" | "24hour";
-type TimeFormatFormat = "h:mma" | "HH:mm";
+export type DateFormatName = "local" | "friendly" | "us" | "european" | "iso";
+export type DateFormatFormat = "l" | "LL" | "M/D/YYYY" | "D/M/YYYY" | "YYYY-MM-DD";
+export type TimeFormatName = "12hour" | "24hour";
+export type TimeFormatFormat = "h:mma" | "HH:mm";
 
-interface Date {
-  id: FieldId;
-  name: string;
-  description?: string;
-  type: "date";
-}
 export interface DateSchemaRead {
   id: FieldId;
   name: string;
@@ -232,13 +201,11 @@ export interface DateTimeSchemaCreate {
 }
 
 /** An integer representing number of seconds. */
-interface Duration {
+export interface DurationSchemaRead {
   id: FieldId;
   name: string;
   description?: string;
   type: "duration";
-}
-export interface DurationSchemaRead extends Duration {
   options: {
     durationFormat:
     | "h:mm"
@@ -250,21 +217,19 @@ export interface DurationSchemaRead extends Duration {
 }
 export type DurationSchemaCreate = Omit<DurationSchemaRead, "id">;
 
-interface Email {
+export interface EmailSchemaRead {
   id: FieldId;
   name: string;
   description?: string;
   type: "email";
-}
-export type EmailSchemaRead = Email;
-export type EmailSchemaCreate = Omit<Email, "id">;
-interface ExternalSyncSource {
+};
+export type EmailSchemaCreate = Omit<EmailSchemaRead, "id">;
+export interface ExternalSyncSourceSchemaRead {
   id: FieldId;
   name: string;
   description?: string;
   type: "externalSyncSource";
-}
-export type ExternalSyncSourceSchemaRead = ExternalSyncSource;
+};
 export type ExternalSyncSourceSchemaCreate = never;
 export interface FormulaSchemaRead {
   id: FieldId;
@@ -494,14 +459,13 @@ export interface SingleSelectSchemaCreate<C extends SelectChoiceSchemaWrite = Se
     choices: readonly C[];
   };
 }
-interface Url {
+export interface UrlSchemaRead {
   id: FieldId;
   name: string;
   description?: string;
   type: "url";
 }
-export type UrlSchemaRead = Url;
-export type UrlSchemaCreate = Omit<Url, "id">;
+export type UrlSchemaCreate = Omit<UrlSchemaRead, "id">;
 
 
 const READ_SCHEMAS = {
