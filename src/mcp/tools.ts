@@ -4,7 +4,7 @@
 
 import type { RecordId, TableSchema } from '../types.ts';
 import { type TableClient } from '../clients/table-client.ts';
-import { type RecordRead, type RecordWrite } from '../records/converters.ts';
+import { type ValuesFromRead, type ValuesForWrite } from '../records/converters.ts';
 import * as z4 from 'zod/v4';
 import { makeRecordWriteValidator } from '../validators/schema-to-zod.ts';
 import { toIdentifier } from '../codegen/identifiers.ts';
@@ -22,12 +22,12 @@ export interface MCPToolDefinition<TInput = any, TOutput = any> {
 }
 
 type CreateInput<T extends TableSchema> = {
-  records: ReadonlyArray<RecordWrite<T["fields"][number]>>;
+  records: ReadonlyArray<ValuesForWrite<T["fields"][number]>>;
 };
 type CreateToolResult<T extends TableSchema> = Array<{
   id: RecordId;
   createdTime: string;
-  fields: RecordRead<T["fields"][number]>;
+  fields: ValuesFromRead<T["fields"][number]>;
   url: string;
 }>;
 export function makeCreateTool<
@@ -37,7 +37,7 @@ export function makeCreateTool<
   const zodInputValidator = z4.object({ records: z4.array(recordSchema) });
   async function execute(input: CreateInput<T>) {
     const validated = zodInputValidator.parse(input);
-    const createRecords = await client.createRecords(validated.records as RecordWrite<T["fields"][number]>[]);
+    const createRecords = await client.createRecords(validated.records as ValuesForWrite<T["fields"][number]>[]);
     return createRecords.map((r) => ({
       ...r,
       // include the URL so the bot can share it with the user
@@ -66,7 +66,7 @@ If you use this, consider giving the user the URLs of the created records in you
 type UpdateInput<T extends TableSchema> = {
   records: Array<{
     id?: string;
-    fields: Partial<RecordWrite<T["fields"][number]>>;
+    fields: Partial<ValuesForWrite<T["fields"][number]>>;
   }>;
   options?: UpdateRecordsOptions<T["fields"][number]>;
 };
@@ -114,7 +114,7 @@ type GetInput = z4.infer<typeof GetInput>;
 type GetToolResult<T extends TableSchema> = {
   id: string;
   createdTime: string;
-  fields: RecordRead<T["fields"][number]>;
+  fields: ValuesFromRead<T["fields"][number]>;
   url: string;
 };
 export function makeGetTool<

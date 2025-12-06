@@ -46,23 +46,23 @@ export interface TableClient<T extends TableSchema = TableSchema> {
 
     /** Create a record in the table
      * 
-     * @param record - A record to create, keyed by either field names or field IDs
+     * @param record - A record to create, keyed by either field name or field ID
      * @returns A promise that resolves to the created record with its ID, createdTime, and field values
      * 
      * Any values of `null` or `undefined` in the input record will not be passed
      * to Airtable, effectively leaving those fields blank on creation.
      */
-    createRecord(record: r.RecordWrite<FieldType<T>>): Promise<r.CreateRecordsRawResponse<FieldType<T>>[number]>;
+    createRecord(record: r.ValuesForWrite<FieldType<T>>): Promise<r.CreateRecordsRawResponse<FieldType<T>>[number]>;
 
     /** Create multiple records into the table
      * 
-     * @param records - An array of records to create, keyed by either field names or field IDs
+     * @param records - An array of records to create, each keyed by either field name or field ID
      * @returns A promise that resolves to an array of created records with their IDs, createdTimes, and field values
      * 
      * Any values of `null` or `undefined` in the input records will not be passed
      * to Airtable, effectively leaving those fields blank on creation.
      */
-    createRecords(values: ReadonlyArray<r.RecordWrite<FieldType<T>>>): Promise<r.CreateRecordsResponse<FieldType<T>>>;
+    createRecords(records: ReadonlyArray<r.ValuesForWrite<FieldType<T>>>): Promise<r.CreateRecordsResponse<FieldType<T>>>;
 
     /** List records from the table with optional filtering. Pagination is handled automatically. */
     listRecords(options?: r.ListRecordsOptions<FieldType<T>>): Promise<r.ListRecordsResponse<FieldType<T>>>;
@@ -83,7 +83,7 @@ export interface TableClient<T extends TableSchema = TableSchema> {
      * To explicitly clear a field, set its value to `null`.
      */
     updateRecords(
-        records: Array<{ id?: string; fields: Partial<r.RecordWrite<FieldType<T>>> }>,
+        records: Array<{ id?: string; fields: Partial<r.ValuesForWrite<FieldType<T>>> }>,
         options?: r.UpdateRecordsOptions<FieldType<T>>
     ): Promise<r.UpdateRecordsResponse<FieldType<T>>>;
 
@@ -180,7 +180,7 @@ export function makeTableClient<T extends TableSchema>(
                 fetcher,
             });
         },
-        createRecords(records: ReadonlyArray<r.RecordWrite<FieldType<T>>>) {
+        createRecords(records: ReadonlyArray<r.ValuesForWrite<FieldType<T>>>) {
             return r.createRecords<FieldType<T>>({
                 records,
                 baseId,
@@ -190,7 +190,7 @@ export function makeTableClient<T extends TableSchema>(
                 onUnexpectedField: options?.onReadUnexpectedField,
             });
         },
-        async createRecord(record: r.RecordWrite<FieldType<T>>) {
+        async createRecord(record: r.ValuesForWrite<FieldType<T>>) {
             const raw = await r.createRecordsRaw<FieldType<T>>({
                 records: [record],
                 baseId,
@@ -233,7 +233,7 @@ export function makeTableClient<T extends TableSchema>(
             });
         },
         async updateRecords(
-            records: Array<{ id?: string; fields: Partial<r.RecordWrite<FieldType<T>>> }>,
+            records: Array<{ id?: string; fields: Partial<r.ValuesForWrite<FieldType<T>>> }>,
             updateRecordsOptions?: r.UpdateRecordsOptions<FieldType<T>>
         ) {
             return await r.updateRecords<FieldType<T>>({

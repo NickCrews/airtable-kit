@@ -1,12 +1,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { testBaseClient } from "../tests/test-utils.ts";
 
-describe("BaseClient", () => {
-    const { baseClient, resetBaseData } = testBaseClient();
+const { baseClient, resetBaseData } = testBaseClient();
 
-    beforeEach(async () => {
-        await resetBaseData();
-    });
+describe("BaseClient", () => {
+    beforeEach(resetBaseData);
 
     it("can access table clients", () => {
         expect(baseClient.tables.tasks).toBeDefined();
@@ -24,20 +22,18 @@ describe("BaseClient", () => {
         ]);
 
         expect(result).toHaveLength(1);
-        expect(result[0]).toMatchObject({
-            fields: {
-                name: "do laundry",
-                "Due Date": "1990-01-01",
-                Tags: ["Urgent", "Important"],
-                Completed: false,
-                "Assigned To": [],
-                Attachments: [],
-                Notes: "",
-                Priority: null,
-                Status: null,
-            },
+        const { id, fields, createdTime } = result[0];
+        expect(fields).toEqual({
+            name: "do laundry",
+            dueDate: "1990-01-01",
+            tags: ["Urgent", "Important"],
+            completed: false,
+            attachments: [],
+            notes: "",
+            priority: null,
+            status: null,
         });
-        expect(result[0].id).toMatch(/^rec/);
-        expect(result[0].createdTime).toBeDefined();
+        expect(id).toMatch(/^rec/);
+        expect(createdTime).toBeDefined();
     });
 });

@@ -120,20 +120,20 @@ export class UnexpectedFieldReadError extends AirtableKitError {
 
 export class RecordReadError extends AirtableKitError {
     public readonly errors: ReadonlyArray<AirtableKitError>;
-    public readonly rawRecord: Record<FieldId, unknown>;
+    public readonly rawValues: Record<FieldId, unknown>;
     public readonly fieldSchemas: ReadonlyArray<FieldSchemaRead>;
     constructor({
         errors,
-        rawRecord,
+        rawValues,
         fieldSchemas,
     }: {
         errors: ReadonlyArray<AirtableKitError>;
-        rawRecord: Record<FieldId, unknown>;
+        rawValues: Record<FieldId, unknown>;
         fieldSchemas: ReadonlyArray<FieldSchemaRead>;
     }) {
         super(`Errors reading record: \n${errors.map(e => `- ${e.message}`).join("\n")}`);
         this.errors = errors;
-        this.rawRecord = rawRecord;
+        this.rawValues = rawValues;
         this.fieldSchemas = fieldSchemas;
         this.name = "RecordReadError";
         // Maintain the correct prototype chain

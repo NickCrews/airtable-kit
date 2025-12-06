@@ -242,7 +242,7 @@ const ExternalSyncSourceConverters = {
 >;
 
 type FormulaResultType<F extends FieldOfType<"formula">> = F["options"]["result"]
-type FormulaReadType<F extends FieldOfType<"formula">> = FieldRead<FormulaResultType<F>>;
+type FormulaReadType<F extends FieldOfType<"formula">> = ValueFromRead<FormulaResultType<F>>;
 const FormulaConverters = {
     type: "formula",
     makeTo: null,
@@ -365,7 +365,7 @@ const MultipleCollaboratorsConverters = {
 >;
 
 type MultipleLookupValuesResultType<F extends types.MultipleLookupValuesSchemaRead> = F["options"]["result"]
-type MultipleLookupValuesReadType<F extends types.MultipleLookupValuesSchemaRead> = FieldRead<MultipleLookupValuesResultType<F>>;
+type MultipleLookupValuesReadType<F extends types.MultipleLookupValuesSchemaRead> = ValueFromRead<MultipleLookupValuesResultType<F>>;
 const MultipleLookupValuesConverters = {
     type: "multipleLookupValues",
     makeTo: null,
@@ -474,7 +474,7 @@ const RichTextConverters = {
 >;
 
 type RollupResultType<F extends FieldOfType<"rollup">> = F["options"]["result"]
-type RollupReadType<F extends FieldOfType<"rollup">> = FieldRead<RollupResultType<F>>;
+type RollupReadType<F extends FieldOfType<"rollup">> = ValueFromRead<RollupResultType<F>>;
 const RollupConverters = {
     type: "rollup",
     makeTo: null,
@@ -585,7 +585,7 @@ export const CONVERTERS = {
 export type Converters = typeof CONVERTERS[keyof typeof CONVERTERS];
 
 /** Given a FieldSchema, return the typescript type will be returned when you read from it */
-export type FieldRead<F extends Omit<FieldSchemaRead, "id" | "name">> =
+export type ValueFromRead<F extends Omit<FieldSchemaRead, "id" | "name">> =
     F extends FieldOfType<"aiText"> ? types.AiTextValueRead
     : F extends FieldOfType<"autoNumber"> ? number | null
     : F extends FieldOfType<"barcode"> ? BarcodeValue | null
@@ -622,7 +622,7 @@ export type FieldRead<F extends Omit<FieldSchemaRead, "id" | "name">> =
     : never;
 
 /** Given a FieldSchema, return the typescript type that can be written to it */
-export type FieldWrite<F extends FieldSchemaRead> = F extends FieldOfType<"aiText">
+export type ValueForWrite<F extends FieldSchemaRead> = F extends FieldOfType<"aiText">
     ? never
     : F extends FieldOfType<"autoNumber"> ? never
     : F extends FieldOfType<"barcode"> ? BarcodeValue | null | undefined
@@ -667,8 +667,8 @@ export type FieldWrite<F extends FieldSchemaRead> = F extends FieldOfType<"aiTex
  * @throws {@link FieldNotWritableError} if the field type cannot be written to.
  * @throws {@link WriteValueConversionError} if the value could not be converted for writing.
  */
-export function convertFieldForWrite<F extends FieldSchemaRead>(
-    value: FieldWrite<F>,
+export function convertValueForWrite<F extends FieldSchemaRead>(
+    value: ValueForWrite<F>,
     fieldSchema: F,
 ): unknown {
     const type = fieldSchema.type;
@@ -700,10 +700,10 @@ export function convertFieldForWrite<F extends FieldSchemaRead>(
  * @throws {@link FieldNotReadableError} if the field type cannot be read from.
  * @throws {@link ReadValueConversionError} if the value could not be converted for reading.
  */
-export function convertFieldForRead<F extends FieldSchemaRead>(
+export function convertValueFromRead<F extends FieldSchemaRead>(
     value: unknown,
     fieldSchema: F,
-): FieldRead<F> {
+): ValueFromRead<F> {
     const type = fieldSchema.type;
     const converterObj = CONVERTERS[type];
     if (!converterObj) {
@@ -715,7 +715,7 @@ export function convertFieldForRead<F extends FieldSchemaRead>(
     }
     const converter = makeFrom(fieldSchema);
     try {
-        return converter(value) as FieldRead<F>;
+        return converter(value) as ValueFromRead<F>;
     } catch (e) {
         throw new exceptions.ReadValueConversionError(value, fieldSchema, e as Error);
     }

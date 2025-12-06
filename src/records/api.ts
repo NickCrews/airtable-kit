@@ -1,10 +1,10 @@
 import { doFetch, IntoFetcher } from "../fetcher";
-import { FieldRead } from "../fields/converters";
+import { ValueFromRead } from "../fields/converters";
 import { Timezone } from "../fields/timezones";
 import { FieldSchemaRead } from "../fields/types";
 import { Formula, formulaToString } from "../formula";
 import { AttachmentId, BaseId, FieldId, RecordId, TableId } from "../types";
-import { convertRecordForRead, convertRecordForWrite, RecordRead, RecordWrite, WriteRecordById } from "./converters";
+import { convertValuesFromRead, convertValuesForWrite, ValuesFromRead, ValuesForWrite, WriteValuesById } from "./converters";
 import * as exceptions from "../exceptions";
 
 type FieldNameOrId<T extends FieldSchemaRead> = T['name'] | T['id'];
@@ -13,7 +13,7 @@ type FieldNameOrId<T extends FieldSchemaRead> = T['name'] | T['id'];
 export type Timestamp = string;
 
 export interface CreateRecordsParams<T extends FieldSchemaRead> {
-    records: ReadonlyArray<RecordWrite<T>>;
+    records: ReadonlyArray<ValuesForWrite<T>>;
     baseId: BaseId;
     tableId: TableId;
     fields: ReadonlyArray<T>;
@@ -22,13 +22,13 @@ export interface CreateRecordsParams<T extends FieldSchemaRead> {
 }
 export type CreateRecordsResponse<T extends FieldSchemaRead> = Array<{
     id: RecordId,
-    fields: RecordRead<T>,
+    fields: ValuesFromRead<T>,
     createdTime: Timestamp,
 }>;
 
 // https://airtable.com/developers/web/api/create-records
-type RawReadRecord<T extends FieldSchemaRead> = {
-    [K in T["id"]]: FieldRead<Extract<T, { id: K }>>;
+type RawReadValues<T extends FieldSchemaRead> = {
+    [K in T["id"]]: ValueFromRead<Extract<T, { id: K }>>;
 }
 export async function createRecords<T extends FieldSchemaRead>(
     {
@@ -43,14 +43,14 @@ export async function createRecords<T extends FieldSchemaRead>(
     const BATCH_SIZE = 10;
     const result: Array<{
         id: RecordId,
-        fields: RecordRead<T>,
+        fields: ValuesFromRead<T>,
         createdTime: Timestamp,
     }> = [];
     for (let i = 0; i < records.length; i += BATCH_SIZE) {
         const batch = records.slice(i, i + BATCH_SIZE);
         const created = await createRecordsRaw<T>({
             records: batch,
-            fields: fields,
+            fields,
             baseId,
             tableId,
             fetcher,
@@ -62,7 +62,7 @@ export async function createRecords<T extends FieldSchemaRead>(
 }
 
 export interface CreateRecordsRawParams<T extends FieldSchemaRead> {
-    records: ReadonlyArray<RecordWrite<T>>;
+    records: ReadonlyArray<ValuesForWrite<T>>;
     baseId: BaseId;
     tableId: TableId;
     fields: ReadonlyArray<T>;
@@ -71,7 +71,7 @@ export interface CreateRecordsRawParams<T extends FieldSchemaRead> {
 }
 export type CreateRecordsRawResponse<T extends FieldSchemaRead> = Array<{
     id: RecordId,
-    fields: RecordRead<T>,
+    fields: ValuesFromRead<T>,
     createdTime: Timestamp,
 }>;
 
@@ -93,8 +93,8 @@ export async function createRecordsRaw<T extends FieldSchemaRead>(
             Object.entries(record).filter(([_, v]) => v !== undefined && v !== null)
         );
         return {
-            fields: convertRecordForWrite(
-                withoutUndefinedAndNulls as Partial<RecordWrite<T>>,
+            fields: convertValuesForWrite(
+                withoutUndefinedAndNulls as Partial<ValuesForWrite<T>>,
                 fields,
             ),
         };
@@ -103,7 +103,7 @@ export async function createRecordsRaw<T extends FieldSchemaRead>(
         records: Array<{
             id: `rec${string}`;
             createdTime: string;
-            fields: RawReadRecord<T>;
+            fields: RawReadValues<T>;
         }>;
     };
     const raw = await doFetch<CreateApiResponse<T>>({
@@ -117,7 +117,7 @@ export async function createRecordsRaw<T extends FieldSchemaRead>(
     });
     const result = raw.records.map((record) => ({
         id: record.id,
-        fields: convertRecordForRead(record.fields, fields, onUnexpectedField),
+        fields: convertValuesFromRead(record.fields, fields, onUnexpectedField),
         createdTime: record.createdTime,
     }));
     return result;
@@ -157,7 +157,7 @@ export interface ListRecordsParams<T extends FieldSchemaRead> {
 export type ListRecordsResponse<T extends FieldSchemaRead> = Array<{
     id: RecordId;
     createdTime: Timestamp;
-    fields: RecordRead<T>;
+    fields: ValuesFromRead<T>;
     commentCount?: number;
 }>;
 
@@ -207,7 +207,7 @@ export type ListRecordsRawResponse<T extends FieldSchemaRead> = {
     records: Array<{
         id: RecordId;
         createdTime: Timestamp;
-        fields: RecordRead<T>;
+        fields: ValuesFromRead<T>;
         commentCount: number;
     }>;
     offset?: RecordId;
@@ -269,7 +269,7 @@ export async function listRecordsRaw<T extends FieldSchemaRead>(
         records: Array<{
             id: RecordId;
             createdTime: Timestamp;
-            fields: RawReadRecord<T>;
+            fields: RawReadValues<T>;
             commentCount?: number;
         }>;
         offset?: RecordId;
@@ -298,7 +298,7 @@ export async function listRecordsRaw<T extends FieldSchemaRead>(
             return {
                 id: record.id,
                 createdTime: record.createdTime,
-                fields: convertRecordForRead(record.fields, fields, onUnexpectedField),
+                fields: convertValuesFromRead(record.fields, fields, onUnexpectedField),
                 commentCount: record.commentCount ?? 0,
             };
         }),
@@ -325,7 +325,7 @@ export interface GetRecordParams<T extends FieldSchemaRead> {
 export interface GetRecordResponse<T extends FieldSchemaRead> {
     id: RecordId;
     createdTime: Timestamp;
-    fields: RecordRead<T>;
+    fields: ValuesFromRead<T>;
 }
 export async function getRecord<T extends FieldSchemaRead>(
     {
@@ -349,7 +349,7 @@ export async function getRecord<T extends FieldSchemaRead>(
     type GetApiResponse<T extends FieldSchemaRead> = {
         id: RecordId;
         createdTime: Timestamp;
-        fields: RawReadRecord<T>;
+        fields: RawReadValues<T>;
     };
     const result = await doFetch<GetApiResponse<T>>({
         fetcher: intoFetcher,
@@ -360,7 +360,7 @@ export async function getRecord<T extends FieldSchemaRead>(
     return {
         id: result.id,
         createdTime: result.createdTime,
-        fields: convertRecordForRead(result.fields, fields, onUnexpectedField),
+        fields: convertValuesFromRead(result.fields, fields, onUnexpectedField),
     }
 }
 
@@ -382,7 +382,7 @@ export interface UpdateRecordsOptions<T extends FieldSchemaRead> {
     typecast?: boolean;
 }
 export interface UpdateRecordsParams<T extends FieldSchemaRead> {
-    records: Array<{ id?: string; fields: RecordWrite<T> }>;
+    records: Array<{ id?: string; fields: ValuesForWrite<T> }>;
     fields: ReadonlyArray<T>;
     baseId: BaseId;
     tableId: TableId;
@@ -397,7 +397,7 @@ export interface UpdateRecordsResponse<T extends FieldSchemaRead> {
     records: Array<{
         id: RecordId;
         createdTime: Timestamp;
-        fields: RecordRead<T>;
+        fields: ValuesFromRead<T>;
     }>;
     details?: {
         message: 'partialSuccess';
@@ -444,7 +444,7 @@ export async function updateRecords<T extends FieldSchemaRead>(
 }
 
 export interface UpdateRawParams<T extends FieldSchemaRead> {
-    records: Array<{ id?: string; fields: RecordWrite<T> }>;
+    records: Array<{ id?: string; fields: ValuesForWrite<T> }>;
     options?: UpdateRecordsOptions<T>;
     fields: ReadonlyArray<T>;
     baseId: BaseId;
@@ -475,7 +475,7 @@ export async function updateRaw<T extends FieldSchemaRead>(
     type UpdateApiRequestBody<T extends FieldSchemaRead> = {
         records: Array<{
             id?: string;
-            fields: WriteRecordById<T>;
+            fields: WriteValuesById<T>;
         }>;
         performUpsert?: {
             fieldsToMergeOn: string[];
@@ -487,7 +487,7 @@ export async function updateRaw<T extends FieldSchemaRead>(
         records: Array<{
             id: RecordId;
             createdTime: Timestamp;
-            fields: RawReadRecord<T>;
+            fields: RawReadValues<T>;
         }>;
         details?: {
             message: 'partialSuccess';
@@ -502,8 +502,8 @@ export async function updateRaw<T extends FieldSchemaRead>(
                 Object.entries(record.fields).filter(([_, v]) => v !== undefined)
             );
             const converted: UpdateApiRequestBody<T>['records'][number] = {
-                fields: convertRecordForWrite(
-                    withoutUndefined as Partial<RecordWrite<T>>,
+                fields: convertValuesForWrite(
+                    withoutUndefined as Partial<ValuesForWrite<T>>,
                     fields,
                 ),
             };
@@ -532,7 +532,7 @@ export async function updateRaw<T extends FieldSchemaRead>(
 
     return {
         records: rawResponse.records.map((record: any) => {
-            const converted = convertRecordForRead(record.fields, fields, onUnexpectedField);
+            const converted = convertValuesFromRead(record.fields, fields, onUnexpectedField);
             return {
                 id: record.id,
                 createdTime: record.createdTime,

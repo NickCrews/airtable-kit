@@ -1,8 +1,8 @@
 export {
-    type RecordRead,
-    type RecordWrite,
-    convertRecordForRead,
-    convertRecordForWrite,
+    type ValuesFromRead,
+    type ValuesForWrite,
+    convertValuesFromRead,
+    convertValuesForWrite,
 } from "./converters.ts";
 export {
     type Timestamp,

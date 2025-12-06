@@ -153,7 +153,7 @@ describe("TableClient", () => {
                 ["=", { field: "status" }, "In Progress"],
                 ["!=", { field: "name" }, null],
             ]);
-            expect(formulaStr).toMatchInlineSnapshot()
+            expect(formulaStr).toMatchInlineSnapshot(`"AND({fldnICsxPklEeCtbY} >= TODAY(), {fldnICsxPklEeCtbY} <= DATEADD(TODAY(), 7, "days"), {fld5HSoxDVnT7NGZ6} = "In Progress", {fldlwe8DKJGEOB4NB} != BLANK())"`)
         });
     });
 
