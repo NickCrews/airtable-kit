@@ -31,6 +31,9 @@ jobs:
           node-version: 24
           cache: 'pnpm'
 
+      - name: Install and build airtable-kit
+        run: pnpm install && pnpm build
+
       - name: Install dependencies
         run: pnpm install
         working-directory: spa
