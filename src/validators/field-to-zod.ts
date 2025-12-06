@@ -31,9 +31,9 @@ const READONLY_VALIDATOR = z.never();
 const STRING_VALIDATOR = z.string().nullable();
 const URL_VALIDATOR = z.url().nullable();
 
-type SelectChoiceName<T extends f.SingleSelectSchemaRead | f.MultipleSelects> = T extends (f.SingleSelectSchemaRead<infer C> | f.MultipleSelects<infer C>) ? C["name"] : never;
-type SingleSelectValidator<T extends f.SingleSelectSchemaRead | f.MultipleSelects> = z.ZodEnum<{ [K in SelectChoiceName<T>]: K }>;
-type MultipleSelectValidator<T extends f.MultipleSelects> = z.ZodArray<SingleSelectValidator<T>>;
+type SelectChoiceName<T extends f.SingleSelectSchemaRead | f.MultipleSelectsSchemaRead> = T extends (f.SingleSelectSchemaRead<infer C> | f.MultipleSelectsSchemaRead<infer C>) ? C["name"] : never;
+type SingleSelectValidator<T extends f.SingleSelectSchemaRead | f.MultipleSelectsSchemaRead> = z.ZodEnum<{ [K in SelectChoiceName<T>]: K }>;
+type MultipleSelectValidator<T extends f.MultipleSelectsSchemaRead> = z.ZodArray<SingleSelectValidator<T>>;
 
 function makeSingleSelectValidator<T extends f.SingleSelectSchemaRead>(field: T): SingleSelectValidator<T> {
   const names = field.options.choices.map((c) => c.name);
@@ -42,7 +42,7 @@ function makeSingleSelectValidator<T extends f.SingleSelectSchemaRead>(field: T)
   return z.enum(allValues) as SingleSelectValidator<T>;
 }
 
-function makeMultipleSelectValidator<T extends f.MultipleSelects>(field: T): MultipleSelectValidator<T> {
+function makeMultipleSelectValidator<T extends f.MultipleSelectsSchemaRead>(field: T): MultipleSelectValidator<T> {
   const names = field.options.choices.map((c) => c.name);
   const ids = field.options.choices.map((c) => c.id);
   const allValues = [...names, ...ids];
