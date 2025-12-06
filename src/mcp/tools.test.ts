@@ -144,8 +144,8 @@ describe('MCP Tool - List Tool', () => {
 
   it('should create a list tool with the correct metadata', () => {
     const listTool = makeListTool(tasksTableClient);
-    expect(listTool.name).toBe("list-records-from-Users-table");
-    expect(listTool.description).toBe('List records from the Users table with optional filtering and pagination.');
+    expect(listTool.name).toBe("list-records-from-tasks-table");
+    expect(listTool.description).toBe('List records from the tasks table with optional filtering and pagination.');
     expect(listTool.inputJsonSchema).toHaveProperty("properties");
   });
 

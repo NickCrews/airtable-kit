@@ -3,37 +3,27 @@
  */
 
 import fs from 'node:fs';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import tasksSchema from './tests/taskBase.ts';
-import { type Fetcher } from './fetcher.ts';
+import { describe, it, expect, beforeEach, vi, afterAll } from 'vitest';
 import { cli } from './cli.ts';
 import { makeInTmpDir } from './tests/inTmpDir.ts';
+import { getTestEnv } from './tests/test-utils.ts';
+import realSchema from './tests/test-base-schema.generated.ts';
+
+const {
+  AIRTABLE_KIT_TEST_API_KEY: apiKey,
+  AIRTABLE_KIT_TEST_BASE_ID: baseId,
+  AIRTABLE_KIT_TEST_WORKSPACE_ID: workspaceId,
+} = getTestEnv();
+
+const importTsJs = (p: string) => import(p).then((mod) => mod.default || mod);
 
 describe('CLI', () => {
-  const mockFetch = vi.fn(async (args: { path: string }) => {
-    if (args.path === '/meta/bases') {
-      return {
-        bases: [
-          { id: 'appOne', name: 'Task Base', permissionLevel: 'edit' },
-          { id: 'appTwo', name: 'Other Base', permissionLevel: 'edit' },
-        ],
-      };
-    }
-    if (args.path === '/meta/bases/appOne/tables' || args.path === '/meta/bases/appTwo/tables') {
-      return { tables: (tasksSchema as any).tables };
-    }
-    if (args.path.startsWith('/meta/bases/')) {
-      return { tables: (tasksSchema as any).tables };
-    }
-    return tasksSchema as any;
-  });
   const mockConsole = {
     log: vi.fn(),
     error: vi.fn(),
   }
-  const mockFetcher = { fetch: mockFetch } as Fetcher;
 
-  const mockedCli = (args: string[]) => cli(args, mockFetcher, mockConsole);
+  const callCli = (args: string[]) => cli(args, undefined, mockConsole);
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -44,81 +34,84 @@ describe('CLI', () => {
   describe('codegen command', () => {
     it('should create output directory', async (ctx) => {
       const tmpDir = inTmpDir(ctx);
-      await mockedCli(["codegen", "base", "appTestBase", "--api-key", "patTest123", "--outfile", "schemas/frEvents.ts"]);
-      expect(mockFetch).toHaveBeenCalledWith({ path: '/meta/bases/appTestBase/tables' });
-      expect(fs.readFileSync(`${tmpDir}/schemas/frEvents.ts`, 'utf-8')).toMatchSnapshot();
+      await callCli(["codegen", "base", baseId, "--api-key", apiKey, "--outfile", "schemas/frEvents.ts"]);
+      expect(await importTsJs(`${tmpDir}/schemas/frEvents.ts`)).toEqual(realSchema);
     });
 
     it('should generate  js', async (ctx) => {
       const tmpDir = inTmpDir(ctx);
-      await mockedCli(["codegen", "base", "appTestBase", "--api-key", "patTest123", "--outfile", "schemas/frEvents.js"]);
-      expect(mockFetch).toHaveBeenCalledWith({ path: '/meta/bases/appTestBase/tables' });
-      expect(fs.readFileSync(`${tmpDir}/schemas/frEvents.js`, 'utf-8')).toMatchSnapshot();
+      await callCli(["codegen", "base", baseId, "--api-key", apiKey, "--outfile", "schemas/frEvents.js"]);
+      expect(await importTsJs(`${tmpDir}/schemas/frEvents.js`)).toEqual(realSchema);
     });
 
     it('should use custom --base-name', async (ctx) => {
       const tmpDir = inTmpDir(ctx);
-      await mockedCli(["codegen", "base", "appTestBase", "--api-key", "patTest123", "--outfile", "schemas/frEvents.js", "--base-name", "My Custom Base"]);
-      expect(mockFetch).toHaveBeenCalledWith({ path: '/meta/bases/appTestBase/tables' });
-      expect(fs.readFileSync(`${tmpDir}/schemas/frEvents.js`, 'utf-8')).toMatchSnapshot();
+      await callCli(["codegen", "base", baseId, "--api-key", apiKey, "--outfile", "schemas/frEvents.js", "--base-name", "My Custom Base"]);
+      expect(await importTsJs(`${tmpDir}/schemas/frEvents.js`)).toEqual(realSchema);
     });
 
-    it('should default outfile to ./<BASE_NAME>.ts when omitted', async (ctx) => {
+    it('should default outfile to ./<BASE_NAME>.generated.ts when omitted', async (ctx) => {
       const tmpDir = inTmpDir(ctx);
-      await mockedCli(["codegen", "base", "appTestBase", "--api-key", "patTest123"]);
-      expect(mockFetch).toHaveBeenCalledWith({ path: '/meta/bases/appTestBase/tables' });
-      expect(fs.readFileSync(`${tmpDir}/appTestBase.ts`, 'utf-8')).toMatchSnapshot();
+      await callCli(["codegen", "base", baseId, "--api-key", apiKey]);
+      // That should be the only file in the dir
+      expect(fs.readdirSync(tmpDir)).toEqual(['airtableKitTestBase.generated.ts']);
+      expect(await importTsJs(`${tmpDir}/airtableKitTestBase.generated.ts`)).toEqual(realSchema);
     });
 
     it('should generate all base schemas into outdir', async (ctx) => {
       const tmpDir = inTmpDir(ctx);
-      await mockedCli(["codegen", "all", "--api-key", "patTest123", "--outdir", "schemas", "--format", "ts"]);
-      expect(fs.readFileSync(`${tmpDir}/schemas/taskBase.ts`, 'utf-8')).toMatchSnapshot();
-      expect(fs.existsSync(`${tmpDir}/schemas/otherBase.ts`)).toBe(true);
+      await callCli(["codegen", "all", "--api-key", apiKey, "--outdir", "schemas", "--format", "ts"]);
+      // That should be the only file in the dir
+      expect(fs.readdirSync(`${tmpDir}/schemas`)).toEqual(['airtableKitTestBase.generated.ts']);
+      expect(await importTsJs(`${tmpDir}/schemas/airtableKitTestBase.generated.ts`)).toEqual(realSchema);
     });
   });
 
   describe('version and help', () => {
+    const spiedFetch = vi.spyOn(globalThis, 'fetch');
+    afterAll(() => {
+      spiedFetch.mockRestore();
+    });
     it('should display help text with "--help"', async () => {
-      await mockedCli(["--help"]);
+      await callCli(["--help"]);
       expect(mockConsole.log).toHaveBeenCalledWith(expect.stringContaining('Airtable Kit CLI'));
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(spiedFetch).not.toHaveBeenCalled();
     });
 
     it('should display help text with "help"', async () => {
-      await mockedCli(["help"]);
+      await callCli(["help"]);
       expect(mockConsole.log).toHaveBeenCalledWith(expect.stringContaining('Airtable Kit CLI'));
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(spiedFetch).not.toHaveBeenCalled();
     });
 
     it('should display version with "--version"', async () => {
-      await mockedCli(["--version"]);
+      await callCli(["--version"]);
       expect(mockConsole.log).toHaveBeenCalledWith(expect.stringMatching(/^\d+\.\d+\.\d+$/));
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(spiedFetch).not.toHaveBeenCalled();
     });
     it('should display version with "version"', async () => {
-      await mockedCli(["version"]);
+      await callCli(["version"]);
       expect(mockConsole.log).toHaveBeenCalledWith(expect.stringMatching(/^\d+\.\d+\.\d+$/));
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(spiedFetch).not.toHaveBeenCalled();
     });
   });
 
   describe('CLI error handling', () => {
     it('should require base-id for codegen base command', async () => {
       await expect(
-        async () => await mockedCli(["codegen", "base", "--api-key", "patTest123"])
+        async () => await callCli(["codegen", "base", "--api-key", "patTest123"])
       ).rejects.toThrow();
     });
 
     it('should require api-key for codegen base command', async () => {
       await expect(
-        async () => await mockedCli(["codegen", "base", "appTestBase"])
+        async () => await callCli(["codegen", "base", "appTestBase"])
       ).rejects.toThrow();
     });
 
     it('should error for bogus --format', async () => {
       await expect(
-        async () => await mockedCli(["codegen", "base", "appTestBase", "--api-key", "patTest123", "--format", "py"])
+        async () => await callCli(["codegen", "base", "appTestBase", "--api-key", "patTest123", "--format", "py"])
       ).rejects.toThrow();
     });
   });

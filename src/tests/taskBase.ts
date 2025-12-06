@@ -1,3 +1,17 @@
+// This is a sample base schema with STATIC ids.
+// This doesn't reflect a real base, and you can't use it
+// with the Airtable API.
+// But, you can use it for offline testing,
+// especially for tests that require stable IDs, eg
+//
+//  it("should convert field names to field IDs", () => {
+//      const formula: Formula<Field> = { field: "Name" };
+//      const result = formulaToString(fields, formula);
+//      expect(result).toBe("{fldName}");
+//  });
+// 
+// If you actually need to interact with a real base via the API, use the generated schema.
+
 export default {
     "id": "appTaskBase",
     "name": "taskTracker",

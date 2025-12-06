@@ -1,23 +1,20 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import * as api from "./api.ts";
-import dotenv from "dotenv";
-// @ts-ignore
 import testBaseSchema from "../tests/test-base-schema.generated.ts";
+import { getTestEnv } from "../tests/test-utils.ts";
 
-dotenv.config();
+const fetcher = getTestEnv().AIRTABLE_KIT_TEST_API_KEY;
 
 describe("Records API", () => {
     const tasksTable = testBaseSchema.tables.find((t) => t.name === "tasks")!;
     const linkedItemsTable = testBaseSchema.tables.find((t) => t.name === "linkedItems")!;
-
-    const getApiKey = () => process.env.AIRTABLE_KIT_TEST_API_KEY || process.env.AIRTABLE_API_KEY;
 
     beforeEach(async () => {
         const allRecords = await api.listRecords({
             baseId: testBaseSchema.id,
             tableId: tasksTable.id,
             fields: tasksTable.fields,
-            fetcher: getApiKey(),
+            fetcher,
         });
 
         if (allRecords.length > 0) {
@@ -28,7 +25,7 @@ describe("Records API", () => {
                     recordIds: batch,
                     baseId: testBaseSchema.id,
                     tableId: tasksTable.id,
-                    fetcher: getApiKey(),
+                    fetcher,
                 });
             }
         }
@@ -46,7 +43,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             expect(result).toHaveLength(1);
@@ -71,7 +68,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             expect(result).toHaveLength(25);
@@ -88,7 +85,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             expect(result).toEqual([]);
@@ -107,7 +104,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             expect(result[0].fields).toMatchObject({
@@ -129,7 +126,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             expect(result).toHaveLength(1);
@@ -148,7 +145,7 @@ describe("Records API", () => {
                     baseId: testBaseSchema.id,
                     tableId: tasksTable.id,
                     fields: tasksTable.fields,
-                    fetcher: getApiKey(),
+                    fetcher,
                 })
             ).rejects.toThrow();
         });
@@ -159,7 +156,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             expect(result).toEqual([]);
@@ -177,14 +174,14 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             const result = await api.listRecords({
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             // The test table may be empty, so just verify the call works
@@ -205,7 +202,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             const completedFieldId = tasksTable.fields.find((f) => f.name === "completed")?.id;
@@ -213,7 +210,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
                 options: {
                     filterByFormula: `{${completedFieldId}} = TRUE()`,
                 },
@@ -233,14 +230,14 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             const result = await api.listRecords({
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
                 options: {
                     sort: [{ field: "priority", direction: "asc" }],
                 },
@@ -254,7 +251,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
                 options: {
                     maxRecords: 2,
                 },
@@ -268,7 +265,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
                 options: {
                     fields: ["name", "status"],
                     maxRecords: 1,
@@ -288,14 +285,14 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             const result = await api.listRecords({
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             expect(result.length).toBeGreaterThanOrEqual(35);
@@ -308,7 +305,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
                 options: {
                     pageSize: 5,
                 },
@@ -324,7 +321,7 @@ describe("Records API", () => {
                     baseId: testBaseSchema.id,
                     tableId: tasksTable.id,
                     fields: tasksTable.fields,
-                    fetcher: getApiKey(),
+                    fetcher,
                     options: {
                         filterByFormula: "{invalidfield} = TRUE()",
                     },
@@ -337,7 +334,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
                 options: {
                     maxRecords: 1,
                 },
@@ -354,7 +351,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
                 options: {
                     recordMetadata: ["commentCount"],
                     maxRecords: 1,
@@ -372,7 +369,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
                 options: {
                     sort: [{ field: "name", direction: "asc" }],
                     maxRecords: 1,
@@ -388,7 +385,7 @@ describe("Records API", () => {
                     baseId: testBaseSchema.id,
                     tableId: tasksTable.id,
                     fields: tasksTable.fields,
-                    fetcher: getApiKey(),
+                    fetcher,
                     options: {
                         sort: [{ field: "nonexistentfield" as any, direction: "asc" }],
                     },
@@ -404,7 +401,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             const result = await api.getRecord({
@@ -412,7 +409,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             expect(result).toMatchObject({
@@ -430,7 +427,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             const result = await api.getRecord({
@@ -438,7 +435,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             expect(result.fields).toHaveProperty("name");
@@ -458,7 +455,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             const result = await api.getRecord({
@@ -466,7 +463,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             expect(result.fields).toBeDefined();
@@ -480,7 +477,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             const result = await api.updateRecords({
@@ -496,7 +493,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             expect(result.records).toHaveLength(1);
@@ -517,7 +514,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             const result = await api.updateRecords({
@@ -530,7 +527,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             expect(result.records).toHaveLength(25);
@@ -549,7 +546,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             const result = await api.updateRecords({
@@ -564,7 +561,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
                 options: {
                     destructive: false,
                 },
@@ -575,7 +572,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             expect(retrieved.fields.name).toBe("Updated Name");
@@ -595,7 +592,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             await api.updateRecords({
@@ -610,7 +607,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
                 options: {
                     destructive: true,
                 },
@@ -621,7 +618,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             expect(retrieved.fields.name).toBe("Updated Name");
@@ -635,7 +632,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             const result = await api.updateRecords({
@@ -650,7 +647,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
                 options: {
                     typecast: true,
                 },
@@ -665,7 +662,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             expect(result).toEqual({ records: [] });
@@ -683,7 +680,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             await api.updateRecords({
@@ -700,7 +697,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             const retrieved = await api.getRecord({
@@ -708,7 +705,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             expect(retrieved.fields.name).toBe("Updated");
@@ -723,7 +720,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             const result = await api.updateRaw({
@@ -739,7 +736,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             expect(result.records).toHaveLength(1);
@@ -758,7 +755,7 @@ describe("Records API", () => {
                     baseId: testBaseSchema.id,
                     tableId: tasksTable.id,
                     fields: tasksTable.fields,
-                    fetcher: getApiKey(),
+                    fetcher,
                 })
             ).rejects.toThrow("Can only update up to 10 records at a time");
         });
@@ -769,7 +766,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             expect(result).toEqual({ records: [] });
@@ -783,7 +780,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             const result = await api.deleteRecords({
@@ -807,7 +804,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             const recordIds = created.map((r) => r.id);
@@ -840,7 +837,7 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher: getApiKey(),
+                fetcher,
             });
 
             const result = await api.deleteRecordsRaw({
@@ -887,7 +884,7 @@ describe("Records API", () => {
                     baseId: testBaseSchema.id,
                     tableId: tasksTable.id,
                     fields: tasksTable.fields,
-                    fetcher: getApiKey(),
+                    fetcher,
                 });
                 const base64File = Buffer.from("test file content").toString("base64");
                 const result = await api.uploadAttachment({
@@ -899,7 +896,7 @@ describe("Records API", () => {
                         "file": base64File,
                         "filename": "test.txt"
                     },
-                    fetcher: getApiKey(),
+                    fetcher,
                 });
                 // Now fetch the record and verify attachment field
                 const updatedRecord = await api.getRecord({
@@ -907,13 +904,12 @@ describe("Records API", () => {
                     baseId: testBaseSchema.id,
                     tableId: tasksTable.id,
                     fields: tasksTable.fields,
-                    fetcher: getApiKey(),
+                    fetcher,
                 });
 
                 expect(updatedRecord.fields.attachments).toBeDefined();
                 expect(Array.isArray(updatedRecord.fields.attachments)).toBe(true);
                 expect(updatedRecord.fields.attachments.length).toBe(1);
-                console.log(updatedRecord.fields.attachments[0]);
                 expect(updatedRecord.fields.attachments[0].type).toBe("text/plain");
                 expect(updatedRecord.fields.attachments[0].filename).toBe("test.txt");
                 expect(updatedRecord.fields.attachments[0].url).toBeDefined();

@@ -35,7 +35,7 @@ async function doCodegenBase({
 
   if (!outFile) {
     const safeBaseName = toIdentifier(baseSchema.name) || baseSchema.name;
-    outFile = `./${safeBaseName}-schema.${finalFormat}`;
+    outFile = `./${safeBaseName}.generated.${finalFormat}`;
   }
 
   await generateCode(baseSchema, { format: finalFormat, outPath: outFile });
@@ -71,7 +71,7 @@ async function doCodegenAll({
   const finalFormat = format ?? "ts";
   for (const baseSchema of baseSchemas) {
     const safeName = toIdentifier(baseSchema.name) || baseSchema.name;
-    const outPath = path.join(outDir, `${safeName}.${finalFormat}`);
+    const outPath = path.join(outDir, `${safeName}.generated.${finalFormat}`);
     await generateCode(baseSchema, { format: finalFormat, outPath });
     console.log(`  • Generated ${outPath}`);
   }

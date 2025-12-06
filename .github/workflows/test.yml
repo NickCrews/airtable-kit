@@ -48,6 +48,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Write .env file from secrets
+        run: |
+          echo "update at https://github.com/NickCrews/airtable-kit/settings/secrets/actions/ENV_FILE_CONTENTS"
+          echo "${{ secrets.ENV_FILE_CONTENTS }}" > .env
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
