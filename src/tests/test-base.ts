@@ -349,14 +349,14 @@ if (badFields.length > 0) {
  * This finally codegens the actual base schema to disk for future runs.
  *
  * @param workspaceId - The workspace ID where the base should be created
- * @param apiKey - Optional API key (defaults to AIRTABLE_API_KEY env var)
+ * @param apiKey - The API key to use for Airtable API requests
  * @returns The created base schema with all table and field IDs
  */
 export async function ensureTestBaseReady(
     desiredSchema: CreateBaseSchema,
     workspaceId: WorkspaceId,
     generatedSchemaPath: string,
-    apiKey?: string,
+    apiKey: string,
     baseId?: BaseId,
 ): Promise<BaseSchema> {
     const existingSchema = await ensureTestBaseCreated(workspaceId, apiKey, desiredSchema, baseId);
@@ -558,15 +558,15 @@ function optionsMismatch(desired: CreateFieldSchema, existing: FieldSchema): boo
 
 async function main() {
     dotenv.config();
-    const apiKey = process.env.AIRTABLE_API_KEY;
+    const apiKey = process.env.AIRTABLE_KIT_TEST_API_KEY;
     if (!apiKey) {
-        throw new Error("Missing AIRTABLE_API_KEY environment variable");
+        throw new Error("Missing AIRTABLE_KIT_TEST_API_KEY environment variable");
     }
-    const workspaceId = process.env.AIRTABLE_TEST_WORKSPACE_ID;
+    const workspaceId = process.env.AIRTABLE_KIT_TEST_WORKSPACE_ID;
     if (!workspaceId) {
-        throw new Error("Missing AIRTABLE_TEST_WORKSPACE_ID environment variable");
+        throw new Error("Missing AIRTABLE_KIT_TEST_WORKSPACE_ID environment variable");
     }
-    const baseId = process.env.AIRTABLE_TEST_BASE_ID;
+    const baseId = process.env.AIRTABLE_KIT_TEST_BASE_ID;
     await ensureTestBaseReady(
         TEST_BASE_SCHEMA,
         workspaceId as WorkspaceId,

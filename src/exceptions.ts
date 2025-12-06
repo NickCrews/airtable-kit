@@ -11,27 +11,24 @@ export class AirtableKitError extends Error {
     }
 }
 
-type AirtableApiError = {
-    type: string;
-    message?: string;
-};
-export class AirtableListRecordsError<T extends FieldSchema> extends AirtableKitError {
-    public readonly options: ListRecordsOptions<T>
-    public readonly originalError: AirtableApiError;
-    constructor(originalError: AirtableApiError, options: ListRecordsOptions<T>) {
-        super(`Error listing records: ${originalError.type}${originalError.message ? ` - ${originalError.message}` : ''}`);
-        this.options = options;
-        this.originalError = originalError;
-        this.name = "AirtableListRecordsError";
+/** A generic error when calling the airtable API */
+export class AirtableKitApiError extends AirtableKitError {
+    public readonly message: string;
+    public readonly rawResponse: unknown;
+    constructor(message: string, rawResponse: unknown) {
+        super(message);
+        this.message = message;
+        this.rawResponse = rawResponse;
+        this.name = "AirtableKitApiError";
         // Maintain the correct prototype chain
-        Object.setPrototypeOf(this, AirtableListRecordsError.prototype);
+        Object.setPrototypeOf(this, AirtableKitApiError.prototype);
     }
 }
 
 /**
  * Thrown when a value read from the Airtable API could not be converted to the appropriate TypeScript type.
  */
-export class ReadValueConversionError extends Error {
+export class ReadValueConversionError extends AirtableKitError {
     public readonly fieldSchema: FieldSchema;
     public readonly value: unknown;
     public readonly originalError?: Error;
@@ -49,7 +46,7 @@ export class ReadValueConversionError extends Error {
 /**
  * Thrown when a value could not be converted to write to the Airtable API.
  */
-export class WriteValueConversionError extends Error {
+export class WriteValueConversionError extends AirtableKitError {
     public readonly fieldSchema: FieldSchema;
     public readonly value: unknown;
     public readonly originalError?: Error;
@@ -65,7 +62,7 @@ export class WriteValueConversionError extends Error {
 }
 
 /** Thrown when attempting to read from a field that is not readable, eg a 'button' field */
-export class FieldNotReadableError extends Error {
+export class FieldNotReadableError extends AirtableKitError {
     public readonly fieldSchema: FieldSchema;
     constructor(fieldSchema: FieldSchema) {
         super(`Field not readable: ${fieldSchema.name} (id: ${fieldSchema.id}, type: ${fieldSchema.type})`);
@@ -77,7 +74,7 @@ export class FieldNotReadableError extends Error {
 }
 
 /** Thrown when attempting to write to a field that is not writable, eg a 'createdTime' field */
-export class FieldNotWritableError extends Error {
+export class FieldNotWritableError extends AirtableKitError {
     public readonly fieldSchema: FieldSchema;
     constructor(fieldSchema: FieldSchema) {
         super(`Field not writable: ${fieldSchema.name} (id: ${fieldSchema.id}, type: ${fieldSchema.type})`);

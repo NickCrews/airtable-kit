@@ -30,7 +30,7 @@ Thank you for your interest in contributing to airtable-kit! This guide will hel
 
    ```bash
    # Your Airtable personal access token
-   export AIRTABLE_API_KEY=patXXXXXXXXXXXXXX
+   export AIRTABLE_KIT_TEST_API_KEY=patXXXXXXXXXXXXXX
 
    # The workspace ID where the test base will be created
    export AIRTABLE_WORKSPACE_ID=wspXXXXXXXXXXXXXX

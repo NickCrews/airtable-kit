@@ -302,7 +302,10 @@ export async function listRecordsRaw<T extends FieldSchema>(
     const raw = await doFetch<ListApiResponse<T>>({ fetcher, path, method: "GET" });
     if ('error' in raw) {
         console.log(fetcher);
-        throw new exceptions.AirtableListRecordsError(raw.error, options ?? {})
+        throw new exceptions.AirtableKitApiError(
+            `Error listing records: ${raw.error.message ?? raw.error.type}`,
+            path,
+        )
     }
     return {
         records: raw.records.map((record) => {
@@ -639,7 +642,6 @@ export interface UploadAttachmentParams<T extends FieldId | string> {
     attachmentFieldIdOrName: T;
     options: UploadAttachmentOptions;
     baseId: BaseId;
-    tableId: TableId;
     fetcher?: IntoFetcher;
 }
 // {
@@ -663,30 +665,36 @@ export type UploadAttachmentResponse = {
 };
 
 export async function uploadAttachment<T extends FieldId | string>(
-    {
+    params: UploadAttachmentParams<T>,
+): Promise<UploadAttachmentResponse> {
+    const {
         recordId,
         attachmentFieldIdOrName,
         options,
         fetcher,
         baseId,
-        tableId,
-    }: UploadAttachmentParams<T>,
-): Promise<UploadAttachmentResponse> {
-    const path = `/${baseId}/${tableId}/${recordId}/${attachmentFieldIdOrName}/uploadAttachment`;
-    const result = await doFetch({
+    } = params;
+    type ErrorResponse = {
+        error: string;
+    };
+    // This method uses a different baseUrl!! :(
+    const baseUrl = "https://content.airtable.com/v0/";
+    const result = await doFetch<UploadAttachmentResponse | ErrorResponse>({
         fetcher,
-        path,
+        path: `/${baseId}/${recordId}/${attachmentFieldIdOrName}/uploadAttachment`,
         method: "POST",
+        baseUrl,
         data: {
             contentType: options.contentType,
             file: options.file,
             filename: options.filename,
         },
     });
-
-    return result as {
-        id: RecordId;
-        createdTime: Timestamp;
-        fields: { FieldId: [AttachmentDetails] };
-    };
+    if ('error' in result) {
+        throw new exceptions.AirtableKitApiError(
+            `Error uploading attachment using parameters: ${JSON.stringify(params, null, 2)}: ${JSON.stringify(result, null, 2)}`,
+            result,
+        )
+    }
+    return result;
 }

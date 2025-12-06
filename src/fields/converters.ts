@@ -1,5 +1,5 @@
 import * as fields from "./index.ts";
-import { RecordId, type FieldSchema, type FieldType } from "../types.ts";
+import { AttachmentId, RecordId, type FieldSchema, type FieldType } from "../types.ts";
 import * as exceptions from "../exceptions.ts";
 
 /** ISO 8601 string in UTC, e.g. "2024-01-01T00:00:00.000Z" */
@@ -292,7 +292,37 @@ const MultilineTextConverters = {
     FieldOfType<"multilineText">
 >;
 
-export type MultipleAttachment = {
+type Thumbnail = {
+    url: string;
+    height: number;
+    width: number;
+}
+
+// https://airtable.com/developers/web/api/field-model#multipleattachment
+export type MultipleAttachmentReadType = {
+    id: AttachmentId;
+    /** MIME type, e.g. "image/png" */
+    type: string;
+    filename: string;
+    url: string;
+    /** in bytes */
+    size: number;
+    /** Only available for images. In pixels */
+    width?: number;
+    /** Only available for images. In pixels */
+    height?: number;
+    /** Only available for images and certain documents. */
+    thumbnails?: {
+        full?: Thumbnail;
+        large?: Thumbnail;
+        small?: Thumbnail;
+    };
+};
+// When writing multiple attachments, you can either provide an existing attachment
+// by its ID, or for new attachments, provide a URL (and optionally a filename) to upload from.
+export type MultipleAttachmentWriteType = {
+    id: AttachmentId;
+} | {
     url: string;
     filename?: string;
 };
@@ -300,19 +330,16 @@ const MultipleAttachmentsConverters = {
     type: "multipleAttachments",
     makeTo:
         (_fieldSchema: FieldOfType<"multipleAttachments">) =>
-            (value: ReadonlyArray<MultipleAttachment> | null | undefined): ReadonlyArray<MultipleAttachment> | null | undefined => {
+            (value: ReadonlyArray<MultipleAttachmentWriteType> | null | undefined): ReadonlyArray<MultipleAttachmentWriteType> | null | undefined => {
                 if (!value) return value;
-                return value.map(({ url, filename }) => ({
-                    url,
-                    filename,
-                }));
+                return value;
             },
     makeFrom:
         (_fieldSchema: FieldOfType<"multipleAttachments">) =>
-            (value: Array<MultipleAttachment> | null): Array<MultipleAttachment> => value ? value : [],
+            (value: Array<MultipleAttachmentReadType> | null): Array<MultipleAttachmentReadType> => value ? value : [],
 } as const satisfies IConverters<
-    ReadonlyArray<MultipleAttachment> | null | undefined,
-    Array<MultipleAttachment>,
+    ReadonlyArray<MultipleAttachmentReadType> | null | undefined,
+    Array<MultipleAttachmentReadType>,
     FieldOfType<"multipleAttachments">
 >;
 const MultipleCollaboratorsConverters = {
@@ -572,11 +599,11 @@ export type FieldRead<F extends Omit<FieldSchema, "id" | "name">> =
     : F extends FieldOfType<"lastModifiedBy"> ? User | null
     : F extends FieldOfType<"lastModifiedTime"> ? UtcTimestamp
     : F extends FieldOfType<"multilineText"> ? string
-    : F extends FieldOfType<"multipleAttachments"> ? MultipleAttachment[]
+    : F extends FieldOfType<"multipleAttachments"> ? Array<MultipleAttachmentReadType>
     : F extends FieldOfType<"multipleCollaborators"> ? User[]
     : F extends FieldOfType<"multipleLookupValues"> ? MultipleLookupValuesReadType<F>
-    : F extends FieldOfType<"multipleRecordLinks"> ? RecordId[]
-    : F extends fields.MultipleSelects<infer C> ? C[]
+    : F extends FieldOfType<"multipleRecordLinks"> ? Array<RecordId>
+    : F extends fields.MultipleSelects<infer C> ? Array<C>
     : F extends FieldOfType<"number"> ? number | null
     : F extends FieldOfType<"percent"> ? number | null
     : F extends FieldOfType<"phoneNumber"> ? string
@@ -609,7 +636,7 @@ export type FieldWrite<F extends FieldSchema> = F extends FieldOfType<"aiText">
     : F extends FieldOfType<"lastModifiedBy"> ? never
     : F extends FieldOfType<"lastModifiedTime"> ? never
     : F extends FieldOfType<"multilineText"> ? string | null | undefined
-    : F extends FieldOfType<"multipleAttachments"> ? ReadonlyArray<MultipleAttachment> | null | undefined
+    : F extends FieldOfType<"multipleAttachments"> ? ReadonlyArray<MultipleAttachmentWriteType> | null | undefined
     : F extends FieldOfType<"multipleCollaborators"> ? ReadonlyArray<User> | null | undefined
     : F extends FieldOfType<"multipleLookupValues"> ? never
     : F extends FieldOfType<"multipleRecordLinks"> ? ReadonlyArray<RecordId> | null | undefined

@@ -4,6 +4,7 @@ export type FetchArgs = {
     /** e.g. '/app123/tblABC' */
     path: string;
     method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+    baseUrl?: string;
     /** Data to send as the request body */
     data?: unknown;
 }
@@ -57,15 +58,28 @@ export function makeFetcher(args?: IntoFetcher): Fetcher {
     if (args && "fetch" in args) {
         return args;
     }
-    const baseUrl = args?.baseUrl ?? "https://api.airtable.com/v0";
+    const defaultBaseUrl = args?.baseUrl ?? "https://api.airtable.com/v0";
     let apiKey = args?.apiKey;
     if (!apiKey) {
         apiKey = process.env.AIRTABLE_API_KEY;
     }
+    if (!apiKey) {
+        throw new Error(
+            "No API key provided for Fetcher. Provide an API key string, or set the AIRTABLE_API_KEY environment variable.",
+        );
+    }
+    const join = (base: string, path: string) => {
+        base = base.endsWith("/") ? base.slice(0, -1) : base;
+        path = path.startsWith("/") ? path.slice(1) : path;
+        return `${base}/${path}`;
+    }
     return {
-        fetch: async <T = unknown>({ path, method = "GET", data }: FetchArgs) => {
-            path = path.startsWith("/") ? path.slice(1) : path;
-            const response = await globalThis.fetch(`${baseUrl}/${path}`, {
+        fetch: async <T = unknown>({ path, method = "GET", data, baseUrl: overrideBaseUrl }: FetchArgs) => {
+            const usedBaseUrl = overrideBaseUrl ?? defaultBaseUrl;
+            const url = join(usedBaseUrl, path);
+            // format as a CURL command for easier debugging
+            console.log(`curl -X ${method} '${url}' -H 'Authorization: Bearer ${apiKey}' -H 'Content-Type: application/json' -d '${JSON.stringify(data)}'`);
+            const response = await globalThis.fetch(url, {
                 method,
                 headers: {
                     Authorization: `Bearer ${apiKey}`,

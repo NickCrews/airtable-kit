@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { BarcodeValue, MultipleAttachment, convertFieldForWrite, convertFieldForRead } from "./converters.ts";
+import { BarcodeValue, MultipleAttachmentReadType, convertFieldForWrite, convertFieldForRead } from "./converters.ts";
 import type { FieldSchema } from "../types.ts";
 import { MultipleSelects, SingleSelect } from "./index.ts";
 import * as FIELDS from "./_example-fields.ts";
