@@ -12,8 +12,8 @@ A simple single page application that lets users generate TypeScript/JavaScript 
 ## Development
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173) to view it in the browser.
@@ -21,7 +21,7 @@ Open [http://localhost:5173](http://localhost:5173) to view it in the browser.
 ## Building for Production
 
 ```bash
-npm run build
+pnpm build
 ```
 
 Builds the app to the `dist` folder. The build is deployed to GitHub Pages automatically when changes are pushed to main.
