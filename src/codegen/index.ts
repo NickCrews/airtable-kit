@@ -6,3 +6,8 @@ export {
   type CodegenOptions,
   generateCode,
 } from './generator.ts';
+
+export {
+  isValidIdentifier,
+  toIdentifier,
+} from './identifiers.ts';

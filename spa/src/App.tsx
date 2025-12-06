@@ -1,147 +1,14 @@
 import { createSignal, For, Show, onMount } from 'solid-js'
+import * as atk from '../../src/index.ts'
 import './App.css'
 
-interface BaseInfo {
-  id: string
-  name: string
-  permissionLevel: string
-}
-
-interface TableSchema {
-  id: string
-  name: string
-  primaryFieldId?: string
-  description?: string
-  fields: FieldSchema[]
-}
-
-interface FieldSchema {
-  id: string
-  name: string
-  type: string
-  description?: string
-  options?: Record<string, unknown>
-}
-
-interface BaseSchema {
-  id: string
-  name: string
-  tables: TableSchema[]
-}
-
 const STORAGE_KEY = 'airtable-kit:saved-api-keys'
-
-// Simple camelCase converter for identifiers (matches library behavior)
-function toIdentifier(name: string): string {
-  return name
-    .replace(/[^a-zA-Z0-9\s]/g, '') // Remove special characters
-    .replace(/\s+(.)/g, (_, c) => c.toUpperCase()) // Convert to camelCase
-    .replace(/\s/g, '')
-    .replace(/^[0-9]+/, '') // Remove leading numbers
-    .replace(/^(.)/, (c) => c.toLowerCase()) // Ensure starts with lowercase
-}
-
-// Convert all names to identifiers (like the library's generateCode does)
-function namesToIdentifiers(schema: BaseSchema): BaseSchema {
-  return {
-    ...schema,
-    name: toIdentifier(schema.name),
-    tables: schema.tables.map((table) => ({
-      ...table,
-      name: toIdentifier(table.name),
-      fields: table.fields.map((field) => ({
-        ...field,
-        name: toIdentifier(field.name),
-      })),
-    })),
-  }
-}
-
-// Generate TypeScript/JavaScript code from schema
-function generateCode(schema: BaseSchema, format: 'ts' | 'js'): string {
-  const safeSchema = namesToIdentifiers(schema)
-  const asConstModifier = format === 'ts' ? ' as const' : ''
-  return `/**
- * Auto-generated from Airtable schema
- * Do not edit manually
- */
-
-export default ${JSON.stringify(safeSchema, null, 2)}${asConstModifier};
-`
-}
-
-// Airtable API functions (browser-compatible)
-async function listBases(apiKey: string): Promise<BaseInfo[]> {
-  const allBases: BaseInfo[] = []
-  let offset: string | undefined
-
-  do {
-    const url = offset
-      ? `https://api.airtable.com/v0/meta/bases?offset=${offset}`
-      : 'https://api.airtable.com/v0/meta/bases'
-
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-    })
-
-    if (!response.ok) {
-      let errorMessage = `Failed to list bases: ${response.status}`
-      try {
-        const error = await response.json()
-        if (error.error?.message) {
-          errorMessage = error.error.message
-        }
-      } catch {
-        // Response is not JSON, use default error message
-      }
-      throw new Error(errorMessage)
-    }
-
-    const data = await response.json()
-    allBases.push(...data.bases)
-    offset = data.offset
-  } while (offset)
-
-  return allBases
-}
-
-async function getBaseSchema(apiKey: string, baseId: string, baseName: string): Promise<BaseSchema> {
-  const response = await fetch(`https://api.airtable.com/v0/meta/bases/${baseId}/tables`, {
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-  })
-
-  if (!response.ok) {
-    let errorMessage = `Failed to get base schema: ${response.status}`
-    try {
-      const error = await response.json()
-      if (error.error?.message) {
-        errorMessage = error.error.message
-      }
-    } catch {
-      // Response is not JSON, use default error message
-    }
-    throw new Error(errorMessage)
-  }
-
-  const data = await response.json()
-  return {
-    id: baseId,
-    name: baseName,
-    tables: data.tables,
-  }
-}
 
 function App() {
   const [apiKey, setApiKey] = createSignal('')
   const [loading, setLoading] = createSignal(false)
   const [error, setError] = createSignal<string | null>(null)
-  const [bases, setBases] = createSignal<BaseInfo[]>([])
+  const [bases, setBases] = createSignal<atk.types.BaseSchema[]>([])
   const [selectedBaseId, setSelectedBaseId] = createSignal<string>('')
   const [format, setFormat] = createSignal<'ts' | 'js'>('ts')
   const [generatedCode, setGeneratedCode] = createSignal<string>('')
@@ -205,7 +72,7 @@ function App() {
     setGeneratedCode('')
 
     try {
-      const fetchedBases = await listBases(key)
+      const fetchedBases = await atk.bases.fetchAllSchemas({ fetcher: key })
       setBases(fetchedBases)
       if (fetchedBases[0]) setSelectedBaseId(fetchedBases[0].id)
       if (fetchedBases.length === 0) {
@@ -235,8 +102,7 @@ function App() {
     setError(null)
 
     try {
-      const schema = await getBaseSchema(apiKey(), baseId, base.name)
-      const code = generateCode(schema, format())
+      const code = await atk.codegen.generateCode(base, { format: format() })
       setGeneratedCode(code)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate schema')
@@ -279,7 +145,7 @@ function App() {
 
   const downloadFile = () => {
     const base = bases().find((b) => b.id === selectedBaseId())
-    const baseName = base ? toIdentifier(base.name) : 'schema'
+    const baseName = base ? atk.codegen.toIdentifier(base.name) : 'schema'
     const ext = format()
     const filename = `${baseName}.${ext}`
 
