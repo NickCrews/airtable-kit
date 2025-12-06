@@ -42,8 +42,8 @@ export async function createTable({
     return response;
 }
 
-export interface UpdateTableSchema {
-    id: TableId;
+export interface UpdateTableSchema<T extends TableId = TableId> {
+    id: T;
     name?: string;
     description?: string;
     dateDependencySettings?: any;

@@ -8,14 +8,27 @@ describe("TableClient", () => {
         await resetBaseData();
     });
 
-    describe("createMany", () => {
+    describe("fields dictionary", () => {
+        it("typechecks"), async () => {
+            const existingField = tasksTableClient.fields.dueDate;
+            expect(existingField).toBeDefined();
+            const type: "date" = existingField.type;
+            expect(type).toBe("date");
+
+            // @ts-expect-error
+            const nonExistentField = tasksTableClient.fields.nonExistentField;
+            expect(nonExistentField).toBeUndefined();
+        };
+    });
+
+    describe("createRecords", () => {
         it("can handle 0-record creates", async () => {
-            const result = await tasksTableClient.createMany([]);
+            const result = await tasksTableClient.createRecords([]);
             expect(result).toEqual([]);
         });
 
         it("can create records", async () => {
-            const response = await tasksTableClient.createMany([
+            const response = await tasksTableClient.createRecords([
                 {
                     name: "Fold Laundry",
                     completed: false,
@@ -42,7 +55,7 @@ describe("TableClient", () => {
         });
 
         it("can create records with select options by name", async () => {
-            const response = await tasksTableClient.createMany([
+            const response = await tasksTableClient.createRecords([
                 {
                     name: "Test Task",
                     status: "In Progress",
@@ -55,7 +68,7 @@ describe("TableClient", () => {
 
         it("rejects invalid select options", async () => {
             await expect(
-                tasksTableClient.createMany([
+                tasksTableClient.createRecords([
                     {
                         name: "Test Task",
                         status: "InvalidStatus" as any, // invalid select option
@@ -67,13 +80,13 @@ describe("TableClient", () => {
 
     describe("update", () => {
         it("can handle 0-record updates", async () => {
-            const result = await tasksTableClient.update([]);
+            const result = await tasksTableClient.updateRecords([]);
             expect(result).toEqual({ records: [] });
         });
 
         it("can update records", async () => {
             // First create a record
-            const [created] = await tasksTableClient.createMany([
+            const [created] = await tasksTableClient.createRecords([
                 {
                     name: "Task to Update",
                     completed: false,
@@ -81,7 +94,7 @@ describe("TableClient", () => {
             ]);
 
             // Update it
-            const result = await tasksTableClient.update([
+            const result = await tasksTableClient.updateRecords([
                 {
                     id: created.id,
                     fields: {
@@ -108,14 +121,14 @@ describe("TableClient", () => {
     describe("delete", () => {
         it("can delete records", async () => {
             // Create a record
-            const [created] = await tasksTableClient.createMany([
+            const [created] = await tasksTableClient.createRecords([
                 {
                     name: "Task to Delete",
                 },
             ]);
 
             // Delete it
-            const result = await tasksTableClient.delete([created.id]);
+            const result = await tasksTableClient.deleteRecords([created.id]);
 
             expect(result.records).toEqual([
                 {
@@ -125,7 +138,7 @@ describe("TableClient", () => {
             ]);
 
             // Verify it's deleted by trying to list
-            const allRecords = await tasksTableClient.list();
+            const allRecords = await tasksTableClient.listRecords();
             const foundRecord = allRecords.find((r) => r.id === created.id);
             expect(foundRecord).toBeUndefined();
         });
@@ -140,21 +153,14 @@ describe("TableClient", () => {
                 ["=", { field: "status" }, "In Progress"],
                 ["!=", { field: "name" }, null],
             ]);
-
-            // Check that it contains the expected field IDs and structure
-            expect(formulaStr).toContain("AND(");
-            expect(formulaStr).toContain(">=");
-            expect(formulaStr).toContain("TODAY()");
-            expect(formulaStr).toContain("DATEADD");
-            expect(formulaStr).toContain("In Progress");
-            expect(formulaStr).toContain("BLANK()");
+            expect(formulaStr).toMatchInlineSnapshot()
         });
     });
 
     describe("list", () => {
         it("can list records with filterByFormula as string", async () => {
             // Create some test records
-            await tasksTableClient.createMany([
+            await tasksTableClient.createRecords([
                 { name: "Task 1", completed: true },
                 { name: "Task 2", completed: false },
             ]);
@@ -164,7 +170,7 @@ describe("TableClient", () => {
                 (f: any) => f.name === "completed"
             )?.id;
 
-            const records = await tasksTableClient.list({
+            const records = await tasksTableClient.listRecords({
                 filterByFormula: `{${completedFieldId}} = TRUE()`,
             });
 
@@ -175,12 +181,12 @@ describe("TableClient", () => {
 
         it("can list records with filterByFormula as Formula object", async () => {
             // Create test records
-            await tasksTableClient.createMany([
+            await tasksTableClient.createRecords([
                 { name: "Test Done Task", status: "Done", completed: true },
                 { name: "Test Todo Task", status: "Todo", completed: false },
             ]);
 
-            const records = await tasksTableClient.list({
+            const records = await tasksTableClient.listRecords({
                 filterByFormula: [
                     "AND",
                     ["=", { field: "status" }, "Done"],
@@ -196,7 +202,7 @@ describe("TableClient", () => {
         });
 
         it("can list all records without filters", async () => {
-            const records = await tasksTableClient.list();
+            const records = await tasksTableClient.listRecords();
 
             // Should get all seed data records
             expect(records.length).toBeGreaterThan(0);
@@ -209,7 +215,7 @@ describe("TableClient", () => {
     describe("get", () => {
         it("can get a record by ID", async () => {
             // Create a record
-            const [created] = await tasksTableClient.createMany([
+            const [created] = await tasksTableClient.createRecords([
                 {
                     name: "Get Test Task",
                     completed: false,
@@ -217,7 +223,7 @@ describe("TableClient", () => {
             ]);
 
             // Get it
-            const record = await tasksTableClient.get(created.id);
+            const record = await tasksTableClient.getRecord(created.id);
 
             expect(record).toMatchObject({
                 id: created.id,
@@ -237,13 +243,13 @@ describe("TableClient", () => {
 
         it("fills in default values for empty fields", async () => {
             // Create a record with minimal fields
-            const [created] = await tasksTableClient.createMany([
+            const [created] = await tasksTableClient.createRecords([
                 {
                     name: "Minimal Task",
                 },
             ]);
 
-            const record = await tasksTableClient.get(created.id);
+            const record = await tasksTableClient.getRecord(created.id);
 
             // All fields should be present with default values
             expect(record.fields).toHaveProperty("attachments");

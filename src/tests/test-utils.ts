@@ -2,7 +2,7 @@
  * Test utilities for real Airtable API integration tests
  */
 
-import { makeBaseClient, BaseClient } from "../client/index.ts";
+import { makeBaseClient, BaseClient } from "../clients/index.ts";
 import { type RecordWrite } from "../records/converters.ts";
 import type { BaseSchema, TableSchema } from "../types.ts";
 // import { linkedItemsSeedData, usersSeedData, getTasksSeedData, getAllTypesSeedData } from "./seed-data.ts";
@@ -275,14 +275,13 @@ export function getAllTypesSeedData(linkedItemRecordIds: string[]) {
 async function populateSeedData(
     baseClient: BaseClient<typeof testBaseSchema>
 ): Promise<void> {
-    const linkedItemRecords = await baseClient.tables.linkedItems.createMany(linkedItemsSeedData);
+    const linkedItemRecords = await baseClient.tables.linkedItems.createRecords(linkedItemsSeedData);
     const linkedItemRecordIds = linkedItemRecords.map((r: any) => r.id);
 
     const tasksSeedData = getTasksSeedData();
-    await baseClient.tables.tasks.createMany(tasksSeedData);
-
+    await baseClient.tables.tasks.createRecords(tasksSeedData);
     const allTypesSeedData = getAllTypesSeedData(linkedItemRecordIds);
-    await baseClient.tables.allTypes.createMany(allTypesSeedData);
+    await baseClient.tables.allTypes.createRecords(allTypesSeedData);
 
     console.log("Seed data populated successfully");
 }
@@ -293,14 +292,14 @@ async function populateSeedData(
  */
 export async function resetBaseData(baseClient: BaseClient<typeof testBaseSchema>): Promise<void> {
     for (const tableClient of Object.values(baseClient.tables)) {
-        const records = await tableClient.list();
+        const records = await tableClient.listRecords();
 
         if (records.length > 0) {
             const recordIds = records.map((r: any) => r.id);
             // Delete in batches of 10 (Airtable API limit)
             for (let i = 0; i < recordIds.length; i += 10) {
                 const batch = recordIds.slice(i, i + 10);
-                await tableClient.delete(batch);
+                await tableClient.deleteRecords(batch);
             }
         }
     }

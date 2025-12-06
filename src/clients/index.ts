@@ -1,7 +1,7 @@
 export {
     type OrgClient,
-    makeOrgClient,
     type OrgClientOptions,
+    makeOrgClient,
 } from "./org-client.ts";
 export {
     type BaseClient,

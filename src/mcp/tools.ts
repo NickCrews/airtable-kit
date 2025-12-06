@@ -3,7 +3,7 @@
  */
 
 import type { RecordId, TableSchema } from '../types.ts';
-import { type TableClient } from '../client/table-client.ts';
+import { type TableClient } from '../clients/table-client.ts';
 import { type RecordRead, type RecordWrite } from '../records/converters.ts';
 import * as z4 from 'zod/v4';
 import { makeRecordWriteValidator } from '../validators/schema-to-zod.ts';
@@ -37,7 +37,7 @@ export function makeCreateTool<
   const zodInputValidator = z4.object({ records: z4.array(recordSchema) });
   async function execute(input: CreateInput<T>) {
     const validated = zodInputValidator.parse(input);
-    const createRecords = await client.createMany(validated.records as RecordWrite<T["fields"][number]>[]);
+    const createRecords = await client.createRecords(validated.records as RecordWrite<T["fields"][number]>[]);
     return createRecords.map((r) => ({
       ...r,
       // include the URL so the bot can share it with the user
@@ -91,7 +91,7 @@ export function makeUpdateTool<
   });
   async function execute(input: UpdateInput<T>) {
     const validated = zodInputValidator.parse(input);
-    const result = await client.update(validated.records as any, validated.options);
+    const result = await client.updateRecords(validated.records as any, validated.options);
     return result;
   }
   return {
@@ -122,7 +122,7 @@ export function makeGetTool<
 >(client: TableClient<T>): MCPToolDefinition<GetInput, GetToolResult<T>> {
   async function execute(input: GetInput) {
     const validated = GetInput.parse(input);
-    const raw = await client.get(validated.recordId, validated.options);
+    const raw = await client.getRecord(validated.recordId, validated.options);
     return {
       ...raw,
       url: `https://airtable.com/${client.baseId}/${client.tableSchema.id}/${raw.id}`,
@@ -164,7 +164,7 @@ export function makeListTool<
   });
   async function execute(input: ListInput<T>) {
     const validated = zodInputValidator.parse(input);
-    const rawRecords = await client.list(validated.options);
+    const rawRecords = await client.listRecords(validated.options);
     return rawRecords.map((rec) => ({
       ...rec,
       url: `https://airtable.com/${client.baseId}/${client.tableSchema.id}/${rec.id}`,
@@ -189,7 +189,7 @@ export function makeDeleteTool<
 >(client: TableClient<T>): MCPToolDefinition<DeleteInput, DeleteToolResult> {
   async function execute(input: DeleteInput) {
     const validated = DeleteInput.parse(input);
-    const raw = await client.delete(validated.recordIds);
+    const raw = await client.deleteRecords(validated.recordIds);
     return raw.records.map((r) => r.id);
   }
   return {

@@ -1,10 +1,13 @@
 import { type BaseSchema, type TableSchema } from "../types.ts";
 import { IntoFetcher } from "../fetcher.ts";
 import { TableClient, makeTableClient } from "./table-client.ts";
+import { TableSchemaCreate, createTable, updateTable, UpdateTableSchema } from "../tables/index.ts";
 
-type TableClients<T extends ReadonlyArray<TableSchema>> = {
+type TableClientsByName<T extends ReadonlyArray<TableSchema>> = {
     [K in T[number]as K["name"]]: TableClient<K>;
 };
+
+type TabledIdInBase<T extends BaseSchema> = T['tables'][number]['id'];
 
 /**
  * A client to interact with an Airtable base.
@@ -14,7 +17,21 @@ type TableClients<T extends ReadonlyArray<TableSchema>> = {
  */
 export interface BaseClient<T extends BaseSchema = any> {
     baseSchema: T;
-    tables: TableClients<T["tables"]>;
+    tables: TableClientsByName<T["tables"]>;
+
+    /** Create a table in the base
+     * 
+     * @param tableSchema The schema of the table to create
+     * @returns The created table's schema
+     */
+    createTable(tableSchema: TableSchemaCreate): Promise<TableSchema>;
+
+    /** Update a table's name, description, or date dependency settings
+     * 
+     * @param tableSchema The updated schema of the table
+     * @returns The updated table's schema
+     */
+    updateTable(tableSchema: UpdateTableSchema<TabledIdInBase<T>>): Promise<TableSchema>;
 }
 
 /**
@@ -54,9 +71,23 @@ export function makeBaseClient<T extends BaseSchema>(
             });
             return [tableSchema.name, client];
         }),
-    ) as TableClients<T["tables"]>;
+    ) as TableClientsByName<T["tables"]>;
     return {
         baseSchema,
         tables,
+        createTable(tableSchema: TableSchemaCreate) {
+            return createTable({
+                baseId: baseSchema.id,
+                table: tableSchema,
+                fetcher,
+            });
+        },
+        updateTable(tableSchema: UpdateTableSchema<TabledIdInBase<T>>) {
+            return updateTable({
+                baseId: baseSchema.id,
+                table: tableSchema,
+                fetcher,
+            });
+        },
     };
 }

@@ -66,7 +66,7 @@ describe('MCP Tool - Update Tool', () => {
     const updateTool = makeUpdateTool(tasksTableClient);
 
     // Create a record first
-    const [created] = await tasksTableClient.createMany([
+    const [created] = await tasksTableClient.createRecords([
       {
         name: "My new task",
         completed: false,
@@ -122,7 +122,7 @@ describe('MCP Tool - Get Tool', () => {
 
   it('should work for valid input', async () => {
     const getTool = makeGetTool(tasksTableClient);
-    const [created] = await tasksTableClient.createMany([
+    const [created] = await tasksTableClient.createRecords([
       {
         name: "my task"
       },
@@ -193,9 +193,9 @@ describe('MCP Tool - Delete Tool', () => {
 
   it('should work for valid input', async () => {
     const deleteTool = makeDeleteTool(tasksTableClient);
-    const nRecordsBefore = (await tasksTableClient.list({ fields: ["name"] })).length
+    const nRecordsBefore = (await tasksTableClient.listRecords({ fields: ["name"] })).length
 
-    const created = await tasksTableClient.createMany([
+    const created = await tasksTableClient.createRecords([
       { name: "Delete Me 1" },
       { name: "Delete Me 2" },
     ]);
@@ -204,7 +204,7 @@ describe('MCP Tool - Delete Tool', () => {
 
     expect(result).toEqual(recordIds);
 
-    const nRecordsAfter = (await tasksTableClient.list({ fields: ["name"] })).length
+    const nRecordsAfter = (await tasksTableClient.listRecords({ fields: ["name"] })).length
     expect(nRecordsAfter).toBe(nRecordsBefore);
   });
 });

@@ -82,6 +82,9 @@ export interface CreateFieldParams {
     fetcher?: IntoFetcher;
 }
 
+/**
+ * Create a field in a table.
+ */
 export async function createField({
     baseId,
     tableId,

@@ -1,10 +1,18 @@
 import { type RecordId, type BaseId, type TableSchema, FieldId } from "../types.ts";
 import { IntoFetcher } from "../fetcher.ts";
 import * as r from "../records/index.ts";
-import { makeFetcher } from "../fetcher.ts";
+import { updateTable } from "../tables/index.ts";
+import { createField, updateField } from "../fields/api.ts";
 import { Formula, formulaToString } from "../formula/formula.ts";
+import { FieldSchemaCreate, FieldSchemaRead } from "../fields/types.ts";
+
+type FieldsByName<T extends Array<FieldSchemaRead> | ReadonlyArray<FieldSchemaRead>> = {
+    [K in T[number]as K["name"]]: K;
+};
 
 type FieldType<T extends TableSchema> = T['fields'][number];
+
+type FieldIdInTable<T extends TableSchema> = T['fields'][number]['id'];
 /**
  * A client to interact with a specific table within an Airtable base.
  * 
@@ -15,6 +23,26 @@ export interface TableClient<T extends TableSchema = TableSchema> {
     baseId: BaseId;
     /** The {@link TableSchema} of the table this client interacts with */
     tableSchema: T;
+    /** An object mapping field names to their respective {@link FieldSchemaRead} */
+    fields: FieldsByName<T["fields"]>;
+
+    /** Create a field in the table
+     * 
+     * @param field - A field schema to create
+     * @returns A promise that resolves to the created field schema
+     */
+    createField(field: FieldSchemaCreate): Promise<FieldSchemaRead>;
+    /** Update a field in the table
+     * 
+     * @param field - A field schema to update
+     * @returns A promise that resolves to the updated field schema
+     */
+    updateField<F extends FieldIdInTable<T>>(field: { id: F; name?: string; description?: string }): Promise<FieldSchemaRead>;
+
+    /**
+     * Update the name and/or description of the table.
+     */
+    updateTable(params: { name?: string; description?: string }): Promise<TableSchema>;
 
     /** Create a record in the table
      * 
@@ -24,7 +52,7 @@ export interface TableClient<T extends TableSchema = TableSchema> {
      * Any values of `null` or `undefined` in the input record will not be passed
      * to Airtable, effectively leaving those fields blank on creation.
      */
-    createOne(record: r.RecordWrite<FieldType<T>>): Promise<r.CreateRecordsRawResponse<FieldType<T>>[number]>;
+    createRecord(record: r.RecordWrite<FieldType<T>>): Promise<r.CreateRecordsRawResponse<FieldType<T>>[number]>;
 
     /** Create multiple records into the table
      * 
@@ -34,16 +62,16 @@ export interface TableClient<T extends TableSchema = TableSchema> {
      * Any values of `null` or `undefined` in the input records will not be passed
      * to Airtable, effectively leaving those fields blank on creation.
      */
-    createMany(values: ReadonlyArray<r.RecordWrite<FieldType<T>>>): Promise<r.CreateRecordsResponse<FieldType<T>>>;
+    createRecords(values: ReadonlyArray<r.RecordWrite<FieldType<T>>>): Promise<r.CreateRecordsResponse<FieldType<T>>>;
 
     /** List records from the table with optional filtering. Pagination is handled automatically. */
-    list(options?: r.ListRecordsOptions<FieldType<T>>): Promise<r.ListRecordsResponse<FieldType<T>>>;
+    listRecords(options?: r.ListRecordsOptions<FieldType<T>>): Promise<r.ListRecordsResponse<FieldType<T>>>;
 
     /** List records, but you are responsible for pagination */
-    listRaw(options?: r.ListRecordsRawOptions<FieldType<T>>): Promise<r.ListRecordsRawResponse<FieldType<T>>>;
+    listRecordsRaw(options?: r.ListRecordsRawOptions<FieldType<T>>): Promise<r.ListRecordsRawResponse<FieldType<T>>>;
 
     /** Get a single record by ID */
-    get(recordId: RecordId, options?: r.GetRecordOptions): Promise<r.GetRecordResponse<FieldType<T>>>;
+    getRecord(recordId: RecordId, options?: r.GetRecordOptions): Promise<r.GetRecordResponse<FieldType<T>>>;
 
     /**
      * Update records in the table.
@@ -54,13 +82,14 @@ export interface TableClient<T extends TableSchema = TableSchema> {
      * Any values of `undefined` in a record will be not be sent to Airtable, leaving those fields unchanged.
      * To explicitly clear a field, set its value to `null`.
      */
-    update(
+    updateRecords(
         records: Array<{ id?: string; fields: Partial<r.RecordWrite<FieldType<T>>> }>,
         options?: r.UpdateRecordsOptions<FieldType<T>>
     ): Promise<r.UpdateRecordsResponse<FieldType<T>>>;
 
     /** Delete records by IDs */
-    delete(recordIds: ReadonlyArray<RecordId>): Promise<r.DeleteRecordsResponse>;
+    deleteRecords(recordIds: ReadonlyArray<RecordId>): Promise<r.DeleteRecordsResponse>;
+
     /** Upload an attachment to a record */
     uploadAttachment(
         recordId: RecordId,
@@ -113,87 +142,115 @@ export function makeTableClient<T extends TableSchema>(
     {
         baseId,
         tableSchema,
-        fetcher: intoFetcher,
-        options: clientOptions,
+        fetcher,
+        options,
     }: TableClientOptions<T>,
 ): TableClient<T> {
-    const fetcher = makeFetcher(intoFetcher);
-    const tableId = tableSchema.id;
-    const fields = tableSchema.fields;
+    const fieldsByName = Object.fromEntries(
+        tableSchema.fields.map(fieldSchema => [fieldSchema.name, fieldSchema,])
+    ) as FieldsByName<T["fields"]>
+
     return {
         baseId,
         tableSchema,
-        createMany(records: ReadonlyArray<r.RecordWrite<FieldType<T>>>) {
-            return r.createRecords<FieldType<T>>({
-                records,
-                fields,
+        fields: fieldsByName,
+        createField(field: FieldSchemaCreate): Promise<FieldSchemaRead> {
+            return createField({
                 baseId,
-                tableId,
+                tableId: tableSchema.id,
+                field,
                 fetcher,
-                onUnexpectedField: clientOptions?.onReadUnexpectedField,
             });
         },
-        async createOne(record: r.RecordWrite<FieldType<T>>) {
+        updateField(field: { id: FieldId; name?: string; description?: string }): Promise<FieldSchemaRead> {
+            return updateField({
+                baseId,
+                tableId: tableSchema.id,
+                field,
+                fetcher,
+            });
+        },
+        updateTable(params: { name?: string; description?: string }): Promise<TableSchema> {
+            return updateTable({
+                baseId,
+                table: {
+                    id: tableSchema.id,
+                    ...params,
+                },
+                fetcher,
+            });
+        },
+        createRecords(records: ReadonlyArray<r.RecordWrite<FieldType<T>>>) {
+            return r.createRecords<FieldType<T>>({
+                records,
+                baseId,
+                tableId: tableSchema.id,
+                fields: tableSchema.fields,
+                fetcher,
+                onUnexpectedField: options?.onReadUnexpectedField,
+            });
+        },
+        async createRecord(record: r.RecordWrite<FieldType<T>>) {
             const raw = await r.createRecordsRaw<FieldType<T>>({
                 records: [record],
-                fields,
                 baseId,
-                tableId,
+                tableId: tableSchema.id,
+                fields: tableSchema.fields,
                 fetcher,
-                onUnexpectedField: clientOptions?.onReadUnexpectedField,
+                onUnexpectedField: options?.onReadUnexpectedField,
             });
             return raw[0];
         },
-        list(options?: r.ListRecordsOptions<FieldType<T>>) {
+        listRecords(listOptions?: r.ListRecordsOptions<FieldType<T>>) {
             return r.listRecords<FieldType<T>>({
-                options,
-                fields,
+                options: listOptions,
                 baseId,
-                tableId,
+                tableId: tableSchema.id,
+                fields: tableSchema.fields,
                 fetcher,
-                onUnexpectedField: clientOptions?.onReadUnexpectedField,
+                onUnexpectedField: options?.onReadUnexpectedField,
             });
         },
-        async listRaw(options?: r.ListRecordsRawOptions<FieldType<T>>) {
+        async listRecordsRaw(listOptions?: r.ListRecordsRawOptions<FieldType<T>>) {
             return await r.listRecordsRaw<FieldType<T>>({
-                options,
-                fields,
+                options: listOptions,
                 baseId,
-                tableId,
+                tableId: tableSchema.id,
+                fields: tableSchema.fields,
                 fetcher,
-                onUnexpectedField: clientOptions?.onReadUnexpectedField,
+                onUnexpectedField: options?.onReadUnexpectedField,
             });
         },
-        async get(recordId: RecordId, options?: r.GetRecordOptions) {
+        async getRecord(recordId: RecordId, getRecordOptions?: r.GetRecordOptions) {
             return await r.getRecord<FieldType<T>>({
                 recordId,
-                fields,
-                options,
                 baseId,
-                tableId,
+                tableId: tableSchema.id,
+                fields: tableSchema.fields,
                 fetcher,
-                onUnexpectedField: clientOptions?.onReadUnexpectedField,
+                options: getRecordOptions,
+                onUnexpectedField: options?.onReadUnexpectedField,
             });
         },
-        async update(
+        async updateRecords(
             records: Array<{ id?: string; fields: Partial<r.RecordWrite<FieldType<T>>> }>,
-            options?: r.UpdateRecordsOptions<FieldType<T>>
+            updateRecordsOptions?: r.UpdateRecordsOptions<FieldType<T>>
         ) {
             return await r.updateRecords<FieldType<T>>({
                 records,
-                options,
-                fields,
                 baseId,
-                tableId,
+                tableId: tableSchema.id,
+                fields: tableSchema.fields,
                 fetcher,
-                onUnexpectedField: clientOptions?.onReadUnexpectedField,
+                options: updateRecordsOptions,
+                onUnexpectedField: options?.onReadUnexpectedField,
             });
         },
-        async delete(recordIds: ReadonlyArray<RecordId>) {
+        async deleteRecords(recordIds: ReadonlyArray<RecordId>) {
             return await r.deleteRecords({
                 recordIds,
                 baseId,
-                tableId,
+                tableId: tableSchema.id,
                 fetcher,
             });
         },
