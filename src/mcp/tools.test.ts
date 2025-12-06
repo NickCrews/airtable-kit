@@ -8,12 +8,10 @@ import {
 } from './index.ts';
 import { testBaseClient } from '../tests/test-utils.ts';
 
-describe('MCP Tool - Create Tool', () => {
-  const { tasksTableClient, resetBaseData } = testBaseClient();
+const { tasksTableClient, resetBaseData } = testBaseClient();
 
-  beforeEach(async () => {
-    await resetBaseData();
-  });
+describe('MCP Tool - Create Tool', () => {
+  beforeEach(resetBaseData);
 
   it('should create a create tool with the correct metadata', () => {
     const createTool = makeCreateTool(tasksTableClient);
@@ -48,11 +46,7 @@ describe('MCP Tool - Create Tool', () => {
 });
 
 describe('MCP Tool - Update Tool', () => {
-  const { tasksTableClient, resetBaseData } = testBaseClient();
-
-  beforeEach(async () => {
-    await resetBaseData();
-  });
+  beforeEach(resetBaseData);
 
   it('should create an update tool with the correct metadata', () => {
     const updateTool = makeUpdateTool(tasksTableClient);
@@ -106,11 +100,7 @@ describe('MCP Tool - Update Tool', () => {
 });
 
 describe('MCP Tool - Get Tool', () => {
-  const { tasksTableClient, resetBaseData } = testBaseClient();
-
-  beforeEach(async () => {
-    await resetBaseData();
-  });
+  beforeEach(resetBaseData);
 
   it('should create a get tool with the correct metadata', () => {
     const getTool = makeGetTool(tasksTableClient);
@@ -140,7 +130,7 @@ describe('MCP Tool - Get Tool', () => {
 });
 
 describe('MCP Tool - List Tool', () => {
-  const { tasksTableClient } = testBaseClient();
+  beforeEach(resetBaseData);
 
   it('should create a list tool with the correct metadata', () => {
     const listTool = makeListTool(tasksTableClient);
@@ -162,9 +152,10 @@ describe('MCP Tool - List Tool', () => {
 
   it('should work with filtering options', async () => {
     const listTool = makeListTool(tasksTableClient);
+
     const validInput = {
       options: {
-        filterByFormula: `{dueDate} = "2025-01-05"`,
+        filterByFormula: `{name} = "Setup development environment"`,
         maxRecords: 10,
 
       },
@@ -177,11 +168,7 @@ describe('MCP Tool - List Tool', () => {
 });
 
 describe('MCP Tool - Delete Tool', () => {
-  const { tasksTableClient, resetBaseData } = testBaseClient();
-
-  beforeEach(async () => {
-    await resetBaseData();
-  });
+  beforeEach(resetBaseData);
 
   it('should create a delete tool with the correct metadata', () => {
     const deleteTool = makeDeleteTool(tasksTableClient);

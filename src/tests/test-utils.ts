@@ -191,16 +191,16 @@ export function getAllTypesSeedData(linkedItemRecordIds: string[]) {
         ],
     ];
 
-    const multipleCollaboratorsValues = [undefined, [], []];
+    // const multipleCollaboratorsValues = [undefined, [], []];
 
-    const multipleRecordLinksValues = [
-        undefined,
-        [],
-        [linkedItemRecordIds[0]],
-        [linkedItemRecordIds[0], linkedItemRecordIds[1]],
-        [linkedItemRecordIds[2]],
-        [linkedItemRecordIds[1], linkedItemRecordIds[2], linkedItemRecordIds[3]],
-    ];
+    // const multipleRecordLinksValues = [
+    //     undefined,
+    //     [],
+    //     [linkedItemRecordIds[0]],
+    //     [linkedItemRecordIds[0], linkedItemRecordIds[1]],
+    //     [linkedItemRecordIds[2]],
+    //     [linkedItemRecordIds[1], linkedItemRecordIds[2], linkedItemRecordIds[3]],
+    // ];
 
     const multipleSelectsValues = [undefined, [], ["Tag 1"], ["Tag 1", "Tag 2"], ["Tag 2", "Tag 3"]];
 
@@ -233,8 +233,8 @@ export function getAllTypesSeedData(linkedItemRecordIds: string[]) {
         emailValues,
         multilineTextValues,
         multipleAttachmentsValues,
-        multipleCollaboratorsValues,
-        multipleRecordLinksValues,
+        // multipleCollaboratorsValues,
+        // multipleRecordLinksValues,
         multipleSelectsValues,
         numberValues,
         percentValues,
@@ -258,8 +258,8 @@ export function getAllTypesSeedData(linkedItemRecordIds: string[]) {
             email,
             multilineText,
             multipleAttachments,
-            multipleCollaborators,
-            multipleRecordLinks,
+            // multipleCollaborators,
+            // multipleRecordLinks,
             multipleSelects,
             number,
             percent,
@@ -284,8 +284,8 @@ export function getAllTypesSeedData(linkedItemRecordIds: string[]) {
         if (email !== undefined && email !== null) result.email = email;
         if (multilineText !== undefined && multilineText !== null) result.multilineText = multilineText;
         if (multipleAttachments !== undefined && multipleAttachments !== null) result.multipleAttachments = multipleAttachments;
-        if (multipleCollaborators !== undefined && multipleCollaborators !== null) result.multipleCollaborators = multipleCollaborators;
-        if (multipleRecordLinks !== undefined && multipleRecordLinks !== null) result.multipleRecordLinks = multipleRecordLinks;
+        // if (multipleCollaborators !== undefined && multipleCollaborators !== null) result.multipleCollaborators = multipleCollaborators;
+        // if (multipleRecordLinks !== undefined && multipleRecordLinks !== null) result.multipleRecordLinks = multipleRecordLinks;
         if (multipleSelects !== undefined && multipleSelects !== null) result.multipleSelects = multipleSelects;
         if (number !== undefined && number !== null) result._number = number;
         if (percent !== undefined && percent !== null) result.percent = percent;
