@@ -86,8 +86,16 @@ async function listBases(apiKey: string): Promise<BaseInfo[]> {
     })
 
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error?.message || `Failed to list bases: ${response.status}`)
+      let errorMessage = `Failed to list bases: ${response.status}`
+      try {
+        const error = await response.json()
+        if (error.error?.message) {
+          errorMessage = error.error.message
+        }
+      } catch {
+        // Response is not JSON, use default error message
+      }
+      throw new Error(errorMessage)
     }
 
     const data = await response.json()
@@ -107,8 +115,16 @@ async function getBaseSchema(apiKey: string, baseId: string, baseName: string): 
   })
 
   if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error?.message || `Failed to get base schema: ${response.status}`)
+    let errorMessage = `Failed to get base schema: ${response.status}`
+    try {
+      const error = await response.json()
+      if (error.error?.message) {
+        errorMessage = error.error.message
+      }
+    } catch {
+      // Response is not JSON, use default error message
+    }
+    throw new Error(errorMessage)
   }
 
   const data = await response.json()
@@ -182,12 +198,34 @@ function App() {
   }
 
   const copyToClipboard = async () => {
+    const text = generatedCode()
+    
+    // Try the modern Clipboard API first
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+        return
+      } catch {
+        // Fall through to fallback
+      }
+    }
+    
+    // Fallback for non-HTTPS environments
     try {
-      await navigator.clipboard.writeText(generatedCode())
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      textarea.style.position = 'fixed'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      setError('Failed to copy to clipboard')
+      setError('Failed to copy to clipboard. Try using the download button instead.')
     }
   }
 
