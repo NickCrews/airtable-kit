@@ -8,28 +8,28 @@ import * as f from '../fields/types.ts';
 import * as testFields from '../fields/_example-fields.ts';
 
 const BARCODE_VALIDATOR = z.strictObject({
-  text: z.string(),
+  text: z.string().nullable(),
   type: z.string().optional(),
-});
-const BOOLEAN_VALIDATOR = z.boolean();
+}).nullable();
+const BOOLEAN_VALIDATOR = z.boolean(); // NOT nullable, Airtable checkboxes are either true or false
 const SINGLE_COLLABORATOR_VALIDATOR = z.strictObject({
   id: z.string(),
   email: z.email(),
   name: z.string().optional(),
-});
-const DATE_VALIDATOR = z.iso.date();
-const DATE_TIME_VALIDATOR = z.iso.datetime({ local: true });
-const EMAIL_VALIDATOR = z.email();
+}).nullable();
+const DATE_VALIDATOR = z.iso.date().nullable();
+const DATE_TIME_VALIDATOR = z.iso.datetime({ local: true }).nullable();
+const EMAIL_VALIDATOR = z.email().nullable();
 const MULTIPLE_ATTACHMENTS_VALIDATOR = z.array(z.strictObject({
   url: z.url(),
   filename: z.string(),
 }));
 const MULTIPLE_COLLABORATORS_VALIDATOR = z.array(SINGLE_COLLABORATOR_VALIDATOR);
 const MULTIPLE_RECORD_LINKS_VALIDATOR = z.array(RecordIdSchema);
-const NUMBER_VALIDATOR = z.number();
+const NUMBER_VALIDATOR = z.number().nullable();
 const READONLY_VALIDATOR = z.never();
-const STRING_VALIDATOR = z.string();
-const URL_VALIDATOR = z.url();
+const STRING_VALIDATOR = z.string().nullable();
+const URL_VALIDATOR = z.url().nullable();
 
 type SelectChoiceName<T extends f.SingleSelectSchemaRead | f.MultipleSelects> = T extends (f.SingleSelectSchemaRead<infer C> | f.MultipleSelects<infer C>) ? C["name"] : never;
 type SingleSelectValidator<T extends f.SingleSelectSchemaRead | f.MultipleSelects> = z.ZodEnum<{ [K in SelectChoiceName<T>]: K }>;
