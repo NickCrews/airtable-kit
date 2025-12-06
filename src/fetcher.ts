@@ -78,7 +78,7 @@ export function makeFetcher(args?: IntoFetcher): Fetcher {
             const usedBaseUrl = overrideBaseUrl ?? defaultBaseUrl;
             const url = join(usedBaseUrl, path);
             // format as a CURL command for easier debugging
-            console.log(`curl -X ${method} '${url}' -H 'Authorization: Bearer ${apiKey}' -H 'Content-Type: application/json' -d '${JSON.stringify(data)}'`);
+            // console.log(`curl -X ${method} '${url}' -H 'Authorization: Bearer ${apiKey}' -H 'Content-Type: application/json' -d '${JSON.stringify(data)}'`);
             const response = await globalThis.fetch(url, {
                 method,
                 headers: {

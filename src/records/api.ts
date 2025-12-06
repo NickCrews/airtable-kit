@@ -288,7 +288,6 @@ export async function listRecordsRaw<T extends FieldSchemaRead>(
     type ListApiResponse<T extends FieldSchemaRead> = ListApiSuccessResponse<T> | ListApiErrorResponse;
     const raw = await doFetch<ListApiResponse<T>>({ fetcher, path, method: "GET" });
     if ('error' in raw) {
-        console.log(fetcher);
         throw new exceptions.AirtableKitApiError(
             `Error listing records: ${raw.error.message ?? raw.error.type}`,
             path,
