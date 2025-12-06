@@ -68,7 +68,9 @@ jobs:
         run: pnpm install --frozen-lockfile
       
       - name: Generate test base schema
-        run: pnpm ensure-test-base
+        run: |
+          pnpm ensure-test-base
+          cat src/tests/test-base-schema.generated.ts
 
       - name: Run tests
         run: pnpm test
