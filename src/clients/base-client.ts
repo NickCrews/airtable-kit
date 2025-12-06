@@ -15,7 +15,7 @@ type TabledIdInBase<T extends BaseSchema> = T['tables'][number]['id'];
  * This contains a value, `tables`, which is an object
  * mapping table names to their respective {@link TableClient}.
  */
-export interface BaseClient<T extends BaseSchema = any> {
+export interface BaseClient<T extends BaseSchema = BaseSchema> {
     baseSchema: T;
     tables: TableClientsByName<T["tables"]>;
 

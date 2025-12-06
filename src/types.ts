@@ -47,8 +47,8 @@ export interface ViewSchema {
     type: ViewType;
 }
 
-export interface BaseSchema<I extends BaseId = BaseId> {
+export interface BaseSchema<I extends BaseId = BaseId, T extends ReadonlyArray<TableSchema> = ReadonlyArray<TableSchema>> {
     id: I;
     name: string;
-    tables: ReadonlyArray<TableSchema>;
+    tables: T;
 }
