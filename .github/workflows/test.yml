@@ -1,0 +1,133 @@
+name: Test airtable-kit
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check types
+        run: pnpm typecheck
+
+  test:
+    name: Test (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20, 22, 24]
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Run build
+        run: pnpm build
+
+  validate-package:
+    name: Validate Package Structure
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build package
+        run: pnpm build
+
+      - name: Check package exports
+        run: |
+          node -e "const pkg = require('./package.json'); console.log('✅ Package exports:', JSON.stringify(pkg.exports, null, 2));"
+
+      - name: Verify dist directory structure
+        run: |
+          echo "📦 Checking dist directory..."
+          if [ -d "dist" ]; then
+            echo "✅ dist directory exists"
+            echo "Contents:"
+            ls -la dist/
+          else
+            echo "❌ dist directory not found"
+            exit 1
+          fi
+
+  all-checks-passed:
+    name: All Checks Passed
+    runs-on: ubuntu-latest
+    needs: [lint, test, validate-package]
+    if: always()
+
+    steps:
+      - name: Check all jobs
+        run: |
+          if [[
+                "${{ needs.test.result }}" == "success" && \
+                "${{ needs.validate-package.result }}" == "success" && \
+                "${{ needs.lint.result }}" == "success" && \
+              ]]; then
+            echo "✅ All required checks passed!"
+          else
+            echo "❌ Some checks failed"
+            echo "lint: ${{ needs.lint.result }}"
+            echo "test: ${{ needs.test.result }}"
+            echo "validate-package: ${{ needs.validate-package.result }}"
+            exit 1
+          fi
