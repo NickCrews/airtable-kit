@@ -87,7 +87,13 @@ export function makeFetcher(args?: IntoFetcher): Fetcher {
                 },
                 body: JSON.stringify(data),
             });
-            return response.json() as Promise<T>;
+            const result = await response.json() as T;
+            if (!response.ok) {
+                throw new Error(
+                    `Fetch error: ${response.status} ${response.statusText} - ${JSON.stringify(result)}`,
+                );
+            }
+            return result;
         },
     };
 }
