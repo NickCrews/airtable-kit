@@ -327,6 +327,13 @@ function App() {
                     {loading() ? 'Loading...' : 'Add'}
                   </button>
                 </div>
+                <button
+                  type="button"
+                  class="mini-btn"
+                  onClick={() => setApiKeyBeingAdded('patHqo8zAOSBMEIoT.427ac22a91c5b638444c79222324345564f1c9d3d3a2e7b59f57b883efe8df06')}
+                >
+                  Try example token
+                </button>
                 <p class="hint">
                   Create a personal access token at{' '}
                   <a href="https://airtable.com/create/tokens" target="_blank" rel="noopener noreferrer">
