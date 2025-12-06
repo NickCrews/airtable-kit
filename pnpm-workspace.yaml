@@ -1,3 +1,6 @@
 packages:
-  - '.'
-  - 'spa'
+  - .
+  - spa
+
+onlyBuiltDependencies:
+  - esbuild
