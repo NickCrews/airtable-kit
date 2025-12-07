@@ -1,9 +1,20 @@
-import { FieldSchemaRead } from "../fields/types.ts";
+// import { FieldSchemaRead } from "../fields/types.ts";
 import { FieldId } from "../types.ts";
-import { convertValueFromRead, convertValueForWrite, ValueFromRead, ValueForWrite } from "../fields/converters.ts";
-import * as exceptions from "../exceptions.ts";
+import {
+    convertValueFromRead,
+    convertValueForWrite,
+    ValueFromRead,
+    ValueForWrite,
+    FieldSchemaForWrite as FieldSchemaForWriteBasic,
+    FieldSchemaFromRead as FieldSchemaFromReadBasic,
+    ReadValueConversionError,
+} from "../fields/converters.ts";
+import { AirtableKitError } from "../exceptions/common.ts";
 
-export type WriteValuesById<T extends FieldSchemaRead> = {
+export type FieldSchemaFromRead = FieldSchemaFromReadBasic & { name: FieldId, id: FieldId }
+export type FieldSchemaForWrite = FieldSchemaForWriteBasic & { name: string, id: FieldId }
+
+export type WriteValuesById<T extends FieldSchemaForWrite> = {
     [K in T["id"]]?: ValueForWrite<Extract<T, { id: K }>>;
 };
 
@@ -12,15 +23,15 @@ export type WriteValuesById<T extends FieldSchemaRead> = {
  * 
  * Each key can be either the field name or field ID, and the value is the appropriate type for writing to that field.
  */
-export type ValuesForWrite<T extends FieldSchemaRead> = {
+export type ValuesForWrite<T extends FieldSchemaForWrite> = {
     [K in T["name"] | T["id"]]?: K extends T["name"]
     ? Extract<T, { name: K }> extends infer F
-    ? F extends FieldSchemaRead ? ValueForWrite<F>
+    ? F extends FieldSchemaFromRead ? ValueForWrite<F>
     : never
     : never
     : K extends T["id"]
     ? Extract<T, { id: K }> extends infer F
-    ? F extends FieldSchemaRead ? ValueForWrite<F>
+    ? F extends FieldSchemaFromRead ? ValueForWrite<F>
     : never
     : never
     : never;
@@ -31,7 +42,7 @@ export type ValuesForWrite<T extends FieldSchemaRead> = {
  * 
  * Each key is the field name, and the value is the appropriate type for reading from that field.
  */
-export type ValuesFromRead<T extends FieldSchemaRead> = {
+export type ValuesFromRead<T extends FieldSchemaFromRead> = {
     [K in T["name"]]: ValueFromRead<Extract<T, { name: K }>>;
 };
 
@@ -52,7 +63,7 @@ export type ValuesFromRead<T extends FieldSchemaRead> = {
  * which is null for most field types, but an empty array for some.
  */
 export function convertValuesFromRead<
-    F extends FieldSchemaRead,
+    F extends FieldSchemaFromRead,
 >(
     rawValues: Readonly<Record<FieldId, unknown>>,
     fieldSchemas: ReadonlyArray<F>,
@@ -61,22 +72,22 @@ export function convertValuesFromRead<
     onUnexpectedField = onUnexpectedField ?? { warn: true, keep: true };
     const result: Record<string, unknown> = {};
     const lookup = makeFieldLookup(fieldSchemas);
-    const errors: exceptions.AirtableKitError[] = [];
+    const errors: AirtableKitError[] = [];
     for (const [fieldId, rawValue] of Object.entries(rawValues)) {
         const fieldSchema = lookup.get(fieldId);
         if (fieldSchema) {
             try {
                 result[fieldSchema.name] = convertValueFromRead(rawValue, fieldSchema);
             } catch (e) {
-                if (e instanceof exceptions.ReadValueConversionError) {
-                    errors.push(e as exceptions.ReadValueConversionError);
+                if (e instanceof ReadValueConversionError) {
+                    errors.push(e as ReadValueConversionError);
                     continue
                 }
                 throw e;
             }
         } else {
             if (onUnexpectedField === "throw") {
-                errors.push(new exceptions.UnexpectedFieldReadError(fieldId as FieldId, rawValue));
+                errors.push(new UnexpectedFieldReadError(fieldId as FieldId, rawValue));
                 continue
             }
             if (onUnexpectedField.warn) {
@@ -105,8 +116,8 @@ export function convertValuesFromRead<
                 const defaultValue = convertValueFromRead(null, fieldSchema);
                 result[fieldSchema.name] = defaultValue;
             } catch (e) {
-                if (e instanceof exceptions.ReadValueConversionError) {
-                    errors.push(new exceptions.MissingFieldReadError(fieldSchema));
+                if (e instanceof ReadValueConversionError) {
+                    errors.push(new MissingFieldReadError(fieldSchema));
                     continue;
                 } else {
                     throw e;
@@ -115,7 +126,7 @@ export function convertValuesFromRead<
         }
     }
     if (errors.length > 0) {
-        throw new exceptions.RecordReadError({
+        throw new ValuesConversionError({
             errors,
             rawValues,
             fieldSchemas: fieldSchemas,
@@ -132,7 +143,7 @@ export function convertValuesFromRead<
  */
 export function convertValuesForWrite<
     V extends ValuesForWrite<F>,
-    F extends FieldSchemaRead,
+    F extends FieldSchemaForWrite,
 >(
     values: V,
     fieldSchemas: ReadonlyArray<F>,
@@ -153,12 +164,70 @@ export function convertValuesForWrite<
     return result as Partial<WriteValuesById<F>>;
 }
 
-function makeFieldLookup(fieldSchemas: readonly FieldSchemaRead[]) {
-    const toField = new Map<string, FieldSchemaRead>();
+function makeFieldLookup(fieldSchemas: ReadonlyArray<FieldSchemaForWrite>) {
+    const toField = new Map<string, FieldSchemaForWrite>();
     for (const fs of fieldSchemas) {
         // Set ID second so ID lookup takes precedence if there's a name/ID clash
         toField.set(fs.name, fs);
         toField.set(fs.id, fs);
     }
     return toField
+}
+
+
+/**
+ * Thrown when a required field is missing from a record on read.
+ * 
+ * This usually happens when a field in the Airtable base is deleted,
+ * but your code/schema still expects it to be there.
+ */
+export class MissingFieldReadError extends AirtableKitError {
+    public readonly fieldSchema: FieldSchemaFromRead;
+    constructor(fieldSchema: FieldSchemaFromRead) {
+        super(`Missing required field on read: ${fieldSchema.name} (id: ${fieldSchema.id}, type: ${fieldSchema.type})`);
+        this.fieldSchema = fieldSchema;
+        this.name = "MissingFieldReadError";
+        // Maintain the correct prototype chain
+        Object.setPrototypeOf(this, MissingFieldReadError.prototype);
+    }
+}
+
+/**
+ * Thrown when we encounter a field in a read record that we don't expect in our schema.
+ */
+export class UnexpectedFieldReadError extends AirtableKitError {
+    public readonly fieldId: FieldId;
+    public readonly value: unknown;
+    constructor(fieldId: FieldId, value: unknown) {
+        super(`Unexpected field on read: ${fieldId} (value: ${value})`);
+        this.fieldId = fieldId;
+        this.value = value;
+        this.name = "UnexpectedFieldReadError";
+        // Maintain the correct prototype chain
+        Object.setPrototypeOf(this, UnexpectedFieldReadError.prototype);
+    }
+}
+
+
+export class ValuesConversionError extends AirtableKitError {
+    public readonly errors: ReadonlyArray<AirtableKitError>;
+    public readonly rawValues: Record<FieldId, unknown>;
+    public readonly fieldSchemas: ReadonlyArray<FieldSchemaForWrite>;
+    constructor({
+        errors,
+        rawValues,
+        fieldSchemas,
+    }: {
+        errors: ReadonlyArray<AirtableKitError>;
+        rawValues: Record<FieldId, unknown>;
+        fieldSchemas: ReadonlyArray<FieldSchemaForWrite>;
+    }) {
+        super(`Errors reading record: \n${errors.map(e => `- ${e.message}`).join("\n")}`);
+        this.errors = errors;
+        this.rawValues = rawValues;
+        this.fieldSchemas = fieldSchemas;
+        this.name = "RecordReadError";
+        // Maintain the correct prototype chain
+        Object.setPrototypeOf(this, ValuesConversionError.prototype);
+    }
 }

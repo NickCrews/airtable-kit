@@ -3,395 +3,333 @@
  */
 
 import * as types from "./types.ts";
-import { type FieldSchemaRead, type FieldType } from "./types.ts";
+import { AirtableKitError } from "../exceptions/common.ts";
 import { AttachmentId, RecordId } from "../types.ts";
-import * as exceptions from "../exceptions.ts";
 
 /** ISO 8601 string in UTC, e.g. "2024-01-01T00:00:00.000Z" */
 type UtcTimestamp = string;
 
-type ToAirtableConverter<T> = (value: T) => unknown;
-type FromAirtableConverter<T> = (value: any) => T;
-interface IConverters<
-    ToArg,
-    FromResult,
-    F extends FieldSchemaRead,
-> {
-    type: F["type"];
-    /** null implies the field can't be written to (eg is createdTime or formula) */
-    makeTo: null | ((fieldSchema: F) => ToAirtableConverter<ToArg>);
-    /** null implies the field can't be read from (eg is a button) */
-    makeFrom: null | ((fieldSchema: F) => FromAirtableConverter<FromResult>);
+type PartialExcept<T, K extends keyof T> = Pick<T, K> & Partial<Omit<T, K>>;
+type PartialExceptType<T extends { type: types.FieldType }> = PartialExcept<T, "type">;
+type PartialExceptTypeAndOptions<T extends { type: types.FieldType }> =
+    T extends { options: unknown } ? PartialExcept<T, "type" | "options"> :
+    PartialExcept<T, "type">;
+// /**
+//  * When converting values, we don't need the field name, id, description, or other metadata.
+//  * We only need the type and (if they exist), the options.
+//  * But other fields are still acceptable, including bogus ones.
+//  */
+type FieldTypeIsh = types.FieldType | { type: types.FieldType };
+type EnsureFieldSchemaRead<T extends FieldTypeIsh> =
+    T extends types.FieldType ? Extract<types.FieldSchemaRead, { type: T }> :
+    T extends { type: infer FT }
+    ? FT extends types.FieldType
+    ? Extract<types.FieldSchemaRead, { type: FT }>
+    : never
+    : never;
+type FieldSchemaTypeAndOptions<T extends FieldTypeIsh = types.FieldSchemaRead> = PartialExceptTypeAndOptions<EnsureFieldSchemaRead<T>>;
+
+// ============================================================================
+// aiText
+
+function fromReadAiText(value: unknown, fieldSchema: PartialExceptType<types.AiTextSchemaRead>): types.AiTextValueRead {
+    return value as types.AiTextValueRead;
+}
+function toWriteAiText(value: never, fieldSchema: PartialExceptType<types.AiTextSchemaRead>): never {
+    throw new FieldNotWritableError(fieldSchema);
 }
 
-type FieldOfType<T extends FieldType> = Extract<FieldSchemaRead, { type: T }>;
+// ============================================================================
+// autoNumber
 
-const AiTextConverters = {
-    type: "aiText",
-    makeTo: null,
-    makeFrom:
-        (_fieldSchema: FieldOfType<"aiText">) =>
-            (value: types.AiTextValueRead): types.AiTextValueRead => value,
-} as const satisfies IConverters<never, types.AiTextValueRead, FieldOfType<"aiText">>;
+function fromReadAutoNumber(value: number, fieldSchema: PartialExceptType<types.AutoNumberSchemaRead>): number {
+    const t = typeof value;
+    if (t !== "number") {
+        const e = new Error(`autoNumber field ${JSON.stringify(fieldSchema)} should always receive a number, but got: ${value}`);
+        throw new ReadValueConversionError(value, fieldSchema, e);
+    }
+    return value as number;
+}
+function toWriteAutoNumber(value: never, fieldSchema: PartialExceptType<types.AutoNumberSchemaRead>): never {
+    throw new FieldNotWritableError(fieldSchema);
+}
 
-const AutoNumberConverters = {
-    type: "autoNumber",
-    makeTo: null,
-    makeFrom:
-        (fieldSchema: FieldOfType<"autoNumber">) => (value: number): number => {
-            if (!value && value !== 0) {
-                const e = new Error(`an autoNumber field must have a value, got: ${value}`);
-                throw new exceptions.ReadValueConversionError(value, fieldSchema, e);
-            }
-            return value;
-        }
-} as const satisfies IConverters<
-    never,
-    number,
-    FieldOfType<"autoNumber">
->;
+// ============================================================================
+// barcode
 
 export interface BarcodeValue {
     text: string;
     type: string;
 }
-const BarcodeConverters = {
-    type: "barcode",
-    makeTo:
-        (_fieldSchema: FieldOfType<"barcode">) =>
-            (value: BarcodeValue | null | undefined): BarcodeValue | null | undefined => value,
-    makeFrom:
-        (_fieldSchema: FieldOfType<"barcode">) =>
-            (value: unknown): BarcodeValue => value as BarcodeValue,
-} as const satisfies IConverters<
-    BarcodeValue | null | undefined,
-    BarcodeValue | null,
-    FieldOfType<"barcode">
->;
+function fromReadBarcode(value: unknown, fieldSchema: PartialExceptType<types.BarcodeSchemaRead>): BarcodeValue | null {
+    return value as BarcodeValue | null;
+}
+function toWriteBarcode(value: BarcodeValue | null | undefined, fieldSchema: PartialExceptType<types.BarcodeSchemaRead>): BarcodeValue | null | undefined {
+    return value;
+}
 
-const ButtonConverters = {
-    type: "button",
-    makeTo: null,
-    makeFrom: null,
-} as const satisfies IConverters<never, never, FieldOfType<"button">>;
+// ============================================================================
+// button
+// Buttons cannot be read or written, so no converters are needed.
 
-const CheckboxConverters = {
-    type: "checkbox",
-    makeTo:
-        (_fieldSchema: FieldOfType<"checkbox">) => (value: boolean | null | undefined): boolean | null | undefined =>
-            value,
-    makeFrom:
-        (_fieldSchema: FieldOfType<"checkbox">) =>
-            // Airtable has no notion of undefined for checkboxes, it only stores true/false,
-            // so during read, if the API omits the field, we convert that to false. 
-            (value: boolean | null): boolean => value ?? false
-} as const satisfies IConverters<
-    boolean | null | undefined,
-    boolean,
-    FieldOfType<"checkbox">
->;
+// ============================================================================
+// checkbox
 
-const CountConverters = {
-    type: "count",
-    makeTo: null,
-    makeFrom:
-        (fieldSchema: FieldOfType<"count">) => (value: number): number => {
-            if (!value && value !== 0) {
-                const e = new Error(`a count field must have a value, got: ${value}`);
-                throw new exceptions.ReadValueConversionError(value, fieldSchema, e);
-            }
-            return value;
-        }
-} as const satisfies IConverters<never, number, FieldOfType<"count">>;
+function fromReadCheckbox(value: unknown, fieldSchema: PartialExceptType<types.CheckboxSchemaRead>): boolean {
+    return value as boolean ?? false;
+}
+function toWriteCheckbox(value: boolean | null | undefined, fieldSchema: PartialExceptType<types.CheckboxSchemaRead>): boolean | null | undefined {
+    return value;
+}
 
-interface User {
-    /** User ID or group ID */
+// ============================================================================
+// count
+
+function fromReadCount(value: unknown, fieldSchema: PartialExceptType<types.CountSchemaRead>): number {
+    if (value === null || value === undefined) {
+        const e = new Error(`count field ${JSON.stringify(fieldSchema)} should always receive a number, but got: ${value}`);
+        throw new ReadValueConversionError(value, fieldSchema, e);
+    }
+    return value as number;
+}
+function toWriteCount(value: never, fieldSchema: PartialExceptType<types.CountSchemaRead>): never {
+    throw new FieldNotWritableError(fieldSchema);
+}
+
+// ============================================================================
+// createdBy
+
+export interface User {
     id: string;
-    /** User's email address */
     email?: string;
-    /** User's display name (may be omitted if the user hasn't created an account) */
     name?: string;
-    /** User's collaborator permission Level
-     *
-     * This is only included if you're observing a webhooks response.
-     */
     permissionLevel?: "none" | "read" | "comment" | "edit" | "create";
-    /** User's profile picture URL
-     *
-     * This is only included if it exists for the user and you're observing a webhooks response.
-     */
     profilePicUrl?: string;
 }
-interface UserWrite {
-    /** User ID or group ID */
+export interface UserWrite {
     id: string;
     email: string;
 }
-const CreatedByConverters = {
-    type: "createdBy",
-    makeTo: null,
-    makeFrom:
-        (fieldSchema: FieldOfType<"createdBy">) => (value: User): User => {
-            if (!value) {
-                const e = new Error(`a createdBy field must have a value, got: ${value}`);
-                throw new exceptions.ReadValueConversionError(value, fieldSchema, e);
-            }
-            return value;
-        }
-} as const satisfies IConverters<never, User, FieldOfType<"createdBy">>;
+function fromReadCreatedBy(value: unknown, fieldSchema: PartialExceptType<types.CreatedBySchemaRead>): User {
+    if (!value) {
+        const e = new Error(`createdBy field ${JSON.stringify(fieldSchema)} should always receive a value, but got: ${value}`);
+        throw new ReadValueConversionError(value, fieldSchema, e);
+    }
+    return value as User;
+}
+function toWriteCreatedBy(value: never, fieldSchema: PartialExceptType<types.CreatedBySchemaRead>): never {
+    throw new FieldNotWritableError(fieldSchema);
+}
 
-const CreatedTimeConverters = {
-    type: "createdTime",
-    makeTo: null,
-    makeFrom:
-        (fieldSchema: FieldOfType<"createdTime">) =>
-            (value: UtcTimestamp): UtcTimestamp => {
-                if (value === null || value === undefined) {
-                    const e = new Error(`a createdTime field must have a value, got: ${value}`);
-                    throw new exceptions.ReadValueConversionError(value, fieldSchema, e);
-                }
-                return value;
-            }
-} as const satisfies IConverters<
-    never,
-    UtcTimestamp,
-    FieldOfType<"createdTime">
->;
+// ============================================================================
+// createdTime
 
-const CurrencyConverters = {
-    type: "currency",
-    makeTo:
-        (_fieldSchema: FieldOfType<"currency">) => (value: number | null | undefined): number | null | undefined =>
-            value,
-    makeFrom:
-        (_fieldSchema: FieldOfType<"currency">) => (value: number | null): number | null => value
-} as const satisfies IConverters<
-    number | null | undefined,
-    number | null,
-    FieldOfType<"currency">
->;
+function fromReadCreatedTime(value: unknown, fieldSchema: PartialExceptType<types.CreatedTimeSchemaRead>): UtcTimestamp {
+    if (value === null || value === undefined) {
+        const e = new Error(`createdTime field ${JSON.stringify(fieldSchema)} should always receive a value, but got: ${value}`);
+        throw new ReadValueConversionError(value, fieldSchema, e);
+    }
+    return value as UtcTimestamp;
+}
+function toWriteCreatedTime(value: never, fieldSchema: PartialExceptType<types.CreatedTimeSchemaRead>): never {
+    throw new FieldNotWritableError(fieldSchema);
+}
+
+// ============================================================================
+// currency
+
+function fromReadCurrency(value: unknown, fieldSchema: PartialExceptType<types.CurrencySchemaRead>): number | null {
+    return value as number | null;
+}
+function toWriteCurrency(value: number | null | undefined, fieldSchema: PartialExceptType<types.CurrencySchemaRead>): number | null | undefined {
+    return value;
+}
+
+// ============================================================================
+// date
 
 type TDateString = `${number}-${number}-${number}`;
-const DateConverters = {
-    type: "date",
-    makeTo:
-        (_fieldSchema: FieldOfType<"date">) =>
-            (value: globalThis.Date | TDateString | null | undefined): string | null | undefined => {
-                if (value instanceof globalThis.Date) {
-                    return value.toISOString().split("T")[0];
-                }
-                return value;
-            },
-    makeFrom: (_fieldSchema: FieldOfType<"date">) => (value: string | null): string | null => value,
-} as const satisfies IConverters<
-    globalThis.Date | TDateString | null | undefined,
-    string | null,
-    FieldOfType<"date">
->;
+function fromReadDate(value: unknown, fieldSchema: PartialExceptType<types.DateSchemaRead>): string | null {
+    if (value === null) {
+        return null;
+    }
+    const t = typeof value;
+    if (t !== "string") {
+        const e = new Error(`date field ${JSON.stringify(fieldSchema)} should always receive a string or null, but got: ${value}`);
+        throw new ReadValueConversionError(value, fieldSchema, e);
+    }
+    return value as string;
+}
+function toWriteDate(value: globalThis.Date | TDateString | null | undefined, fieldSchema: PartialExceptType<types.DateSchemaRead>): string | null | undefined {
+    if (value instanceof globalThis.Date) {
+        return value.toISOString().split("T")[0];
+    }
+    return value;
+}
 
-const DateTimeConverters = {
-    type: "dateTime",
-    makeTo:
-        (_fieldSchema: FieldOfType<"dateTime">) =>
-            (value: globalThis.Date | string | null | undefined): string | null | undefined => {
-                if (value instanceof globalThis.Date) {
-                    return value.toISOString();
-                }
-                return value;
-            },
-    makeFrom:
-        (_fieldSchema: FieldOfType<"dateTime">) =>
-            (value: UtcTimestamp | null): UtcTimestamp | null => value,
-} as const satisfies IConverters<
-    globalThis.Date | string | null | undefined,
-    UtcTimestamp | null,
-    FieldOfType<"dateTime">
->;
+// ============================================================================
+// dateTime
 
-const DurationConverters = {
-    type: "duration",
-    makeTo:
-        (_fieldSchema: FieldOfType<"duration">) => (value: number | null | undefined): number | null | undefined =>
-            value,
-    makeFrom:
-        (_fieldSchema: FieldOfType<"duration">) => (value: number | null): number | null => value,
-} as const satisfies IConverters<
-    number | null | undefined,
-    number | null,
-    FieldOfType<"duration">
->;
+function fromReadDateTime(value: unknown, fieldSchema: PartialExceptType<types.DateTimeSchemaRead>): UtcTimestamp | null {
+    return value as UtcTimestamp | null;
+}
+function toWriteDateTime(value: globalThis.Date | string | null | undefined, fieldSchema: PartialExceptType<types.DateTimeSchemaRead>): string | null | undefined {
+    if (value instanceof globalThis.Date) {
+        return value.toISOString();
+    }
+    return value;
+}
 
-const EmailConverters = {
-    type: "email",
-    makeTo: (_: FieldSchemaRead) => (value: string | null | undefined): string | null | undefined => value,
-    makeFrom: (_: FieldSchemaRead) => (value: string | null): string => value ? value : "",
-} as const satisfies IConverters<string | null | undefined, string, FieldOfType<"email">>;
+// ============================================================================
+// duration
 
-const ExternalSyncSourceConverters = {
-    type: "externalSyncSource",
-    makeTo:
-        (_fieldSchema: FieldOfType<"externalSyncSource">) =>
-            (value: unknown): unknown => value,
-    makeFrom:
-        (_fieldSchema: FieldOfType<"externalSyncSource">) =>
-            (value: unknown): unknown => value,
-} as const satisfies IConverters<
-    unknown,
-    unknown,
-    FieldOfType<"externalSyncSource">
->;
+function fromReadDuration(value: unknown, fieldSchema: PartialExceptType<types.DurationSchemaRead>): number | null {
+    return value as number | null;
+}
+function toWriteDuration(value: number | null | undefined, fieldSchema: PartialExceptType<types.DurationSchemaRead>): number | null | undefined {
+    return value;
+}
 
-type FormulaResultType<F extends FieldOfType<"formula">> = F["options"]["result"]
-type FormulaReadType<F extends FieldOfType<"formula">> = ValueFromRead<FormulaResultType<F>>;
-const FormulaConverters = {
-    type: "formula",
-    makeTo: null,
-    makeFrom:
-        <F extends FieldOfType<"formula">>(_fieldSchema: F) => (value: FormulaReadType<F>): FormulaReadType<F> => {
-            return value;
-        }
-} as const;
+// ============================================================================
+// email
 
-const LastModifiedByConverters = {
-    type: "lastModifiedBy",
-    makeTo: null,
-    makeFrom:
-        (fieldSchema: FieldOfType<"lastModifiedBy">) => (value: unknown): User => {
-            if (!value) {
-                const e = new Error(`a lastModifiedBy field must have a value, got: ${value}`);
-                throw new exceptions.ReadValueConversionError(value, fieldSchema, e);
-            }
-            return value as User;
-        }
-} as const satisfies IConverters<
-    never,
-    User,
-    FieldOfType<"lastModifiedBy">
->;
+function fromReadEmail(value: unknown, fieldSchema: PartialExceptType<types.EmailSchemaRead>): string {
+    return (value as string | null) ?? "";
+}
+function toWriteEmail(value: string | null | undefined, fieldSchema: PartialExceptType<types.EmailSchemaRead>): string | null | undefined {
+    return value;
+}
 
-const LastModifiedTimeConverters = {
-    type: "lastModifiedTime",
-    makeTo: null,
-    makeFrom:
-        (_fieldSchema: FieldOfType<"lastModifiedTime">) =>
-            (value: UtcTimestamp): UtcTimestamp => {
-                if (value === null || value === undefined) {
-                    const e = new Error(`a lastModifiedTime field must have a value, got: ${value}`);
-                    throw new exceptions.ReadValueConversionError(value, _fieldSchema, e);
-                }
-                return value;
-            }
-} as const satisfies IConverters<
-    never,
-    UtcTimestamp,
-    FieldOfType<"lastModifiedTime">
->;
+// ============================================================================
+// externalSyncSource
 
-const MultilineTextConverters = {
-    type: "multilineText",
-    makeTo: (_: FieldSchemaRead) => (value: string | null | undefined): string | null | undefined => value,
-    makeFrom: (_: FieldSchemaRead) => (value: string | null): string => value ? value : "",
-} as const satisfies IConverters<
-    string | null | undefined,
-    string,
-    FieldOfType<"multilineText">
->;
+function fromReadExternalSyncSource(value: unknown, fieldSchema: PartialExceptType<types.ExternalSyncSourceSchemaRead>): unknown {
+    return value;
+}
+function toWriteExternalSyncSource(value: unknown, fieldSchema: PartialExceptType<types.ExternalSyncSourceSchemaRead>): unknown {
+    return value;
+}
+
+// ============================================================================
+// formula
+// Formula fields are read-only and their read value depends on the result type.
+// For now, we pass through the raw value. A more sophisticated approach would
+// use the result type from fieldSchema.options.result to properly convert.
+
+function fromReadFormula(value: unknown, fieldSchema: PartialExceptType<types.FormulaSchemaRead>): unknown {
+    return value;
+}
+function toWriteFormula(value: never, fieldSchema: PartialExceptType<types.FormulaSchemaRead>): never {
+    throw new FieldNotWritableError(fieldSchema);
+}
+
+// ============================================================================
+// lastModifiedBy
+
+function fromReadLastModifiedBy(value: unknown, fieldSchema: PartialExceptType<types.LastModifiedBySchemaRead>): User {
+    if (!value) {
+        const e = new Error(`lastModifiedBy field ${JSON.stringify(fieldSchema)} should always receive a value, but got: ${value}`);
+        throw new ReadValueConversionError(value, fieldSchema, e);
+    }
+    return value as User;
+}
+function toWriteLastModifiedBy(value: never, fieldSchema: PartialExceptType<types.LastModifiedBySchemaRead>): never {
+    throw new FieldNotWritableError(fieldSchema);
+}
+
+// ============================================================================
+// lastModifiedTime
+
+function fromReadLastModifiedTime(value: unknown, fieldSchema: PartialExceptType<types.LastModifiedTimeSchemaRead>): UtcTimestamp {
+    if (value === null || value === undefined) {
+        const e = new Error(`lastModifiedTime field ${JSON.stringify(fieldSchema)} should always receive a value, but got: ${value}`);
+        throw new ReadValueConversionError(value, fieldSchema, e);
+    }
+    return value as UtcTimestamp;
+}
+function toWriteLastModifiedTime(value: never, fieldSchema: PartialExceptType<types.LastModifiedTimeSchemaRead>): never {
+    throw new FieldNotWritableError(fieldSchema);
+}
+
+// ============================================================================
+// multilineText
+
+function fromReadMultilineText(value: unknown, fieldSchema: PartialExceptType<types.MultilineTextSchemaRead>): string {
+    return (value as string | null) ?? "";
+}
+function toWriteMultilineText(value: string | null | undefined, fieldSchema: PartialExceptType<types.MultilineTextSchemaRead>): string | null | undefined {
+    return value;
+}
+
+// ============================================================================
+// multipleAttachments
 
 type Thumbnail = {
     url: string;
     height: number;
     width: number;
 }
-
-// https://airtable.com/developers/web/api/field-model#multipleattachment
 export type MultipleAttachmentReadType = {
     id: AttachmentId;
-    /** MIME type, e.g. "image/png" */
     type: string;
     filename: string;
     url: string;
-    /** in bytes */
     size: number;
-    /** Only available for images. In pixels */
     width?: number;
-    /** Only available for images. In pixels */
     height?: number;
-    /** Only available for images and certain documents. */
     thumbnails?: {
         full?: Thumbnail;
         large?: Thumbnail;
         small?: Thumbnail;
     };
 };
-// When writing multiple attachments, you can either provide an existing attachment
-// by its ID, or for new attachments, provide a URL (and optionally a filename) to upload from.
 export type MultipleAttachmentWriteType = {
     id: AttachmentId;
 } | {
     url: string;
     filename?: string;
 };
-const MultipleAttachmentsConverters = {
-    type: "multipleAttachments",
-    makeTo:
-        (_fieldSchema: FieldOfType<"multipleAttachments">) =>
-            (value: ReadonlyArray<MultipleAttachmentWriteType> | null | undefined): ReadonlyArray<MultipleAttachmentWriteType> | null | undefined => {
-                if (!value) return value;
-                return value;
-            },
-    makeFrom:
-        (_fieldSchema: FieldOfType<"multipleAttachments">) =>
-            (value: Array<MultipleAttachmentReadType> | null): Array<MultipleAttachmentReadType> => value ? value : [],
-} as const satisfies IConverters<
-    ReadonlyArray<MultipleAttachmentReadType> | null | undefined,
-    Array<MultipleAttachmentReadType>,
-    FieldOfType<"multipleAttachments">
->;
-const MultipleCollaboratorsConverters = {
-    type: "multipleCollaborators",
-    makeTo:
-        (_fieldSchema: FieldOfType<"multipleCollaborators">) =>
-            (value: User[] | null | undefined): User[] => {
-                if (!value) return [];
-                return value;
-            },
-    makeFrom:
-        (_fieldSchema: FieldOfType<"multipleCollaborators">) =>
-            (value: User[] | null): User[] => value ? value : [],
-} as const satisfies IConverters<
-    User[],
-    User[],
-    FieldOfType<"multipleCollaborators">
->;
+function fromReadMultipleAttachments(value: unknown, fieldSchema: PartialExceptType<types.MultipleAttachmentsSchemaRead>): Array<MultipleAttachmentReadType> {
+    return (value as Array<MultipleAttachmentReadType> | null) ?? [];
+}
+function toWriteMultipleAttachments(value: ReadonlyArray<MultipleAttachmentWriteType> | null | undefined, fieldSchema: PartialExceptType<types.MultipleAttachmentsSchemaRead>): ReadonlyArray<MultipleAttachmentWriteType> | null | undefined {
+    return value;
+}
 
-type MultipleLookupValuesResultType<F extends types.MultipleLookupValuesSchemaRead> = F["options"]["result"]
-type MultipleLookupValuesReadType<F extends types.MultipleLookupValuesSchemaRead> = ValueFromRead<MultipleLookupValuesResultType<F>>;
-const MultipleLookupValuesConverters = {
-    type: "multipleLookupValues",
-    makeTo: null,
-    makeFrom:
-        <T extends types.MultipleLookupValuesSchemaRead>(_fieldSchema: T) =>
-            (value: null | MultipleLookupValuesReadType<T>[]): MultipleLookupValuesReadType<T>[] => value ? value : [],
-} as const;
+// ============================================================================
+// multipleCollaborators
 
-const MultipleRecordLinksConverters = {
-    type: "multipleRecordLinks",
-    makeTo:
-        (_fieldSchema: FieldOfType<"multipleRecordLinks">) =>
-            (value: RecordId[] | null | undefined): RecordId[] => {
-                if (!value) return [];
-                return value;
-            },
-    makeFrom:
-        (_fieldSchema: FieldOfType<"multipleRecordLinks">) =>
-            (value: null | RecordId[]): RecordId[] => {
-                return value ? value : [];
-            },
-} as const satisfies IConverters<
-    RecordId[] | null | undefined,
-    RecordId[],
-    FieldOfType<"multipleRecordLinks">
->;
+function fromReadMultipleCollaborators(value: unknown, fieldSchema: PartialExceptType<types.MultipleCollaboratorsSchemaRead>): User[] {
+    return (value as User[] | null) ?? [];
+}
+function toWriteMultipleCollaborators(value: User[] | null | undefined, fieldSchema: PartialExceptType<types.MultipleCollaboratorsSchemaRead>): User[] {
+    return value ?? [];
+}
+
+// ============================================================================
+// multipleLookupValues
+// Lookup fields are read-only and their read value depends on the result type.
+
+function fromReadMultipleLookupValues(value: unknown, fieldSchema: PartialExceptType<types.MultipleLookupValuesSchemaRead>): unknown[] {
+    return (value as unknown[] | null) ?? [];
+}
+function toWriteMultipleLookupValues(value: never, fieldSchema: PartialExceptType<types.MultipleLookupValuesSchemaRead>): never {
+    throw new FieldNotWritableError(fieldSchema);
+}
+
+// ============================================================================
+// multipleRecordLinks
+
+function fromReadMultipleRecordLinks(value: unknown, fieldSchema: PartialExceptType<types.MultipleRecordLinksSchemaRead>): RecordId[] {
+    return (value as RecordId[] | null) ?? [];
+}
+function toWriteMultipleRecordLinks(value: ReadonlyArray<RecordId> | null | undefined, fieldSchema: PartialExceptType<types.MultipleRecordLinksSchemaRead>): ReadonlyArray<RecordId> | null | undefined {
+    return value ?? [];
+}
+
+// ============================================================================
+// multipleSelects
+
 /**
 * When reading from the API, we only get back the NAME of the select option,
 * we aren't given the selZZZZZZZZZZZZ ID.
@@ -408,344 +346,467 @@ const MultipleRecordLinksConverters = {
 */
 function convertFromReadSelectValue<C extends types.SelectChoiceSchemaRead>(
     raw: string,
-    fieldSchema: types.SingleSelectSchemaRead<C> | types.MultipleSelectsSchemaRead<C>
+    fieldSchema: PartialExceptTypeAndOptions<types.SingleSelectSchemaRead<C> | types.MultipleSelectsSchemaRead<C>>
 ): C["name"] {
     const foundChoiceByName = fieldSchema.options.choices.find((c) => c.name === raw);
     if (foundChoiceByName) {
         return raw;
     }
-    throw new Error(`Choice "${raw}" not found in field "${fieldSchema.name}". Available choices: ${fieldSchema.options.choices.map((c) => c.name).join(", ")}`);
+    throw new Error(`Choice "${raw}" not found in field "${JSON.stringify(fieldSchema)}". Available choices: ${fieldSchema.options.choices.map((c) => c.name).join(", ")}`);
 }
 
-const MultipleSelectsConverters = {
-    type: "multipleSelects",
-    makeTo:
-        <C extends types.SelectChoiceSchemaRead>(fieldSchema: types.MultipleSelectsSchemaRead<C>) =>
-            (idsOrValues: Array<C["id"] | C["name"]> | null | undefined): Array<C["id"]> => {
-                if (!idsOrValues) return [];
-                const choices = fieldSchema.options.choices;
-                return idsOrValues.map((idOrValue) => {
-                    let found = choices.find((option) => option.id === idOrValue);
-                    if (found) {
-                        return found.id;
-                    }
-                    found = choices.find((option) => option.name === idOrValue);
-                    if (found) {
-                        return found.id;
-                    }
-                    const availableOptions = choices.map((o) => o.name);
-                    availableOptions.push(...choices.map((o) => o.id));
-                    throw new Error(
-                        `No option found for value: ${idOrValue}. Available options: ${availableOptions.join(", ")
-                        }`,
-                    );
-                });
-            },
-    makeFrom:
-        <C extends types.SelectChoiceSchemaRead>(fieldSchema: types.MultipleSelectsSchemaRead<C>) =>
-            (value: unknown): Array<C["name"]> => {
-                if (!value) return [];
-                return (value as Array<string>).map((item) => convertFromReadSelectValue(item, fieldSchema));
-            },
-} as const;
-
-const NumberConverters = {
-    type: "number",
-    makeTo: (_fieldSchema: FieldOfType<"number">) => (value: number | null | undefined): number | null | undefined =>
-        value,
-    makeFrom:
-        (_fieldSchema: FieldOfType<"number">) => (value: number | null): number | null => value,
-} as const satisfies IConverters<number | null | undefined, number | null | undefined, FieldOfType<"number">>;
-
-const PercentConverters = {
-    type: "percent",
-    makeTo:
-        (_fieldSchema: FieldOfType<"percent">) => (value: number | null | undefined): number | null | undefined => value,
-    makeFrom:
-        (_fieldSchema: FieldOfType<"percent">) => (value: number | null): number | null => value,
-} as const satisfies IConverters<
-    number | null | undefined,
-    number | null,
-    FieldOfType<"percent">
->;
-
-const PhoneNumberConverters = {
-    type: "phoneNumber",
-    makeTo: (_: FieldSchemaRead) => (value: string | null | undefined): string | null | undefined => value,
-    makeFrom: (_: FieldSchemaRead) => (value: string | null): string | null => value,
-} as const satisfies IConverters<
-    string | null | undefined,
-    string | null,
-    FieldOfType<"phoneNumber">
->;
-
-const RatingConverters = {
-    type: "rating",
-    makeTo: (_fieldSchema: FieldOfType<"rating">) => (value: number | null | undefined): number | null | undefined =>
-        value,
-    makeFrom:
-        (_fieldSchema: FieldOfType<"rating">) => (value: number | null): number | null => value,
-} as const satisfies IConverters<number | null | undefined, number | null, FieldOfType<"rating">>;
-
-const RichTextConverters = {
-    type: "richText",
-    makeTo: (_: FieldSchemaRead) => (value: string | null | undefined): string | null | undefined => value,
-    makeFrom: (_: FieldSchemaRead) => (value: string | null): string => value ? value : "",
-} as const satisfies IConverters<
-    string | null | undefined,
-    string,
-    FieldOfType<"richText">
->;
-
-type RollupResultType<F extends FieldOfType<"rollup">> = F["options"]["result"]
-type RollupReadType<F extends FieldOfType<"rollup">> = ValueFromRead<RollupResultType<F>>;
-const RollupConverters = {
-    type: "rollup",
-    makeTo: null,
-    makeFrom:
-        <T extends FieldOfType<"rollup">>(_fieldSchema: T) => (value: RollupReadType<T>): RollupReadType<T> => {
-            return value;
-        },
-} as const;
-
-const SingleCollaboratorConverters = {
-    type: "singleCollaborator",
-    makeTo:
-        (_fieldSchema: FieldOfType<"singleCollaborator">) =>
-            (value: UserWrite | null | undefined): UserWrite | null | undefined => value,
-    makeFrom:
-        (_fieldSchema: FieldOfType<"singleCollaborator">) =>
-            (value: unknown): User | null => value as User | null,
-} as const satisfies IConverters<
-    UserWrite | null | undefined,
-    User | null,
-    FieldOfType<"singleCollaborator">
->;
-
-const SingleLineTextConverters = {
-    type: "singleLineText",
-    makeTo: (_: FieldSchemaRead) => (value: string | null | undefined): string | null | undefined => value,
-    makeFrom: (_: FieldSchemaRead) => (value: string | null): string => value ? value : "",
-} as const satisfies IConverters<
-    string | null | undefined,
-    string,
-    FieldOfType<"singleLineText">
->;
-
-const SingleSelectConverters = {
-    type: "singleSelect",
-    makeTo:
-        <C extends types.SelectChoiceSchemaRead>(fieldSchema: types.SingleSelectSchemaRead<C>) =>
-            (idOrValue: C["id"] | C["name"] | null | undefined): C["id"] | null | undefined => {
-                // If already an ID in the spec, return it.
-                // Otherwise, try to lookup the ID from the value.
-                // If not found, error.
-                if (idOrValue === null || idOrValue === undefined) {
-                    return idOrValue;
-                }
-                const choices = fieldSchema.options.choices;
-                let found = choices.find((option) => option.id === idOrValue);
-                if (found) {
-                    return found.id;
-                }
-                found = choices.find((option) => option.name === idOrValue);
-                if (found) {
-                    return found.id;
-                }
-                const availableOptions = choices.map((o) => o.name);
-                availableOptions.push(...choices.map((o) => o.id));
-                throw new Error(
-                    `No option found for value '${idOrValue}' in field '${fieldSchema.name}'. Available options: ${availableOptions.join(", ")
-                    }`,
-                );
-            },
-    makeFrom:
-        <C extends types.SelectChoiceSchemaRead>(fieldSchema: types.SingleSelectSchemaRead<C>) =>
-            (value: unknown): C["name"] | null => {
-                if (value === null || value === undefined) {
-                    return null;
-                }
-                return convertFromReadSelectValue(value as string, fieldSchema);
-            },
-} as const;
-
-const UrlConverters = {
-    type: "url",
-    makeTo: (_: FieldSchemaRead) => (value: string | null | undefined): string | null | undefined => value,
-    makeFrom: (_: FieldSchemaRead) => (value: string | null): string => value ? value : "",
-} as const satisfies IConverters<string | null | undefined, string, FieldOfType<"url">>;
-
-export const CONVERTERS = {
-    [AiTextConverters.type]: AiTextConverters,
-    [AutoNumberConverters.type]: AutoNumberConverters,
-    [BarcodeConverters.type]: BarcodeConverters,
-    [ButtonConverters.type]: ButtonConverters,
-    [CheckboxConverters.type]: CheckboxConverters,
-    [CountConverters.type]: CountConverters,
-    [CreatedByConverters.type]: CreatedByConverters,
-    [CreatedTimeConverters.type]: CreatedTimeConverters,
-    [CurrencyConverters.type]: CurrencyConverters,
-    [DateConverters.type]: DateConverters,
-    [DateTimeConverters.type]: DateTimeConverters,
-    [DurationConverters.type]: DurationConverters,
-    [EmailConverters.type]: EmailConverters,
-    [ExternalSyncSourceConverters.type]: ExternalSyncSourceConverters,
-    [FormulaConverters.type]: FormulaConverters,
-    [LastModifiedByConverters.type]: LastModifiedByConverters,
-    [LastModifiedTimeConverters.type]: LastModifiedTimeConverters,
-    [MultilineTextConverters.type]: MultilineTextConverters,
-    [MultipleAttachmentsConverters.type]: MultipleAttachmentsConverters,
-    [MultipleCollaboratorsConverters.type]: MultipleCollaboratorsConverters,
-    [MultipleLookupValuesConverters.type]: MultipleLookupValuesConverters,
-    [MultipleRecordLinksConverters.type]: MultipleRecordLinksConverters,
-    [MultipleSelectsConverters.type]: MultipleSelectsConverters,
-    [NumberConverters.type]: NumberConverters,
-    [PercentConverters.type]: PercentConverters,
-    [PhoneNumberConverters.type]: PhoneNumberConverters,
-    [RatingConverters.type]: RatingConverters,
-    [RichTextConverters.type]: RichTextConverters,
-    [RollupConverters.type]: RollupConverters,
-    [SingleCollaboratorConverters.type]: SingleCollaboratorConverters,
-    [SingleLineTextConverters.type]: SingleLineTextConverters,
-    [SingleSelectConverters.type]: SingleSelectConverters,
-    [UrlConverters.type]: UrlConverters,
-} as const;
-
-export type Converters = typeof CONVERTERS[keyof typeof CONVERTERS];
-
-/** Given a FieldSchema, return the typescript type will be returned when you read from it */
-export type ValueFromRead<F extends Omit<FieldSchemaRead, "id" | "name">> =
-    F extends FieldOfType<"aiText"> ? types.AiTextValueRead
-    : F extends FieldOfType<"autoNumber"> ? number | null
-    : F extends FieldOfType<"barcode"> ? BarcodeValue | null
-    : F extends FieldOfType<"button"> ? never
-    : F extends FieldOfType<"checkbox"> ? boolean // Airtable checkboxes always return true/false, they can't store null
-    : F extends FieldOfType<"count"> ? number | null
-    : F extends FieldOfType<"createdBy"> ? User | null
-    : F extends FieldOfType<"createdTime"> ? UtcTimestamp
-    : F extends FieldOfType<"currency"> ? number | null
-    : F extends FieldOfType<"date"> ? string | null // ISO date string or null
-    : F extends FieldOfType<"dateTime"> ? UtcTimestamp
-    : F extends FieldOfType<"duration"> ? number | null
-    : F extends FieldOfType<"email"> ? string
-    : F extends FieldOfType<"externalSyncSource"> ? unknown
-    : F extends FieldOfType<"formula"> ? FormulaReadType<F>
-    : F extends FieldOfType<"lastModifiedBy"> ? User | null
-    : F extends FieldOfType<"lastModifiedTime"> ? UtcTimestamp
-    : F extends FieldOfType<"multilineText"> ? string
-    : F extends FieldOfType<"multipleAttachments"> ? Array<MultipleAttachmentReadType>
-    : F extends FieldOfType<"multipleCollaborators"> ? User[]
-    : F extends FieldOfType<"multipleLookupValues"> ? MultipleLookupValuesReadType<F>
-    : F extends FieldOfType<"multipleRecordLinks"> ? Array<RecordId>
-    : F extends types.MultipleSelectsSchemaRead<infer C> ? Array<C["name"]>
-    : F extends FieldOfType<"number"> ? number | null
-    : F extends FieldOfType<"percent"> ? number | null
-    : F extends FieldOfType<"phoneNumber"> ? string
-    : F extends FieldOfType<"rating"> ? number | null
-    : F extends FieldOfType<"richText"> ? string
-    : F extends FieldOfType<"rollup"> ? RollupReadType<F>
-    : F extends FieldOfType<"singleCollaborator"> ? User | null
-    : F extends FieldOfType<"singleLineText"> ? string
-    : F extends types.SingleSelectSchemaRead<infer C> ? C["name"] | null
-    : F extends FieldOfType<"url"> ? string
-    : never;
-
-/** Given a FieldSchema, return the typescript type that can be written to it */
-export type ValueForWrite<F extends FieldSchemaRead> = F extends FieldOfType<"aiText">
-    ? never
-    : F extends FieldOfType<"autoNumber"> ? never
-    : F extends FieldOfType<"barcode"> ? BarcodeValue | null | undefined
-    : F extends FieldOfType<"button"> ? never
-    : F extends FieldOfType<"checkbox"> ? boolean | null | undefined
-    : F extends FieldOfType<"count"> ? never
-    : F extends FieldOfType<"createdBy"> ? never
-    : F extends FieldOfType<"createdTime"> ? never
-    : F extends FieldOfType<"currency"> ? number | null | undefined
-    : F extends FieldOfType<"date"> ? globalThis.Date | TDateString | null | undefined
-    : F extends FieldOfType<"dateTime"> ? globalThis.Date | UtcTimestamp | null | undefined
-    : F extends FieldOfType<"duration"> ? number | null | undefined
-    : F extends FieldOfType<"email"> ? string | null | undefined
-    : F extends FieldOfType<"externalSyncSource"> ? unknown
-    : F extends FieldOfType<"formula"> ? never
-    : F extends FieldOfType<"lastModifiedBy"> ? never
-    : F extends FieldOfType<"lastModifiedTime"> ? never
-    : F extends FieldOfType<"multilineText"> ? string | null | undefined
-    : F extends FieldOfType<"multipleAttachments"> ? ReadonlyArray<MultipleAttachmentWriteType> | null | undefined
-    : F extends FieldOfType<"multipleCollaborators"> ? ReadonlyArray<User> | null | undefined
-    : F extends FieldOfType<"multipleLookupValues"> ? never
-    : F extends FieldOfType<"multipleRecordLinks"> ? ReadonlyArray<RecordId> | null | undefined
-    : F extends types.MultipleSelectsSchemaRead<infer C> ? ReadonlyArray<C["id"] | C["name"]> | null | undefined
-    : F extends FieldOfType<"number"> ? number | null | undefined
-    : F extends FieldOfType<"percent"> ? number | null | undefined
-    : F extends FieldOfType<"phoneNumber"> ? string | null | undefined
-    : F extends FieldOfType<"rating"> ? number | null | undefined
-    : F extends FieldOfType<"richText"> ? string | null | undefined
-    : F extends FieldOfType<"rollup"> ? never
-    : F extends FieldOfType<"singleCollaborator"> ? UserWrite | null | undefined
-    : F extends FieldOfType<"singleLineText"> ? string | null | undefined
-    : F extends types.SingleSelectSchemaRead<infer C> ? C["id"] | C["name"] | null | undefined
-    : F extends FieldOfType<"url"> ? string | null | undefined
-    : never;
-
-/**
- * Convert a value from the appropriate TypeScript type into the raw value for writing to Airtable for the given field schema.
- * @param value The value in the appropriate TypeScript type
- * @param fieldSchema The {@link FieldSchemaRead} describing the field
- * @returns The raw value to write to Airtable
- *
- * @throws {@link FieldNotWritableError} if the field type cannot be written to.
- * @throws {@link WriteValueConversionError} if the value could not be converted for writing.
- */
-export function convertValueForWrite<F extends FieldSchemaRead>(
-    value: ValueForWrite<F>,
-    fieldSchema: F,
-): unknown {
-    const type = fieldSchema.type;
-    const converterObj = CONVERTERS[type];
-    if (!converterObj) {
-        throw new Error(`No converter found for field type: ${type}`);
-    }
-    type AnyConverter = {
-        makeTo: null | ((fs: FieldSchemaRead) => ((v: unknown) => unknown));
-    };
-    const makeTo = (converterObj as AnyConverter).makeTo;
-    if (makeTo === null) {
-        throw new exceptions.FieldNotWritableError(fieldSchema);
-    }
-    const converter = makeTo(fieldSchema);
-    try {
-        return converter(value);
-    } catch (e) {
-        throw new exceptions.WriteValueConversionError(value, fieldSchema, e as Error);
-    }
+function fromReadMultipleSelects<F extends PartialExceptTypeAndOptions<types.MultipleSelectsSchemaRead>>(
+    raw: unknown,
+    fieldSchema: F
+): Array<F["options"]["choices"][number]["name"]> {
+    if (!raw) return [];
+    return (raw as Array<string>).map((item) => convertFromReadSelectValue(item, fieldSchema));
 }
 
+function toWriteMultipleSelects<F extends PartialExceptTypeAndOptions<types.MultipleSelectsSchemaRead>>(
+    idsOrNames: null | undefined | ReadonlyArray<F["options"]["choices"][number]["id"] | F["options"]["choices"][number]["name"]>,
+    fieldSchema: F
+): Array<F["options"]["choices"][number]["id"]> {
+    if (!idsOrNames) return [];
+    const choices = fieldSchema.options.choices;
+    return idsOrNames.map((idOrValue) => {
+        let found = choices.find((option) => option.id === idOrValue);
+        if (found) {
+            return found.id;
+        }
+        found = choices.find((option) => option.name === idOrValue);
+        if (found) {
+            return found.id;
+        }
+        const availableOptions = choices.map((o) => o.name);
+        availableOptions.push(...choices.map((o) => o.id));
+        throw new Error(
+            `No option found for value: ${idOrValue}. Available options: ${availableOptions.join(", ")
+            }`,
+        );
+    });
+}
+
+// ============================================================================
+// number
+
+function fromReadNumber(value: unknown, fieldSchema: PartialExceptType<types.NumberSchemaRead>): number | null {
+    return value as number | null;
+}
+function toWriteNumber(value: number | null | undefined, fieldSchema: PartialExceptType<types.NumberSchemaRead>): number | null | undefined {
+    return value;
+}
+
+// ============================================================================
+// percent
+
+function fromReadPercent(value: unknown, fieldSchema: PartialExceptType<types.PercentSchemaRead>): number | null {
+    return value as number | null;
+}
+function toWritePercent(value: number | null | undefined, fieldSchema: PartialExceptType<types.PercentSchemaRead>): number | null | undefined {
+    return value;
+}
+
+// ============================================================================
+// phoneNumber
+
+function fromReadPhoneNumber(value: unknown, fieldSchema: PartialExceptType<types.PhoneNumberSchemaRead>): string | null {
+    return value as string | null;
+}
+function toWritePhoneNumber(value: string | null | undefined, fieldSchema: PartialExceptType<types.PhoneNumberSchemaRead>): string | null | undefined {
+    return value;
+}
+
+// ============================================================================
+// rating
+
+function fromReadRating(value: unknown, fieldSchema: PartialExceptType<types.RatingSchemaRead>): number | null {
+    return value as number | null;
+}
+function toWriteRating(value: number | null | undefined, fieldSchema: PartialExceptType<types.RatingSchemaRead>): number | null | undefined {
+    return value;
+}
+
+// ============================================================================
+// richText
+
+function fromReadRichText(value: unknown, fieldSchema: PartialExceptType<types.RichTextSchemaRead>): string {
+    return (value as string | null) ?? "";
+}
+function toWriteRichText(value: string | null | undefined, fieldSchema: PartialExceptType<types.RichTextSchemaRead>): string | null | undefined {
+    return value;
+}
+
+// ============================================================================
+// rollup
+// Rollup fields are read-only and their read value depends on the result type.
+
+function fromReadRollup(value: unknown, fieldSchema: PartialExceptType<types.RollupSchemaRead>): unknown {
+    return value;
+}
+function toWriteRollup(value: never, fieldSchema: PartialExceptType<types.RollupSchemaRead>): never {
+    throw new FieldNotWritableError(fieldSchema);
+}
+
+// ============================================================================
+// singleCollaborator
+
+function fromReadSingleCollaborator(value: unknown, fieldSchema: PartialExceptType<types.SingleCollaboratorSchemaRead>): User | null {
+    return value as User | null;
+}
+function toWriteSingleCollaborator(value: UserWrite | null | undefined, fieldSchema: PartialExceptType<types.SingleCollaboratorSchemaRead>): UserWrite | null | undefined {
+    return value;
+}
+
+// ============================================================================
+// singleLineText
+
+function fromReadSingleLineText(value: unknown, fieldSchema: PartialExceptType<types.SingleLineTextSchemaRead>): string {
+    return (value as string | null) ?? "";
+}
+function toWriteSingleLineText(value: string | null | undefined, fieldSchema: PartialExceptType<types.SingleLineTextSchemaRead>): string | null | undefined {
+    return value;
+}
+
+// ============================================================================
+// singleSelect
+
+function fromReadSingleSelect<F extends PartialExceptTypeAndOptions<types.SingleSelectSchemaRead>>(
+    value: unknown,
+    fieldSchema: F
+): F["options"]["choices"][number]["name"] | null {
+    if (value === null || value === undefined) {
+        return null;
+    }
+    return convertFromReadSelectValue(value as string, fieldSchema);
+}
+function toWriteSingleSelect<F extends PartialExceptTypeAndOptions<types.SingleSelectSchemaRead>>(
+    idOrName: F["options"]["choices"][number]["id"] | F["options"]["choices"][number]["name"] | null | undefined,
+    fieldSchema: F
+): F["options"]["choices"][number]["id"] | null | undefined {
+    if (idOrName === null || idOrName === undefined) {
+        return idOrName;
+    }
+    const choices = fieldSchema.options.choices;
+    let found = choices.find((option) => option.id === idOrName);
+    if (found) {
+        return found.id;
+    }
+    found = choices.find((option) => option.name === idOrName);
+    if (found) {
+        return found.id;
+    }
+    const availableOptions = choices.map((o) => o.name);
+    availableOptions.push(...choices.map((o) => o.id));
+    throw new Error(
+        `No option found for value '${idOrName}'. Available options: ${availableOptions.join(", ")}`,
+    );
+}
+
+// ============================================================================
+// url
+
+function fromReadUrl(value: unknown, fieldSchema: PartialExceptType<types.UrlSchemaRead>): string {
+    return (value as string | null) ?? "";
+}
+function toWriteUrl(value: string | null | undefined, fieldSchema: PartialExceptType<types.UrlSchemaRead>): string | null | undefined {
+    return value;
+}
+
+// ============================================================================
+
+type FromReadConverterFunc = (value: any, fieldSchema: any) => any;
+type FieldSchemaForReadFunc<F extends FromReadConverterFunc> = F extends (value: unknown, fieldSchema: infer S) => infer R
+    ? S extends FieldSchemaTypeAndOptions ? S : never
+    : never;
+
+type ReadFuncFromFieldSchema<T extends FieldSchemaForWrite> =
+    T extends FieldSchemaForReadFunc<typeof fromReadAiText> ? typeof fromReadAiText :
+    T extends FieldSchemaForReadFunc<typeof fromReadAutoNumber> ? typeof fromReadAutoNumber :
+    T extends FieldSchemaForReadFunc<typeof fromReadBarcode> ? typeof fromReadBarcode :
+    T extends FieldSchemaForReadFunc<typeof fromReadCheckbox> ? typeof fromReadCheckbox :
+    T extends FieldSchemaForReadFunc<typeof fromReadCount> ? typeof fromReadCount :
+    T extends FieldSchemaForReadFunc<typeof fromReadCreatedBy> ? typeof fromReadCreatedBy :
+    T extends FieldSchemaForReadFunc<typeof fromReadCreatedTime> ? typeof fromReadCreatedTime :
+    T extends FieldSchemaForReadFunc<typeof fromReadCurrency> ? typeof fromReadCurrency :
+    T extends FieldSchemaForReadFunc<typeof fromReadDate> ? typeof fromReadDate :
+    T extends FieldSchemaForReadFunc<typeof fromReadDateTime> ? typeof fromReadDateTime :
+    T extends FieldSchemaForReadFunc<typeof fromReadDuration> ? typeof fromReadDuration :
+    T extends FieldSchemaForReadFunc<typeof fromReadEmail> ? typeof fromReadEmail :
+    T extends FieldSchemaForReadFunc<typeof fromReadExternalSyncSource> ? typeof fromReadExternalSyncSource :
+    T extends FieldSchemaForReadFunc<typeof fromReadFormula> ? typeof fromReadFormula :
+    T extends FieldSchemaForReadFunc<typeof fromReadLastModifiedBy> ? typeof fromReadLastModifiedBy :
+    T extends FieldSchemaForReadFunc<typeof fromReadLastModifiedTime> ? typeof fromReadLastModifiedTime :
+    T extends FieldSchemaForReadFunc<typeof fromReadMultilineText> ? typeof fromReadMultilineText :
+    T extends FieldSchemaForReadFunc<typeof fromReadMultipleAttachments> ? typeof fromReadMultipleAttachments :
+    T extends FieldSchemaForReadFunc<typeof fromReadMultipleCollaborators> ? typeof fromReadMultipleCollaborators :
+    T extends FieldSchemaForReadFunc<typeof fromReadMultipleLookupValues> ? typeof fromReadMultipleLookupValues :
+    T extends FieldSchemaForReadFunc<typeof fromReadMultipleRecordLinks> ? typeof fromReadMultipleRecordLinks :
+    T extends FieldSchemaForReadFunc<typeof fromReadMultipleSelects> ? typeof fromReadMultipleSelects<T> :
+    T extends FieldSchemaForReadFunc<typeof fromReadNumber> ? typeof fromReadNumber :
+    T extends FieldSchemaForReadFunc<typeof fromReadPercent> ? typeof fromReadPercent :
+    T extends FieldSchemaForReadFunc<typeof fromReadPhoneNumber> ? typeof fromReadPhoneNumber :
+    T extends FieldSchemaForReadFunc<typeof fromReadRating> ? typeof fromReadRating :
+    T extends FieldSchemaForReadFunc<typeof fromReadRichText> ? typeof fromReadRichText :
+    T extends FieldSchemaForReadFunc<typeof fromReadRollup> ? typeof fromReadRollup :
+    T extends FieldSchemaForReadFunc<typeof fromReadSingleCollaborator> ? typeof fromReadSingleCollaborator :
+    T extends FieldSchemaForReadFunc<typeof fromReadSingleLineText> ? typeof fromReadSingleLineText :
+    T extends FieldSchemaForReadFunc<typeof fromReadSingleSelect> ? typeof fromReadSingleSelect<T> :
+    T extends FieldSchemaForReadFunc<typeof fromReadUrl> ? typeof fromReadUrl :
+    never;
+const FROM_READ_CONVERTERS = {
+    aiText: fromReadAiText,
+    autoNumber: fromReadAutoNumber,
+    barcode: fromReadBarcode,
+    checkbox: fromReadCheckbox,
+    count: fromReadCount,
+    createdBy: fromReadCreatedBy,
+    createdTime: fromReadCreatedTime,
+    currency: fromReadCurrency,
+    date: fromReadDate,
+    dateTime: fromReadDateTime,
+    duration: fromReadDuration,
+    email: fromReadEmail,
+    externalSyncSource: fromReadExternalSyncSource,
+    formula: fromReadFormula,
+    lastModifiedBy: fromReadLastModifiedBy,
+    lastModifiedTime: fromReadLastModifiedTime,
+    multilineText: fromReadMultilineText,
+    multipleAttachments: fromReadMultipleAttachments,
+    multipleCollaborators: fromReadMultipleCollaborators,
+    multipleLookupValues: fromReadMultipleLookupValues,
+    multipleRecordLinks: fromReadMultipleRecordLinks,
+    multipleSelects: fromReadMultipleSelects,
+    number: fromReadNumber,
+    percent: fromReadPercent,
+    phoneNumber: fromReadPhoneNumber,
+    rating: fromReadRating,
+    richText: fromReadRichText,
+    rollup: fromReadRollup,
+    singleCollaborator: fromReadSingleCollaborator,
+    singleLineText: fromReadSingleLineText,
+    singleSelect: fromReadSingleSelect,
+    url: fromReadUrl,
+} as const;
+
+export type FieldSchemaFromRead = Parameters<typeof FROM_READ_CONVERTERS[keyof typeof FROM_READ_CONVERTERS]>[1];
+export type ValueFromRead<F extends FieldSchemaFromRead = FieldSchemaFromRead> = ReturnType<ReadFuncFromFieldSchema<F>>;
+
 /**
- * Convert a value from the Airtable into the appropriate TypeScript type for the given field schema.
+ * Given a field schema, convert a value from the raw Airtable API format into the appropriate TypeScript type.
  * 
- * @param value The raw value from Airtable
- * @param fieldSchema The {@link FieldSchemaRead} describing the field
- * @returns The converted value in the appropriate TypeScript type
- * @throws {@link FieldNotReadableError} if the field type cannot be read from.
- * @throws {@link ReadValueConversionError} if the value could not be converted for reading.
+ * The raw API doesn't include "falsy" values when reading records,
+ * such as empty string, False for checkboxes, empty dates or null numbers, etc.
+ * We fill in those missing values with sane defaults depening on the field schema,
+ * eg the empty string for text-like fields, empty arrays for multi-value fields,
+ * or an explicit `null` for eg number and date fields.
+ * 
+ * We also verify the values are consistent with the field schema for single and multi-select fields.
+ * The API only returns the name of the selected option(s),
+ * so potentially an option could have gotten renamed, or a new option added.
+ * In that case, we would receive a value that doesn't match any of the options defined
+ * in the field schema, and we throw a {@link ReadValueConversionError} in that case.
+ * 
+ * @param value The raw value from the Airtable API
+ * @param fieldSchema The {@link FieldSchemaFromRead} describing the field.
+ *                    This must include at least the `type` property, and if applicable, the `options` property.
+ * @returns The value in the appropriate TypeScript type
+ *
+ * @throws {@link FieldNotReadableError} if the field type cannot be read.
+ * @throws {@link ReadValueConversionError} if the value could not be converted.
  */
-export function convertValueFromRead<F extends FieldSchemaRead>(
+export function convertValueFromRead<F extends FieldSchemaFromRead>(
     value: unknown,
     fieldSchema: F,
 ): ValueFromRead<F> {
     const type = fieldSchema.type;
-    const converterObj = CONVERTERS[type];
-    if (!converterObj) {
-        throw new Error(`No converter found for field type: ${type}`);
+    const converterFunc = FROM_READ_CONVERTERS[type];
+    if (!converterFunc) {
+        throw new Error(`No converter found for field: ${JSON.stringify(fieldSchema)}`);
     }
-    const makeFrom = (converterObj as any).makeFrom;
-    if (makeFrom === null) {
-        throw new exceptions.FieldNotReadableError(fieldSchema);
-    }
-    const converter = makeFrom(fieldSchema);
     try {
-        return converter(value) as ValueFromRead<F>;
+        return (converterFunc as (value: unknown, fieldSchema: unknown) => unknown)(value, fieldSchema) as ValueFromRead<F>;
     } catch (e) {
-        throw new exceptions.ReadValueConversionError(value, fieldSchema, e as Error);
+        // if it's already a ReadValueConversionError, just re-throw it
+        if (e instanceof ReadValueConversionError) {
+            throw e;
+        }
+        throw new ReadValueConversionError(value, fieldSchema, e as Error);
+    }
+}
+
+// TODO: this is the wrong parameters, this is saying each convert can handle any field schema,
+// but in reality each converter only handles one specific field schema type.
+// type ToWriteConverterFunc<T extends FieldSchemaTypeAndOptions = FieldSchemaTypeAndOptions> = (value: any, fieldSchema: T) => any;
+type ToWriteConverterFunc = ((value: any, fieldSchema: any) => any) | ((value: never, fieldSchema: any) => never);
+type FieldSchemaForWriteFunc<F extends ToWriteConverterFunc> =
+    F extends (value: any, fieldSchema: infer S) => any ? S : never;
+type WriteFuncFromFieldSchema<T extends FieldSchemaForWrite> =
+    T extends FieldSchemaForWriteFunc<typeof toWriteAiText> ? typeof toWriteAiText :
+    T extends FieldSchemaForWriteFunc<typeof toWriteAutoNumber> ? typeof toWriteAutoNumber :
+    T extends FieldSchemaForWriteFunc<typeof toWriteBarcode> ? typeof toWriteBarcode :
+    T extends FieldSchemaForWriteFunc<typeof toWriteCheckbox> ? typeof toWriteCheckbox :
+    T extends FieldSchemaForWriteFunc<typeof toWriteCount> ? typeof toWriteCount :
+    T extends FieldSchemaForWriteFunc<typeof toWriteCreatedBy> ? typeof toWriteCreatedBy :
+    T extends FieldSchemaForWriteFunc<typeof toWriteCreatedTime> ? typeof toWriteCreatedTime :
+    T extends FieldSchemaForWriteFunc<typeof toWriteCurrency> ? typeof toWriteCurrency :
+    T extends FieldSchemaForWriteFunc<typeof toWriteDate> ? typeof toWriteDate :
+    T extends FieldSchemaForWriteFunc<typeof toWriteDateTime> ? typeof toWriteDateTime :
+    T extends FieldSchemaForWriteFunc<typeof toWriteDuration> ? typeof toWriteDuration :
+    T extends FieldSchemaForWriteFunc<typeof toWriteEmail> ? typeof toWriteEmail :
+    T extends FieldSchemaForWriteFunc<typeof toWriteExternalSyncSource> ? typeof toWriteExternalSyncSource :
+    T extends FieldSchemaForWriteFunc<typeof toWriteFormula> ? typeof toWriteFormula :
+    T extends FieldSchemaForWriteFunc<typeof toWriteLastModifiedBy> ? typeof toWriteLastModifiedBy :
+    T extends FieldSchemaForWriteFunc<typeof toWriteLastModifiedTime> ? typeof toWriteLastModifiedTime :
+    T extends FieldSchemaForWriteFunc<typeof toWriteMultilineText> ? typeof toWriteMultilineText :
+    T extends FieldSchemaForWriteFunc<typeof toWriteMultipleAttachments> ? typeof toWriteMultipleAttachments :
+    T extends FieldSchemaForWriteFunc<typeof toWriteMultipleCollaborators> ? typeof toWriteMultipleCollaborators :
+    T extends FieldSchemaForWriteFunc<typeof toWriteMultipleLookupValues> ? typeof toWriteMultipleLookupValues :
+    T extends FieldSchemaForWriteFunc<typeof toWriteMultipleRecordLinks> ? typeof toWriteMultipleRecordLinks :
+    T extends FieldSchemaForWriteFunc<typeof toWriteMultipleSelects> ? typeof toWriteMultipleSelects<T> :
+    T extends FieldSchemaForWriteFunc<typeof toWriteNumber> ? typeof toWriteNumber :
+    T extends FieldSchemaForWriteFunc<typeof toWritePercent> ? typeof toWritePercent :
+    T extends FieldSchemaForWriteFunc<typeof toWritePhoneNumber> ? typeof toWritePhoneNumber :
+    T extends FieldSchemaForWriteFunc<typeof toWriteRating> ? typeof toWriteRating :
+    T extends FieldSchemaForWriteFunc<typeof toWriteRichText> ? typeof toWriteRichText :
+    T extends FieldSchemaForWriteFunc<typeof toWriteRollup> ? typeof toWriteRollup :
+    T extends FieldSchemaForWriteFunc<typeof toWriteSingleCollaborator> ? typeof toWriteSingleCollaborator :
+    T extends FieldSchemaForWriteFunc<typeof toWriteSingleLineText> ? typeof toWriteSingleLineText :
+    T extends FieldSchemaForWriteFunc<typeof toWriteSingleSelect> ? typeof toWriteSingleSelect<T> :
+    T extends FieldSchemaForWriteFunc<typeof toWriteUrl> ? typeof toWriteUrl :
+    never;
+const TO_WRITE_CONVERTERS = {
+    aiText: toWriteAiText,
+    autoNumber: toWriteAutoNumber,
+    barcode: toWriteBarcode,
+    checkbox: toWriteCheckbox,
+    count: toWriteCount,
+    createdBy: toWriteCreatedBy,
+    createdTime: toWriteCreatedTime,
+    currency: toWriteCurrency,
+    date: toWriteDate,
+    dateTime: toWriteDateTime,
+    duration: toWriteDuration,
+    email: toWriteEmail,
+    externalSyncSource: toWriteExternalSyncSource,
+    formula: toWriteFormula,
+    lastModifiedBy: toWriteLastModifiedBy,
+    lastModifiedTime: toWriteLastModifiedTime,
+    multilineText: toWriteMultilineText,
+    multipleAttachments: toWriteMultipleAttachments,
+    multipleCollaborators: toWriteMultipleCollaborators,
+    multipleLookupValues: toWriteMultipleLookupValues,
+    multipleRecordLinks: toWriteMultipleRecordLinks,
+    multipleSelects: toWriteMultipleSelects,
+    number: toWriteNumber,
+    percent: toWritePercent,
+    phoneNumber: toWritePhoneNumber,
+    rating: toWriteRating,
+    richText: toWriteRichText,
+    rollup: toWriteRollup,
+    singleCollaborator: toWriteSingleCollaborator,
+    singleLineText: toWriteSingleLineText,
+    singleSelect: toWriteSingleSelect,
+    url: toWriteUrl,
+} as const;
+
+export type FieldSchemaForWrite = Parameters<typeof TO_WRITE_CONVERTERS[keyof typeof TO_WRITE_CONVERTERS]>[1];
+export type ValueForWrite<F extends FieldSchemaForWrite = FieldSchemaForWrite> = Parameters<WriteFuncFromFieldSchema<F>>[0];
+
+/**
+ * Using the given field schema, convert a value into a format suitable for writing to Airtable.
+ * 
+ * For example, for single and multi-select fields, you can pass values
+ * by either option name (eg "In Progress") or option ID (eg "selXXXXXXXXXXX"),
+ * and this function will convert them to always use option IDs,
+ * so you are safe from issues if an option name is changed in Airtable.
+ * 
+ * @param value The value in the appropriate TypeScript type
+ * @param fieldSchema The {@link FieldSchemaForWrite} describing the field.
+ *                    This is a subset of the full field schema, containing only
+ *                    the field type, and for certain field types, the options.
+ * @returns The raw value that will be converted to Airtable API format
+ *
+ * @throws {@link FieldNotWritableError} if the field type cannot be written to.
+ * @throws {@link WriteValueConversionError} if the value could not be converted for writing.
+ */
+export function convertValueForWrite<F extends FieldSchemaForWrite>(
+    value: ValueForWrite<F>,
+    fieldSchema: F,
+): unknown {
+    const type = fieldSchema.type;
+    const converterFunc = TO_WRITE_CONVERTERS[type];
+    if (!converterFunc) {
+        throw new Error(`No converter found for field: ${JSON.stringify(fieldSchema)}`);
+    }
+    try {
+        return (converterFunc as (value: unknown, fieldSchema: unknown) => unknown)(value, fieldSchema);
+    } catch (e) {
+        // if it's already a WriteValueConversionError, just re-throw it
+        if (e instanceof WriteValueConversionError) {
+            throw e;
+        }
+        throw new WriteValueConversionError(value, fieldSchema, e as Error);
+    }
+}
+
+
+/**
+ * Thrown when a value read from the Airtable API could not be converted to the appropriate TypeScript type.
+ */
+export class ReadValueConversionError extends AirtableKitError {
+    public readonly fieldSchema: FieldSchemaFromRead;
+    public readonly value: unknown;
+    public readonly originalError?: Error;
+    constructor(value: unknown, fieldSchema: FieldSchemaFromRead, originalError?: Error) {
+        super(`Value not convertible for field ${fieldSchema.name} (id: ${fieldSchema.id}, type: ${fieldSchema.type}): ${value}`);
+        this.value = value;
+        this.fieldSchema = fieldSchema;
+        this.originalError = originalError;
+        this.name = "ReadValueNotConvertibleError";
+        // Maintain the correct prototype chain
+        Object.setPrototypeOf(this, ReadValueConversionError.prototype);
+    }
+}
+
+/**
+ * Thrown when a value could not be converted to write to the Airtable API.
+ */
+export class WriteValueConversionError extends AirtableKitError {
+    public readonly fieldSchema: FieldSchemaForWrite;
+    public readonly value: unknown;
+    public readonly originalError?: Error;
+    constructor(value: unknown, fieldSchema: FieldSchemaForWrite, originalError?: Error) {
+        super(`Value not convertible for writing to field ${fieldSchema.name} (id: ${fieldSchema.id}, type: ${fieldSchema.type}): ${value}`);
+        this.value = value;
+        this.fieldSchema = fieldSchema;
+        this.originalError = originalError;
+        this.name = "WriteValueNotConvertibleError";
+        // Maintain the correct prototype chain
+        Object.setPrototypeOf(this, WriteValueConversionError.prototype);
+    }
+}
+
+/** Thrown when attempting to read from a field that is not readable, eg a 'button' field */
+export class FieldNotReadableError extends AirtableKitError {
+    public readonly fieldSchema: FieldSchemaFromRead;
+    constructor(fieldSchema: FieldSchemaFromRead) {
+        super(`Field not readable: ${fieldSchema.name} (id: ${fieldSchema.id}, type: ${fieldSchema.type})`);
+        this.fieldSchema = fieldSchema;
+        this.name = "FieldNotReadableError";
+        // Maintain the correct prototype chain
+        Object.setPrototypeOf(this, FieldNotReadableError.prototype);
+    }
+}
+
+/** Thrown when attempting to write to a field that is not writable, eg a 'createdTime' field */
+export class FieldNotWritableError extends AirtableKitError {
+    public readonly fieldSchema: FieldSchemaForWrite;
+    constructor(fieldSchema: FieldSchemaForWrite) {
+        super(`Field not writable: ${fieldSchema.name} (id: ${fieldSchema.id}, type: ${fieldSchema.type})`);
+        this.fieldSchema = fieldSchema;
+        this.name = "FieldNotWritableError";
+        // Maintain the correct prototype chain
+        Object.setPrototypeOf(this, FieldNotWritableError.prototype);
     }
 }

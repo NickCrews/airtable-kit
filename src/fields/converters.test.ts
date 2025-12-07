@@ -3,45 +3,57 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { BarcodeValue, convertValueForWrite, convertValueFromRead } from "./converters.ts";
+import { convertValueForWrite, convertValueFromRead } from "./converters.ts";
 import * as FIELDS from "./_example-fields.ts";
 
 describe("Converters", () => {
   describe("aiText", () => {
     it("aiText can't be written to", () => {
-      // @ts-expect-error should be null
+      // @ts-expect-error ai field is not writable
       expect(() => convertValueForWrite("some slop", FIELDS.AI_TEXT)).toThrow();
+      expect(() => convertValueForWrite("some slop" as never, { type: "aiText" })).toThrow();
+      expect(() => convertValueForWrite("some slop" as never, { type: "aiText", bogusField: true })).toThrow();
     });
     it("aiText makeFrom should convert to string", () => {
       expect(convertValueFromRead("Generated AI text", FIELDS.AI_TEXT)).toBe("Generated AI text");
+      expect(convertValueFromRead("Generated AI text", { type: "aiText" })).toBe("Generated AI text");
+      // @ts-expect-error incorrect type for the options field
+      expect(convertValueFromRead("Generated AI text", { type: "aiText", options: "bogus" })).toBe("Generated AI text");
     });
   });
   describe("autoNumber", () => {
     it("autoNumber can't be written to", () => {
-      // @ts-expect-error should be null
+      // @ts-expect-error autoNumber field is not writable
       expect(() => convertValueForWrite(42, FIELDS.AUTO_NUMBER)).toThrow();
     });
-    it("autoNumber makeFrom should convert to number", () => {
+    it("autoNumber should convert from read", () => {
       expect(convertValueFromRead(42, FIELDS.AUTO_NUMBER)).toBe(42);
+    });
+    it("autoNumber should throw on invalid values", () => {
+      expect(() => convertValueFromRead(null, FIELDS.AUTO_NUMBER)).toThrow();
+      expect(() => convertValueFromRead("foo", FIELDS.AUTO_NUMBER)).toThrow();
     });
   });
   describe("barcode", () => {
-    it("barcode should convert BarcodeValue for write", () => {
-      const value: BarcodeValue = { text: "123456", type: "upce" };
-      expect(convertValueForWrite(value, FIELDS.BARCODE)).toEqual(value);
-    });
-    it("barcode should handle null for write", () => {
-      expect(convertValueForWrite(null, FIELDS.BARCODE)).toBeNull();
-    });
     it("barcode should convert to BarcodeValue for read", () => {
       const value = { text: "123456", type: "upce" };
       expect(convertValueFromRead(value, FIELDS.BARCODE)).toEqual(value);
     });
+    it("barcode should convert values for write", () => {
+      const value = { text: "123456", type: "upce" };
+      expect(convertValueForWrite(value, FIELDS.BARCODE)).toEqual(value);
+      expect(convertValueForWrite(null, FIELDS.BARCODE)).toEqual(null);
+      expect(convertValueForWrite(undefined, FIELDS.BARCODE)).toEqual(undefined);
+    });
+    it("barcode should still pass through illegal values", () => {
+      // @ts-expect-error invalid barcode type
+      expect(convertValueForWrite("123456", FIELDS.BARCODE)).toEqual("123456");
+    });
   });
   describe("button", () => {
-    it("button can't be written to", () => {
+    it("button can't be read from", () => {
       // @ts-expect-error should be null
-      expect(() => convertValueForWrite("some value", FIELDS.BUTTON)).toThrow();
+      expect(() => convertValueFromRead("some value", FIELDS.BUTTON)).toThrow();
     });
     it("button can't be written to", () => {
       // @ts-expect-error should be null
@@ -49,15 +61,15 @@ describe("Converters", () => {
     });
   });
   describe("checkbox", () => {
+    it("checkbox should convert to boolean for read", () => {
+      expect(convertValueFromRead(true, FIELDS.CHECKBOX)).toBe(true);
+      expect(convertValueFromRead(false, FIELDS.CHECKBOX)).toBe(false);
+    });
     it("checkbox should convert values for write", () => {
       expect(convertValueForWrite(true, FIELDS.CHECKBOX)).toBe(true);
       expect(convertValueForWrite(false, FIELDS.CHECKBOX)).toBe(false);
       expect(convertValueForWrite(null, FIELDS.CHECKBOX)).toBeNull();
       expect(convertValueForWrite(undefined, FIELDS.CHECKBOX)).toBeUndefined();
-    });
-    it("checkbox should convert to boolean for read", () => {
-      expect(convertValueFromRead(true, FIELDS.CHECKBOX)).toBe(true);
-      expect(convertValueFromRead(false, FIELDS.CHECKBOX)).toBe(false);
     });
   });
   describe("count", () => {
@@ -416,8 +428,14 @@ describe("Converters", () => {
       expect(convertValueForWrite(undefined, FIELDS.SINGLE_SELECT)).toBeUndefined();
     });
     it("singleSelect should throw on invalid choice for write", () => {
-      // @ts-expect-error should be never
+      // @ts-expect-error
       expect(() => convertValueForWrite("invalid", FIELDS.SINGLE_SELECT)).toThrow();
+    });
+    it("singleSelect should typecheck and error on missing or invalid choices", () => {
+      // @ts-expect-error
+      expect(() => convertValueForWrite("selTodo", { type: "singleSelect" })).toThrow();
+      // @ts-expect-error
+      expect(() => convertValueForWrite("selTodo", { type: "singleSelect", options: { choices: 5 } })).toThrow();
     });
     it("singleSelect should convert choice names for read", () => {
       expect(convertValueFromRead("todo", FIELDS.SINGLE_SELECT)).toEqual("todo");

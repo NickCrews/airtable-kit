@@ -1,18 +1,18 @@
 import { doFetch, IntoFetcher } from "../fetcher";
-import { ValueFromRead } from "../fields/converters";
+import { ValueFromRead } from "../fields/converters.ts";
 import { Timezone } from "../fields/timezones";
-import { FieldSchemaRead } from "../fields/types";
+// import { FieldSchemaRead } from "../fields/types";
 import { Formula, formulaToString } from "../formula";
 import { AttachmentId, BaseId, FieldId, RecordId, TableId } from "../types";
-import { convertValuesFromRead, convertValuesForWrite, ValuesFromRead, ValuesForWrite, WriteValuesById } from "./converters";
-import * as exceptions from "../exceptions";
+import { convertValuesFromRead, convertValuesForWrite, ValuesFromRead, ValuesForWrite, WriteValuesById, FieldSchemaForWrite, FieldSchemaFromRead } from "./converters";
+import * as exceptions from "../exceptions/index.ts";
 
-type FieldNameOrId<T extends FieldSchemaRead> = T['name'] | T['id'];
+type FieldNameOrId<T extends FieldSchemaFromRead> = T['name'] | T['id'];
 
 /** ISO 8601 format in UTC, eg `2024-01-01T12:00:00.000Z` */
 export type Timestamp = string;
 
-export interface CreateRecordsParams<T extends FieldSchemaRead> {
+export interface CreateRecordsParams<T extends FieldSchemaForWrite> {
     records: ReadonlyArray<ValuesForWrite<T>>;
     baseId: BaseId;
     tableId: TableId;
@@ -20,7 +20,7 @@ export interface CreateRecordsParams<T extends FieldSchemaRead> {
     onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
     fetcher?: IntoFetcher;
 }
-export type CreateRecordsResponse<T extends FieldSchemaRead> = Array<{
+export type CreateRecordsResponse<T extends FieldSchemaForWrite> = Array<{
     id: RecordId,
     fields: ValuesFromRead<T>,
     createdTime: Timestamp,
