@@ -9,31 +9,22 @@ import { AttachmentId, RecordId } from "../types.ts";
 /** ISO 8601 string in UTC, e.g. "2024-01-01T00:00:00.000Z" */
 type UtcTimestamp = string;
 
-type PartialExcept<T, K extends keyof T> = Pick<T, K> & Partial<Omit<T, K>>;
-type PartialExceptType<T extends { type: types.FieldType }> = PartialExcept<T, "type">;
-type PartialExceptTypeAndOptions<T extends { type: types.FieldType }> =
-    T extends { options: unknown } ? PartialExcept<T, "type" | "options"> :
-    PartialExcept<T, "type">;
 // /**
 //  * When converting values, we don't need the field name, id, description, or other metadata.
 //  * We only need the type and (if they exist), the options.
 //  * But other fields are still acceptable, including bogus ones.
 //  */
-type FieldTypeIsh = types.FieldType | { type: types.FieldType };
-type EnsureFieldSchemaRead<T extends FieldTypeIsh> =
-    T extends types.FieldType ? Extract<types.FieldSchemaRead, { type: T }> :
-    T extends { type: infer FT }
-    ? FT extends types.FieldType
-    ? Extract<types.FieldSchemaRead, { type: FT }>
-    : never
-    : never;
-type FieldSchemaTypeAndOptions<T extends FieldTypeIsh = types.FieldSchemaRead> = PartialExceptTypeAndOptions<EnsureFieldSchemaRead<T>>;
+type PartialExcept<T, K extends keyof T> = Pick<T, K> & Partial<Omit<T, K>>;
+type PartialExceptType<T extends { type: types.FieldType }> = PartialExcept<T, "type">;
+type PartialExceptTypeAndOptions<T extends { type: types.FieldType }> =
+    T extends { options: unknown } ? PartialExcept<T, "type" | "options"> :
+    PartialExcept<T, "type">;
 
 // ============================================================================
 // aiText
 
-function fromReadAiText(value: unknown, fieldSchema: PartialExceptType<types.AiTextSchemaRead>): types.AiTextValueRead {
-    return value as types.AiTextValueRead;
+function fromReadAiText(value: types.AiTextValueRead, fieldSchema: PartialExceptType<types.AiTextSchemaRead>): types.AiTextValueRead {
+    return value;
 }
 function toWriteAiText(value: never, fieldSchema: PartialExceptType<types.AiTextSchemaRead>): never {
     throw new FieldNotWritableError(fieldSchema);
@@ -48,7 +39,7 @@ function fromReadAutoNumber(value: number, fieldSchema: PartialExceptType<types.
         const e = new Error(`autoNumber field ${JSON.stringify(fieldSchema)} should always receive a number, but got: ${value}`);
         throw new ReadValueConversionError(value, fieldSchema, e);
     }
-    return value as number;
+    return value;
 }
 function toWriteAutoNumber(value: never, fieldSchema: PartialExceptType<types.AutoNumberSchemaRead>): never {
     throw new FieldNotWritableError(fieldSchema);
@@ -61,8 +52,8 @@ export interface BarcodeValue {
     text: string;
     type: string;
 }
-function fromReadBarcode(value: unknown, fieldSchema: PartialExceptType<types.BarcodeSchemaRead>): BarcodeValue | null {
-    return value as BarcodeValue | null;
+function fromReadBarcode(value: BarcodeValue | null | undefined, fieldSchema: PartialExceptType<types.BarcodeSchemaRead>): BarcodeValue | null {
+    return value ?? null;
 }
 function toWriteBarcode(value: BarcodeValue | null | undefined, fieldSchema: PartialExceptType<types.BarcodeSchemaRead>): BarcodeValue | null | undefined {
     return value;
@@ -70,27 +61,33 @@ function toWriteBarcode(value: BarcodeValue | null | undefined, fieldSchema: Par
 
 // ============================================================================
 // button
-// Buttons cannot be read or written, so no converters are needed.
+
+function fromReadButton(value: never, fieldSchema: PartialExceptType<types.ButtonSchemaRead>): never {
+    throw new FieldNotReadableError(fieldSchema);
+}
+function toWriteButton(value: never, fieldSchema: PartialExceptType<types.ButtonSchemaRead>): never {
+    throw new FieldNotWritableError(fieldSchema);
+}
 
 // ============================================================================
 // checkbox
 
-function fromReadCheckbox(value: unknown, fieldSchema: PartialExceptType<types.CheckboxSchemaRead>): boolean {
-    return value as boolean ?? false;
+function fromReadCheckbox(value: boolean | null | undefined, fieldSchema: PartialExceptType<types.CheckboxSchemaRead>): boolean {
+    return value ?? false;
 }
-function toWriteCheckbox(value: boolean | null | undefined, fieldSchema: PartialExceptType<types.CheckboxSchemaRead>): boolean | null | undefined {
-    return value;
+function toWriteCheckbox(value: boolean | null | undefined, fieldSchema: PartialExceptType<types.CheckboxSchemaRead>): boolean {
+    return value ?? false;
 }
 
 // ============================================================================
 // count
 
-function fromReadCount(value: unknown, fieldSchema: PartialExceptType<types.CountSchemaRead>): number {
-    if (value === null || value === undefined) {
+function fromReadCount(value: number, fieldSchema: PartialExceptType<types.CountSchemaRead>): number {
+    if (typeof value !== "number") {
         const e = new Error(`count field ${JSON.stringify(fieldSchema)} should always receive a number, but got: ${value}`);
         throw new ReadValueConversionError(value, fieldSchema, e);
     }
-    return value as number;
+    return value;
 }
 function toWriteCount(value: never, fieldSchema: PartialExceptType<types.CountSchemaRead>): never {
     throw new FieldNotWritableError(fieldSchema);
@@ -110,12 +107,12 @@ export interface UserWrite {
     id: string;
     email: string;
 }
-function fromReadCreatedBy(value: unknown, fieldSchema: PartialExceptType<types.CreatedBySchemaRead>): User {
+function fromReadCreatedBy(value: User, fieldSchema: PartialExceptType<types.CreatedBySchemaRead>): User {
     if (!value) {
         const e = new Error(`createdBy field ${JSON.stringify(fieldSchema)} should always receive a value, but got: ${value}`);
         throw new ReadValueConversionError(value, fieldSchema, e);
     }
-    return value as User;
+    return value;
 }
 function toWriteCreatedBy(value: never, fieldSchema: PartialExceptType<types.CreatedBySchemaRead>): never {
     throw new FieldNotWritableError(fieldSchema);
@@ -124,12 +121,12 @@ function toWriteCreatedBy(value: never, fieldSchema: PartialExceptType<types.Cre
 // ============================================================================
 // createdTime
 
-function fromReadCreatedTime(value: unknown, fieldSchema: PartialExceptType<types.CreatedTimeSchemaRead>): UtcTimestamp {
-    if (value === null || value === undefined) {
+function fromReadCreatedTime(value: UtcTimestamp, fieldSchema: PartialExceptType<types.CreatedTimeSchemaRead>): UtcTimestamp {
+    if (!value) {
         const e = new Error(`createdTime field ${JSON.stringify(fieldSchema)} should always receive a value, but got: ${value}`);
         throw new ReadValueConversionError(value, fieldSchema, e);
     }
-    return value as UtcTimestamp;
+    return value;
 }
 function toWriteCreatedTime(value: never, fieldSchema: PartialExceptType<types.CreatedTimeSchemaRead>): never {
     throw new FieldNotWritableError(fieldSchema);
@@ -138,8 +135,8 @@ function toWriteCreatedTime(value: never, fieldSchema: PartialExceptType<types.C
 // ============================================================================
 // currency
 
-function fromReadCurrency(value: unknown, fieldSchema: PartialExceptType<types.CurrencySchemaRead>): number | null {
-    return value as number | null;
+function fromReadCurrency(value: number | null | undefined, fieldSchema: PartialExceptType<types.CurrencySchemaRead>): number | null {
+    return value ?? null;
 }
 function toWriteCurrency(value: number | null | undefined, fieldSchema: PartialExceptType<types.CurrencySchemaRead>): number | null | undefined {
     return value;
@@ -149,8 +146,8 @@ function toWriteCurrency(value: number | null | undefined, fieldSchema: PartialE
 // date
 
 type TDateString = `${number}-${number}-${number}`;
-function fromReadDate(value: unknown, fieldSchema: PartialExceptType<types.DateSchemaRead>): string | null {
-    if (value === null) {
+function fromReadDate(value: TDateString | null | undefined, fieldSchema: PartialExceptType<types.DateSchemaRead>): TDateString | null {
+    if (!value) {
         return null;
     }
     const t = typeof value;
@@ -158,11 +155,11 @@ function fromReadDate(value: unknown, fieldSchema: PartialExceptType<types.DateS
         const e = new Error(`date field ${JSON.stringify(fieldSchema)} should always receive a string or null, but got: ${value}`);
         throw new ReadValueConversionError(value, fieldSchema, e);
     }
-    return value as string;
+    return value;
 }
-function toWriteDate(value: globalThis.Date | TDateString | null | undefined, fieldSchema: PartialExceptType<types.DateSchemaRead>): string | null | undefined {
+function toWriteDate(value: globalThis.Date | TDateString | null | undefined, fieldSchema: PartialExceptType<types.DateSchemaRead>): TDateString | null | undefined {
     if (value instanceof globalThis.Date) {
-        return value.toISOString().split("T")[0];
+        return value.toISOString().split("T")[0] as TDateString;
     }
     return value;
 }
@@ -183,21 +180,21 @@ function toWriteDateTime(value: globalThis.Date | string | null | undefined, fie
 // ============================================================================
 // duration
 
-function fromReadDuration(value: unknown, fieldSchema: PartialExceptType<types.DurationSchemaRead>): number | null {
-    return value as number | null;
+function fromReadDuration(value: number | null | undefined, fieldSchema: PartialExceptType<types.DurationSchemaRead>): number | null {
+    return value ?? null;
 }
-function toWriteDuration(value: number | null | undefined, fieldSchema: PartialExceptType<types.DurationSchemaRead>): number | null | undefined {
-    return value;
+function toWriteDuration(value: number | null | undefined, fieldSchema: PartialExceptType<types.DurationSchemaRead>): number | null {
+    return value ?? null;
 }
 
 // ============================================================================
 // email
 
-function fromReadEmail(value: unknown, fieldSchema: PartialExceptType<types.EmailSchemaRead>): string {
-    return (value as string | null) ?? "";
+function fromReadEmail(value: string | null | undefined, fieldSchema: PartialExceptType<types.EmailSchemaRead>): string | null {
+    return value ?? null;
 }
-function toWriteEmail(value: string | null | undefined, fieldSchema: PartialExceptType<types.EmailSchemaRead>): string | null | undefined {
-    return value;
+function toWriteEmail(value: string | null | undefined, fieldSchema: PartialExceptType<types.EmailSchemaRead>): string | null {
+    return value ?? null;
 }
 
 // ============================================================================
@@ -215,8 +212,17 @@ function toWriteExternalSyncSource(value: unknown, fieldSchema: PartialExceptTyp
 // Formula fields are read-only and their read value depends on the result type.
 // For now, we pass through the raw value. A more sophisticated approach would
 // use the result type from fieldSchema.options.result to properly convert.
+type OptionsForDerivingResultType = { isValid: boolean; result: types.FieldTypeAndOptions };
+type RawResultFromDerivedType<T extends OptionsForDerivingResultType> =
+    T extends { isValid: true; result: infer R } ? ValueFromRead<R> : "foobar";
 
-function fromReadFormula(value: unknown, fieldSchema: PartialExceptType<types.FormulaSchemaRead>): unknown {
+type PartialExceptTypeAndResultTypeOptions<T extends { type: types.FieldType, options: OptionsForDerivingResultType }> =
+    T extends { options: infer O } ? Pick<T, "type"> & { options: PartialExcept<O, "isValid" | "result"> } & Partial<Omit<T, "type" | "options">> : never
+
+function fromReadFormula<T extends PartialExceptTypeAndOptions<types.FormulaSchemaRead>>(
+    value: RawResultFromDerivedType<T["options"]>,
+    fieldSchema: T
+): RawResultFromDerivedType<T["options"]> {
     return value;
 }
 function toWriteFormula(value: never, fieldSchema: PartialExceptType<types.FormulaSchemaRead>): never {
@@ -226,12 +232,12 @@ function toWriteFormula(value: never, fieldSchema: PartialExceptType<types.Formu
 // ============================================================================
 // lastModifiedBy
 
-function fromReadLastModifiedBy(value: unknown, fieldSchema: PartialExceptType<types.LastModifiedBySchemaRead>): User {
+function fromReadLastModifiedBy(value: User, fieldSchema: PartialExceptType<types.LastModifiedBySchemaRead>): User {
     if (!value) {
         const e = new Error(`lastModifiedBy field ${JSON.stringify(fieldSchema)} should always receive a value, but got: ${value}`);
         throw new ReadValueConversionError(value, fieldSchema, e);
     }
-    return value as User;
+    return value;
 }
 function toWriteLastModifiedBy(value: never, fieldSchema: PartialExceptType<types.LastModifiedBySchemaRead>): never {
     throw new FieldNotWritableError(fieldSchema);
@@ -240,12 +246,12 @@ function toWriteLastModifiedBy(value: never, fieldSchema: PartialExceptType<type
 // ============================================================================
 // lastModifiedTime
 
-function fromReadLastModifiedTime(value: unknown, fieldSchema: PartialExceptType<types.LastModifiedTimeSchemaRead>): UtcTimestamp {
-    if (value === null || value === undefined) {
+function fromReadLastModifiedTime(value: UtcTimestamp, fieldSchema: PartialExceptType<types.LastModifiedTimeSchemaRead>): UtcTimestamp {
+    if (!value) {
         const e = new Error(`lastModifiedTime field ${JSON.stringify(fieldSchema)} should always receive a value, but got: ${value}`);
         throw new ReadValueConversionError(value, fieldSchema, e);
     }
-    return value as UtcTimestamp;
+    return value;
 }
 function toWriteLastModifiedTime(value: never, fieldSchema: PartialExceptType<types.LastModifiedTimeSchemaRead>): never {
     throw new FieldNotWritableError(fieldSchema);
@@ -254,11 +260,11 @@ function toWriteLastModifiedTime(value: never, fieldSchema: PartialExceptType<ty
 // ============================================================================
 // multilineText
 
-function fromReadMultilineText(value: unknown, fieldSchema: PartialExceptType<types.MultilineTextSchemaRead>): string {
-    return (value as string | null) ?? "";
+function fromReadMultilineText(value: string | null | undefined, fieldSchema: PartialExceptType<types.MultilineTextSchemaRead>): string | null {
+    return value ?? null;
 }
-function toWriteMultilineText(value: string | null | undefined, fieldSchema: PartialExceptType<types.MultilineTextSchemaRead>): string | null | undefined {
-    return value;
+function toWriteMultilineText(value: string | null | undefined, fieldSchema: PartialExceptType<types.MultilineTextSchemaRead>): string | null {
+    return value ?? null;
 }
 
 // ============================================================================
@@ -289,8 +295,8 @@ export type MultipleAttachmentWriteType = {
     url: string;
     filename?: string;
 };
-function fromReadMultipleAttachments(value: unknown, fieldSchema: PartialExceptType<types.MultipleAttachmentsSchemaRead>): Array<MultipleAttachmentReadType> {
-    return (value as Array<MultipleAttachmentReadType> | null) ?? [];
+function fromReadMultipleAttachments(value: Array<MultipleAttachmentReadType> | null | undefined, fieldSchema: PartialExceptType<types.MultipleAttachmentsSchemaRead>): Array<MultipleAttachmentReadType> {
+    return value ?? [];
 }
 function toWriteMultipleAttachments(value: ReadonlyArray<MultipleAttachmentWriteType> | null | undefined, fieldSchema: PartialExceptType<types.MultipleAttachmentsSchemaRead>): ReadonlyArray<MultipleAttachmentWriteType> | null | undefined {
     return value;
@@ -299,8 +305,8 @@ function toWriteMultipleAttachments(value: ReadonlyArray<MultipleAttachmentWrite
 // ============================================================================
 // multipleCollaborators
 
-function fromReadMultipleCollaborators(value: unknown, fieldSchema: PartialExceptType<types.MultipleCollaboratorsSchemaRead>): User[] {
-    return (value as User[] | null) ?? [];
+function fromReadMultipleCollaborators(value: User[] | null | undefined, fieldSchema: PartialExceptType<types.MultipleCollaboratorsSchemaRead>): User[] {
+    return value ?? [];
 }
 function toWriteMultipleCollaborators(value: User[] | null | undefined, fieldSchema: PartialExceptType<types.MultipleCollaboratorsSchemaRead>): User[] {
     return value ?? [];
@@ -310,18 +316,31 @@ function toWriteMultipleCollaborators(value: User[] | null | undefined, fieldSch
 // multipleLookupValues
 // Lookup fields are read-only and their read value depends on the result type.
 
-function fromReadMultipleLookupValues(value: unknown, fieldSchema: PartialExceptType<types.MultipleLookupValuesSchemaRead>): unknown[] {
-    return (value as unknown[] | null) ?? [];
+function fromReadMultipleLookupValues<T extends PartialExceptTypeAndResultTypeOptions<types.MultipleLookupValuesSchemaRead>>(value: Array<RawResultFromDerivedType<T["options"]>>, fieldSchema: T): Array<RawResultFromDerivedType<T["options"]>> {
+    return value ?? [];
 }
 function toWriteMultipleLookupValues(value: never, fieldSchema: PartialExceptType<types.MultipleLookupValuesSchemaRead>): never {
     throw new FieldNotWritableError(fieldSchema);
 }
 
+const fieldSchema = {
+    type: "multipleLookupValues" as const,
+    options: {
+        isValid: true,
+        result: { type: "number" as const },
+    },
+} as const
+let y: RawResultFromDerivedType<typeof fieldSchema.options>
+let x: FromReadInputValue<typeof fieldSchema>
+
+// let z = fromReadFormula(123, fieldSchema);
+let z = fromReadMultipleLookupValues("foobar", fieldSchema);
+
 // ============================================================================
 // multipleRecordLinks
 
-function fromReadMultipleRecordLinks(value: unknown, fieldSchema: PartialExceptType<types.MultipleRecordLinksSchemaRead>): RecordId[] {
-    return (value as RecordId[] | null) ?? [];
+function fromReadMultipleRecordLinks(value: Array<RecordId> | null | undefined, fieldSchema: PartialExceptType<types.MultipleRecordLinksSchemaRead>): Array<RecordId> {
+    return value ?? [];
 }
 function toWriteMultipleRecordLinks(value: ReadonlyArray<RecordId> | null | undefined, fieldSchema: PartialExceptType<types.MultipleRecordLinksSchemaRead>): ReadonlyArray<RecordId> | null | undefined {
     return value ?? [];
@@ -352,7 +371,7 @@ function convertFromReadSelectValue<C extends types.SelectChoiceSchemaRead>(
     if (foundChoiceByName) {
         return raw;
     }
-    throw new Error(`Choice "${raw}" not found in field "${JSON.stringify(fieldSchema)}". Available choices: ${fieldSchema.options.choices.map((c) => c.name).join(", ")}`);
+    throw new Error(`Choice "${raw}" not found in field "${JSON.stringify(fieldSchema)}".Available choices: ${fieldSchema.options.choices.map((c) => c.name).join(", ")}`);
 }
 
 function fromReadMultipleSelects<F extends PartialExceptTypeAndOptions<types.MultipleSelectsSchemaRead>>(
@@ -382,7 +401,7 @@ function toWriteMultipleSelects<F extends PartialExceptTypeAndOptions<types.Mult
         availableOptions.push(...choices.map((o) => o.id));
         throw new Error(
             `No option found for value: ${idOrValue}. Available options: ${availableOptions.join(", ")
-            }`,
+            } `,
         );
     });
 }
@@ -390,58 +409,58 @@ function toWriteMultipleSelects<F extends PartialExceptTypeAndOptions<types.Mult
 // ============================================================================
 // number
 
-function fromReadNumber(value: unknown, fieldSchema: PartialExceptType<types.NumberSchemaRead>): number | null {
-    return value as number | null;
+function fromReadNumber(value: number | null | undefined, fieldSchema: PartialExceptType<types.NumberSchemaRead>): number | null {
+    return value ?? null;
 }
-function toWriteNumber(value: number | null | undefined, fieldSchema: PartialExceptType<types.NumberSchemaRead>): number | null | undefined {
-    return value;
+function toWriteNumber(value: number | null | undefined, fieldSchema: PartialExceptType<types.NumberSchemaRead>): number | null {
+    return value ?? null;
 }
 
 // ============================================================================
 // percent
 
-function fromReadPercent(value: unknown, fieldSchema: PartialExceptType<types.PercentSchemaRead>): number | null {
-    return value as number | null;
+function fromReadPercent(value: number | null | undefined, fieldSchema: PartialExceptType<types.PercentSchemaRead>): number | null {
+    return value ?? null;
 }
-function toWritePercent(value: number | null | undefined, fieldSchema: PartialExceptType<types.PercentSchemaRead>): number | null | undefined {
-    return value;
+function toWritePercent(value: number | null | undefined, fieldSchema: PartialExceptType<types.PercentSchemaRead>): number | null {
+    return value ?? null;
 }
 
 // ============================================================================
 // phoneNumber
 
-function fromReadPhoneNumber(value: unknown, fieldSchema: PartialExceptType<types.PhoneNumberSchemaRead>): string | null {
-    return value as string | null;
+function fromReadPhoneNumber(value: string | null | undefined, fieldSchema: PartialExceptType<types.PhoneNumberSchemaRead>): string | null {
+    return value ?? null;
 }
-function toWritePhoneNumber(value: string | null | undefined, fieldSchema: PartialExceptType<types.PhoneNumberSchemaRead>): string | null | undefined {
-    return value;
+function toWritePhoneNumber(value: string | null | undefined, fieldSchema: PartialExceptType<types.PhoneNumberSchemaRead>): string | null {
+    return value ?? null;
 }
 
 // ============================================================================
 // rating
 
-function fromReadRating(value: unknown, fieldSchema: PartialExceptType<types.RatingSchemaRead>): number | null {
-    return value as number | null;
+function fromReadRating(value: number | null | undefined, fieldSchema: PartialExceptType<types.RatingSchemaRead>): number | null {
+    return value ?? null;
 }
-function toWriteRating(value: number | null | undefined, fieldSchema: PartialExceptType<types.RatingSchemaRead>): number | null | undefined {
-    return value;
+function toWriteRating(value: number | null | undefined, fieldSchema: PartialExceptType<types.RatingSchemaRead>): number | null {
+    return value ?? null;
 }
 
 // ============================================================================
 // richText
 
-function fromReadRichText(value: unknown, fieldSchema: PartialExceptType<types.RichTextSchemaRead>): string {
-    return (value as string | null) ?? "";
+function fromReadRichText(value: string | null | undefined, fieldSchema: PartialExceptType<types.RichTextSchemaRead>): string | null {
+    return value ?? null;
 }
-function toWriteRichText(value: string | null | undefined, fieldSchema: PartialExceptType<types.RichTextSchemaRead>): string | null | undefined {
-    return value;
+function toWriteRichText(value: string | null | undefined, fieldSchema: PartialExceptType<types.RichTextSchemaRead>): string | null {
+    return value ?? null;
 }
 
 // ============================================================================
 // rollup
 // Rollup fields are read-only and their read value depends on the result type.
 
-function fromReadRollup(value: unknown, fieldSchema: PartialExceptType<types.RollupSchemaRead>): unknown {
+function fromReadRollup<T extends PartialExceptTypeAndOptions<types.RollupSchemaRead>>(value: RawResultFromDerivedType<T["options"]>, fieldSchema: T): RawResultFromDerivedType<T["options"]> {
     return value;
 }
 function toWriteRollup(value: never, fieldSchema: PartialExceptType<types.RollupSchemaRead>): never {
@@ -451,31 +470,31 @@ function toWriteRollup(value: never, fieldSchema: PartialExceptType<types.Rollup
 // ============================================================================
 // singleCollaborator
 
-function fromReadSingleCollaborator(value: unknown, fieldSchema: PartialExceptType<types.SingleCollaboratorSchemaRead>): User | null {
-    return value as User | null;
+function fromReadSingleCollaborator(value: User | null | undefined, fieldSchema: PartialExceptType<types.SingleCollaboratorSchemaRead>): User | null {
+    return value ?? null;
 }
-function toWriteSingleCollaborator(value: UserWrite | null | undefined, fieldSchema: PartialExceptType<types.SingleCollaboratorSchemaRead>): UserWrite | null | undefined {
-    return value;
+function toWriteSingleCollaborator(value: UserWrite | null | undefined, fieldSchema: PartialExceptType<types.SingleCollaboratorSchemaRead>): UserWrite | null {
+    return value ?? null;
 }
 
 // ============================================================================
 // singleLineText
 
-function fromReadSingleLineText(value: unknown, fieldSchema: PartialExceptType<types.SingleLineTextSchemaRead>): string {
-    return (value as string | null) ?? "";
+function fromReadSingleLineText(value: string | null | undefined, fieldSchema: PartialExceptType<types.SingleLineTextSchemaRead>): string | null {
+    return value ?? null;
 }
-function toWriteSingleLineText(value: string | null | undefined, fieldSchema: PartialExceptType<types.SingleLineTextSchemaRead>): string | null | undefined {
-    return value;
+function toWriteSingleLineText(value: string | null | undefined, fieldSchema: PartialExceptType<types.SingleLineTextSchemaRead>): string | null {
+    return value ?? null;
 }
 
 // ============================================================================
 // singleSelect
 
 function fromReadSingleSelect<F extends PartialExceptTypeAndOptions<types.SingleSelectSchemaRead>>(
-    value: unknown,
+    value: F["options"]["choices"][number]["name"] | null | undefined,
     fieldSchema: F
 ): F["options"]["choices"][number]["name"] | null {
-    if (value === null || value === undefined) {
+    if (!value) {
         return null;
     }
     return convertFromReadSelectValue(value as string, fieldSchema);
@@ -499,15 +518,15 @@ function toWriteSingleSelect<F extends PartialExceptTypeAndOptions<types.SingleS
     const availableOptions = choices.map((o) => o.name);
     availableOptions.push(...choices.map((o) => o.id));
     throw new Error(
-        `No option found for value '${idOrName}'. Available options: ${availableOptions.join(", ")}`,
+        `No option found for value '${idOrName}'.Available options: ${availableOptions.join(", ")} `,
     );
 }
 
 // ============================================================================
 // url
 
-function fromReadUrl(value: unknown, fieldSchema: PartialExceptType<types.UrlSchemaRead>): string {
-    return (value as string | null) ?? "";
+function fromReadUrl(value: string | null | undefined, fieldSchema: PartialExceptType<types.UrlSchemaRead>): string | null {
+    return value ?? null;
 }
 function toWriteUrl(value: string | null | undefined, fieldSchema: PartialExceptType<types.UrlSchemaRead>): string | null | undefined {
     return value;
@@ -515,15 +534,15 @@ function toWriteUrl(value: string | null | undefined, fieldSchema: PartialExcept
 
 // ============================================================================
 
-type FromReadConverterFunc = (value: any, fieldSchema: any) => any;
-type FieldSchemaForReadFunc<F extends FromReadConverterFunc> = F extends (value: unknown, fieldSchema: infer S) => infer R
-    ? S extends FieldSchemaTypeAndOptions ? S : never
-    : never;
+type FromReadConverterFunc = ((value: any, fieldSchema: any) => any) | ((value: never, fieldSchema: any) => never);
+type FieldSchemaForReadFunc<F extends FromReadConverterFunc> =
+    F extends (value: any, fieldSchema: infer S) => any ? S : never;
 
-type ReadFuncFromFieldSchema<T extends FieldSchemaForWrite> =
+type ReadFuncFromFieldSchema<T extends FieldSchemaFromRead> =
     T extends FieldSchemaForReadFunc<typeof fromReadAiText> ? typeof fromReadAiText :
     T extends FieldSchemaForReadFunc<typeof fromReadAutoNumber> ? typeof fromReadAutoNumber :
     T extends FieldSchemaForReadFunc<typeof fromReadBarcode> ? typeof fromReadBarcode :
+    T extends FieldSchemaForReadFunc<typeof fromReadButton> ? typeof fromReadButton :
     T extends FieldSchemaForReadFunc<typeof fromReadCheckbox> ? typeof fromReadCheckbox :
     T extends FieldSchemaForReadFunc<typeof fromReadCount> ? typeof fromReadCount :
     T extends FieldSchemaForReadFunc<typeof fromReadCreatedBy> ? typeof fromReadCreatedBy :
@@ -558,6 +577,7 @@ const FROM_READ_CONVERTERS = {
     aiText: fromReadAiText,
     autoNumber: fromReadAutoNumber,
     barcode: fromReadBarcode,
+    button: fromReadButton,
     checkbox: fromReadCheckbox,
     count: fromReadCount,
     createdBy: fromReadCreatedBy,
@@ -590,6 +610,7 @@ const FROM_READ_CONVERTERS = {
 } as const;
 
 export type FieldSchemaFromRead = Parameters<typeof FROM_READ_CONVERTERS[keyof typeof FROM_READ_CONVERTERS]>[1];
+export type FromReadInputValue<F extends FieldSchemaFromRead = FieldSchemaFromRead> = Parameters<ReadFuncFromFieldSchema<F>>[0];
 export type ValueFromRead<F extends FieldSchemaFromRead = FieldSchemaFromRead> = ReturnType<ReadFuncFromFieldSchema<F>>;
 
 /**
@@ -616,13 +637,13 @@ export type ValueFromRead<F extends FieldSchemaFromRead = FieldSchemaFromRead> =
  * @throws {@link ReadValueConversionError} if the value could not be converted.
  */
 export function convertValueFromRead<F extends FieldSchemaFromRead>(
-    value: unknown,
+    value: FromReadInputValue<F>,
     fieldSchema: F,
 ): ValueFromRead<F> {
     const type = fieldSchema.type;
     const converterFunc = FROM_READ_CONVERTERS[type];
     if (!converterFunc) {
-        throw new Error(`No converter found for field: ${JSON.stringify(fieldSchema)}`);
+        throw new Error(`No converter found for field: ${JSON.stringify(fieldSchema)} `);
     }
     try {
         return (converterFunc as (value: unknown, fieldSchema: unknown) => unknown)(value, fieldSchema) as ValueFromRead<F>;
@@ -645,6 +666,7 @@ type WriteFuncFromFieldSchema<T extends FieldSchemaForWrite> =
     T extends FieldSchemaForWriteFunc<typeof toWriteAiText> ? typeof toWriteAiText :
     T extends FieldSchemaForWriteFunc<typeof toWriteAutoNumber> ? typeof toWriteAutoNumber :
     T extends FieldSchemaForWriteFunc<typeof toWriteBarcode> ? typeof toWriteBarcode :
+    T extends FieldSchemaForWriteFunc<typeof toWriteButton> ? typeof toWriteButton :
     T extends FieldSchemaForWriteFunc<typeof toWriteCheckbox> ? typeof toWriteCheckbox :
     T extends FieldSchemaForWriteFunc<typeof toWriteCount> ? typeof toWriteCount :
     T extends FieldSchemaForWriteFunc<typeof toWriteCreatedBy> ? typeof toWriteCreatedBy :
@@ -679,6 +701,7 @@ const TO_WRITE_CONVERTERS = {
     aiText: toWriteAiText,
     autoNumber: toWriteAutoNumber,
     barcode: toWriteBarcode,
+    button: toWriteButton,
     checkbox: toWriteCheckbox,
     count: toWriteCount,
     createdBy: toWriteCreatedBy,
@@ -712,6 +735,7 @@ const TO_WRITE_CONVERTERS = {
 
 export type FieldSchemaForWrite = Parameters<typeof TO_WRITE_CONVERTERS[keyof typeof TO_WRITE_CONVERTERS]>[1];
 export type ValueForWrite<F extends FieldSchemaForWrite = FieldSchemaForWrite> = Parameters<WriteFuncFromFieldSchema<F>>[0];
+export type ForWriteResult<F extends FieldSchemaForWrite = FieldSchemaForWrite> = ReturnType<WriteFuncFromFieldSchema<F>>;
 
 /**
  * Using the given field schema, convert a value into a format suitable for writing to Airtable.
@@ -733,14 +757,15 @@ export type ValueForWrite<F extends FieldSchemaForWrite = FieldSchemaForWrite> =
 export function convertValueForWrite<F extends FieldSchemaForWrite>(
     value: ValueForWrite<F>,
     fieldSchema: F,
-): unknown {
+): ForWriteResult<F> {
     const type = fieldSchema.type;
     const converterFunc = TO_WRITE_CONVERTERS[type];
     if (!converterFunc) {
-        throw new Error(`No converter found for field: ${JSON.stringify(fieldSchema)}`);
+        throw new Error(`No converter found for field: ${JSON.stringify(fieldSchema)} `);
     }
     try {
-        return (converterFunc as (value: unknown, fieldSchema: unknown) => unknown)(value, fieldSchema);
+        const result = (converterFunc as (value: unknown, fieldSchema: unknown) => unknown)(value, fieldSchema);
+        return result as ForWriteResult<F>;
     } catch (e) {
         // if it's already a WriteValueConversionError, just re-throw it
         if (e instanceof WriteValueConversionError) {
@@ -759,7 +784,7 @@ export class ReadValueConversionError extends AirtableKitError {
     public readonly value: unknown;
     public readonly originalError?: Error;
     constructor(value: unknown, fieldSchema: FieldSchemaFromRead, originalError?: Error) {
-        super(`Value not convertible for field ${fieldSchema.name} (id: ${fieldSchema.id}, type: ${fieldSchema.type}): ${value}`);
+        super(`Value not convertible for field ${fieldSchema.name}(id: ${fieldSchema.id}, type: ${fieldSchema.type}): ${value} `);
         this.value = value;
         this.fieldSchema = fieldSchema;
         this.originalError = originalError;

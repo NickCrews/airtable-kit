@@ -7,18 +7,31 @@ import { convertValueForWrite, convertValueFromRead } from "./converters.ts";
 import * as FIELDS from "./_example-fields.ts";
 
 describe("Converters", () => {
+  describe("bogus field schemas", () => {
+    it("should throw on read", () => {
+      // @ts-expect-error
+      expect(() => convertValueFromRead("some value", { type: "bogus" })).toThrow();
+    });
+    it("should throw on write", () => {
+      // @ts-expect-error
+      expect(() => convertValueForWrite("some value", { type: "bogus" })).toThrow();
+    });
+  });
   describe("aiText", () => {
     it("aiText can't be written to", () => {
-      // @ts-expect-error ai field is not writable
+      // @ts-expect-error
       expect(() => convertValueForWrite("some slop", FIELDS.AI_TEXT)).toThrow();
-      expect(() => convertValueForWrite("some slop" as never, { type: "aiText" })).toThrow();
-      expect(() => convertValueForWrite("some slop" as never, { type: "aiText", bogusField: true })).toThrow();
+      // @ts-expect-error
+      expect(() => convertValueForWrite("some slop", { type: "aiText" })).toThrow();
+      // @ts-expect-error
+      expect(() => convertValueForWrite("some slop", { type: "aiText", bogusField: true })).toThrow();
     });
-    it("aiText makeFrom should convert to string", () => {
-      expect(convertValueFromRead("Generated AI text", FIELDS.AI_TEXT)).toBe("Generated AI text");
-      expect(convertValueFromRead("Generated AI text", { type: "aiText" })).toBe("Generated AI text");
+    it("aiText makeFrom should convert from read", () => {
+      const v = { state: "generated" as const, isStale: false, value: "Generated AI text" };
+      expect(convertValueFromRead(v, FIELDS.AI_TEXT)).toBe(v);
+      expect(convertValueFromRead(v, { type: "aiText" })).toBe(v);
       // @ts-expect-error incorrect type for the options field
-      expect(convertValueFromRead("Generated AI text", { type: "aiText", options: "bogus" })).toBe("Generated AI text");
+      expect(convertValueFromRead(v, { type: "aiText", options: "bogus" })).toBe(v);
     });
   });
   describe("autoNumber", () => {
@@ -29,8 +42,10 @@ describe("Converters", () => {
     it("autoNumber should convert from read", () => {
       expect(convertValueFromRead(42, FIELDS.AUTO_NUMBER)).toBe(42);
     });
-    it("autoNumber should throw on invalid values", () => {
+    it("autoNumber should throw on invalid values on read", () => {
+      // @ts-expect-error
       expect(() => convertValueFromRead(null, FIELDS.AUTO_NUMBER)).toThrow();
+      // @ts-expect-error
       expect(() => convertValueFromRead("foo", FIELDS.AUTO_NUMBER)).toThrow();
     });
   });
@@ -52,12 +67,12 @@ describe("Converters", () => {
   });
   describe("button", () => {
     it("button can't be read from", () => {
-      // @ts-expect-error should be null
-      expect(() => convertValueFromRead("some value", FIELDS.BUTTON)).toThrow();
+      // @ts-expect-error
+      expect(() => convertValueFromRead("some value", { type: "button" })).toThrow();
     });
     it("button can't be written to", () => {
-      // @ts-expect-error should be null
-      expect(() => convertValueForWrite("some value", FIELDS.BUTTON)).toThrow();
+      // @ts-expect-error
+      expect(() => convertValueForWrite("some value", { type: "button" })).toThrow();
     });
   });
   describe("checkbox", () => {
@@ -74,7 +89,7 @@ describe("Converters", () => {
   });
   describe("count", () => {
     it("count should can't be written to", () => {
-      // @ts-expect-error should be null
+      // @ts-expect-error
       expect(() => convertValueForWrite(42, FIELDS.COUNT)).toThrow();
     });
     it("count makeFrom should convert to number", () => {
@@ -83,7 +98,7 @@ describe("Converters", () => {
   });
   describe("createdBy", () => {
     it("createdBy can't be written to", () => {
-      // @ts-expect-error should be null
+      // @ts-expect-error
       expect(() => convertValueForWrite({ id: "usr123", email: "test@example.com" }, FIELDS.CREATED_BY)).toThrow();
     });
     it("createdBy should convert to User", () => {
@@ -93,7 +108,7 @@ describe("Converters", () => {
   });
   describe("createdTime", () => {
     it("createdTime can't be written to", () => {
-      // @ts-expect-error should be null
+      // @ts-expect-error
       expect(() => convertValueForWrite(new Date(), FIELDS.CREATED_TIME)).toThrow();
     });
     it("createdTime should convert to Date", () => {
@@ -105,11 +120,13 @@ describe("Converters", () => {
   describe("currency", () => {
     it("currency should convert for write", () => {
       expect(convertValueForWrite(99.99, FIELDS.CURRENCY)).toBe(99.99);
+      expect(convertValueForWrite(0, FIELDS.CURRENCY)).toBe(0);
       expect(convertValueForWrite(null, FIELDS.CURRENCY)).toBeNull();
       expect(convertValueForWrite(undefined, FIELDS.CURRENCY)).toBeUndefined();
     });
     it("currency should convert to number for read", () => {
       expect(convertValueFromRead(99.99, FIELDS.CURRENCY)).toBe(99.99);
+      expect(convertValueFromRead(0, FIELDS.CURRENCY)).toBe(0);
       expect(convertValueFromRead(null, FIELDS.CURRENCY)).toBeNull();
     });
   });
@@ -166,11 +183,15 @@ describe("Converters", () => {
   describe("duration", () => {
     it("duration should convert for write", () => {
       expect(convertValueForWrite(3600, FIELDS.DURATION)).toBe(3600);
+      expect(convertValueForWrite(0, FIELDS.DURATION)).toBe(0);
       expect(convertValueForWrite(null, FIELDS.DURATION)).toBeNull();
-      expect(convertValueForWrite(undefined, FIELDS.DURATION)).toBeUndefined();
+      expect(convertValueForWrite(undefined, FIELDS.DURATION)).toBeNull();
     });
     it("duration should convert to number for read", () => {
       expect(convertValueFromRead(3600, FIELDS.DURATION)).toBe(3600);
+      expect(convertValueFromRead(0, FIELDS.DURATION)).toBe(0);
+      expect(convertValueFromRead(null, FIELDS.DURATION)).toBeNull();
+      expect(convertValueFromRead(undefined, FIELDS.DURATION)).toBeNull();
     });
   });
   describe("email", () => {
@@ -181,6 +202,8 @@ describe("Converters", () => {
     });
     it("email should convert to string for read", () => {
       expect(convertValueFromRead("test@example.com", FIELDS.EMAIL)).toBe("test@example.com");
+      expect(convertValueFromRead(null, FIELDS.EMAIL)).toBeNull();
+      expect(convertValueFromRead(undefined, FIELDS.EMAIL)).toBeNull();
     });
   });
   describe("externalSyncSource", () => {
@@ -194,17 +217,38 @@ describe("Converters", () => {
     });
   });
   describe("formula", () => {
+    const numberSchema = {
+      type: "formula",
+      options: { isValid: true as const, result: { type: "number" as const } }
+    } as const
+    const singleLineTextSchema = {
+      type: "formula",
+      options: { isValid: true as const, result: { type: "singleLineText" as const } }
+    } as const
     it("formula can't be written to", () => {
-      // @ts-expect-error should be null
-      expect(() => convertValueForWrite(42, FIELDS.FORMULA)).toThrow();
+      // @ts-expect-error
+      expect(() => convertValueForWrite(42, { type: "formula" })).toThrow();
     });
-    it("formula should convert to result type for read", () => {
-      expect(convertValueFromRead(42, FIELDS.FORMULA)).toBe(42);
+    it("formula for read should handle numbers", () => {
+      let x: number = convertValueFromRead(2, numberSchema);
+      expect(x).toBe(42);
+      // We should get a type error because the schema says the result is a number.
+      // @ts-expect-error
+      let y: string = convertValueFromRead(null, numberSchema);
+      expect(y).toBeNull();
+    });
+    it("formula for read should handle singleLineText", () => {
+      let x: string = convertValueFromRead("hello", singleLineTextSchema);
+      expect(x).toBe("hello");
+      // We should get a type error because the schema says the result is a string
+      // @ts-expect-error
+      let y: number = convertValueFromRead(null, singleLineTextSchema);
+      expect(y).toBeNull();
     });
   });
   describe("lastModifiedBy", () => {
     it("lastModifiedBy can't be written to", () => {
-      // @ts-expect-error should be null
+      // @ts-expect-error
       expect(() => convertValueForWrite({ id: "usr123", email: "test@example.com" }, FIELDS.LAST_MODIFIED_BY)).toThrow();
     });
     it("lastModifiedBy should convert to User", () => {
@@ -214,12 +258,12 @@ describe("Converters", () => {
   });
   describe("lastModifiedTime", () => {
     it("lastModifiedTime can't be written to", () => {
-      // @ts-expect-error should be null
-      expect(() => convertValueForWrite(new Date(), FIELDS.LAST_MODIFIED_TIME)).toThrow();
+      // @ts-expect-error
+      expect(() => convertValueForWrite(new Date(), { type: "lastModifiedTime" })).toThrow();
     });
     it("lastModifiedTime should convert to UtcTimestamp", () => {
       const dateStr = "2024-01-15T10:30:00.000Z";
-      const result = convertValueFromRead(dateStr, FIELDS.LAST_MODIFIED_TIME);
+      const result = convertValueFromRead(dateStr, { type: "lastModifiedTime" });
       expect(result).toBe(dateStr);
     });
   });
@@ -250,8 +294,8 @@ describe("Converters", () => {
     });
     it("multipleAttachments should convert to array for read", () => {
       const attachments = [
-        { url: "https://example.com/file1.pdf", filename: "file1.pdf" },
-        { url: "https://example.com/file2.png" }
+        { id: "att1" as const, url: "https://example.com/file1.pdf", filename: "file1.pdf", type: "application/pdf", size: 12345 },
+        { id: "att2" as const, url: "https://example.com/file2.png", filename: "file2.png", type: "application/png", size: 67890 }
       ];
       expect(convertValueFromRead(attachments, FIELDS.MULTIPLE_ATTACHMENTS)).toEqual(attachments);
     });
@@ -278,7 +322,7 @@ describe("Converters", () => {
   });
   describe("multipleLookupValues", () => {
     it("multipleLookupValues can't be written to", () => {
-      // @ts-expect-error should be never
+      // @ts-expect-error
       expect(() => convertValueForWrite([1, 2, 3], FIELDS.MULTIPLE_LOOKUP_VALUES)).toThrow();
     });
     it("multipleLookupValues should convert to array for read", () => {
@@ -301,7 +345,12 @@ describe("Converters", () => {
       expect(convertValueForWrite(undefined, FIELDS.MULTIPLE_RECORD_LINKS)).toEqual([]);
     });
     it("multipleRecordLinks should convert to array for read", () => {
-      const links = ["rec123", "rec456"];
+      const links = ["rec123" as const, "rec456" as const];
+      expect(convertValueFromRead(links, FIELDS.MULTIPLE_RECORD_LINKS)).toEqual(links);
+    });
+    it("multipleRecordLinks should typecheck for read of bad values, but pass", () => {
+      const links = ["foo" as const, "bar" as const];
+      // @ts-expect-error
       expect(convertValueFromRead(links, FIELDS.MULTIPLE_RECORD_LINKS)).toEqual(links);
     });
   });
@@ -380,13 +429,33 @@ describe("Converters", () => {
     });
   });
   describe("rollup", () => {
+    const numberSchema = {
+      type: "rollup",
+      options: { isValid: true as const, result: { type: "number" as const } }
+    } as const
+    const singleLineTextSchema = {
+      type: "rollup",
+      options: { isValid: true as const, result: { type: "singleLineText" as const } }
+    } as const
     it("rollup can't be written to", () => {
-      // @ts-expect-error should be null
-      expect(() => convertValueForWrite(42, FIELDS.ROLLUP)).toThrow();
+      // @ts-expect-error
+      expect(() => convertValueForWrite(42, numberSchema)).toThrow();
     });
-    it("rollup should pass through value for read", () => {
-      expect(convertValueFromRead(42, FIELDS.ROLLUP)).toBe(42);
-      expect(convertValueFromRead("text", FIELDS.ROLLUP)).toBe("text");
+    it("rollup for read should handle number", () => {
+      let x: number = convertValueFromRead(42, numberSchema);
+      expect(x).toBe(42);
+      // We should get a type error because the schema says the result is a number.
+      // @ts-expect-error
+      let y: string = convertValueFromRead(null, numberSchema);
+      expect(y).toBeNull();
+    });
+    it("rollup for read should handle singleLineText", () => {
+      let x: string = convertValueFromRead("hello", singleLineTextSchema);
+      expect(x).toBe("hello");
+      // We should get a type error because the schema says the result is a string
+      // @ts-expect-error
+      let y: number = convertValueFromRead(null, singleLineTextSchema);
+      expect(y).toBeNull();
     });
   });
   describe("singleCollaborator", () => {
@@ -414,34 +483,38 @@ describe("Converters", () => {
     });
   });
   describe("singleSelect", () => {
-    it("singleSelect should convert choice ID for write", () => {
+    it("singleSelect for write should convert choice ID", () => {
       expect(convertValueForWrite("selTodo", FIELDS.SINGLE_SELECT)).toBe("selTodo");
     });
-    it("singleSelect should convert choice name to ID for write", () => {
+    it("singleSelect for write should convert choice name to ID", () => {
       expect(convertValueForWrite("todo", FIELDS.SINGLE_SELECT)).toBe("selTodo");
       expect(convertValueForWrite("done", FIELDS.SINGLE_SELECT)).toBe("selDone");
     });
-    it("singleSelect should handle null for write", () => {
+    it("singleSelect for write should handle null", () => {
       expect(convertValueForWrite(null, FIELDS.SINGLE_SELECT)).toBeNull();
     });
-    it("singleSelect should handle undefined for write", () => {
+    it("singleSelect for write should handle undefined", () => {
       expect(convertValueForWrite(undefined, FIELDS.SINGLE_SELECT)).toBeUndefined();
     });
-    it("singleSelect should throw on invalid choice for write", () => {
+    it("singleSelect for write should throw on invalid choice", () => {
       // @ts-expect-error
       expect(() => convertValueForWrite("invalid", FIELDS.SINGLE_SELECT)).toThrow();
     });
-    it("singleSelect should typecheck and error on missing or invalid choices", () => {
+    it("singleSelect for write should typecheck and error on missing or invalid choices", () => {
       // @ts-expect-error
       expect(() => convertValueForWrite("selTodo", { type: "singleSelect" })).toThrow();
       // @ts-expect-error
       expect(() => convertValueForWrite("selTodo", { type: "singleSelect", options: { choices: 5 } })).toThrow();
     });
-    it("singleSelect should convert choice names for read", () => {
+    it("singleSelect for read should convert choice names", () => {
       expect(convertValueFromRead("todo", FIELDS.SINGLE_SELECT)).toEqual("todo");
       expect(convertValueFromRead(null, FIELDS.SINGLE_SELECT)).toBeNull();
       expect(convertValueFromRead(undefined, FIELDS.SINGLE_SELECT)).toBeNull();
-      expect(() => convertValueFromRead("selTodo", FIELDS.SINGLE_SELECT)).toThrow();
+    });
+    it("singleSelect for read should throw on invalid choice", () => {
+      // @ts-expect-error
+      expect(() => convertValueFromRead("bogus", FIELDS.SINGLE_SELECT)).toThrow();
+      // @ts-expect-error
       expect(() => convertValueFromRead("selTodo", FIELDS.SINGLE_SELECT)).toThrow();
     });
   });

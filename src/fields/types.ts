@@ -14,7 +14,7 @@ import { type Timezone } from "./timezones.ts";
 import { type BrightColor, type SelectColor } from "./colors.ts";
 import { FieldId, TableId, type SelectId } from "../types.ts";
 
-type FieldTypeAndOptions = Omit<FieldSchemaRead, "id" | "name" | "description">
+export type FieldTypeAndOptions = Omit<FieldSchemaRead, "id" | "name" | "description">
 
 export type SelectChoiceSchemaRead = {
   id: SelectId;

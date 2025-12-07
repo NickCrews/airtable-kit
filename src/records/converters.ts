@@ -1,18 +1,16 @@
-// import { FieldSchemaRead } from "../fields/types.ts";
+import { FieldSchemaRead } from "../fields/types.ts";
 import { FieldId } from "../types.ts";
 import {
     convertValueFromRead,
     convertValueForWrite,
     ValueFromRead,
     ValueForWrite,
-    FieldSchemaForWrite as FieldSchemaForWriteBasic,
-    FieldSchemaFromRead as FieldSchemaFromReadBasic,
     ReadValueConversionError,
 } from "../fields/converters.ts";
 import { AirtableKitError } from "../exceptions/common.ts";
 
-export type FieldSchemaFromRead = FieldSchemaFromReadBasic & { name: FieldId, id: FieldId }
-export type FieldSchemaForWrite = FieldSchemaForWriteBasic & { name: string, id: FieldId }
+export type FieldSchemaFromRead = FieldSchemaRead;
+export type FieldSchemaForWrite = FieldSchemaRead;
 
 export type WriteValuesById<T extends FieldSchemaForWrite> = {
     [K in T["id"]]?: ValueForWrite<Extract<T, { id: K }>>;

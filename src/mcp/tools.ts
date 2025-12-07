@@ -12,6 +12,8 @@ import { RecordIdSchema } from '../validators/index.ts';
 import { TIMEZONES } from '../fields/timezones.ts';
 import { ListRecordsOptions, ListRecordsResponse, UpdateRecordsOptions, UpdateRecordsResponse } from '../records/api.ts';
 
+type FieldType<T extends TableSchema> = T['fields'][number];
+
 export interface MCPToolDefinition<TInput = any, TOutput = any> {
   /**Must start with a letter or an underscore. Must be alphameric (a-z, A-Z, 0-9), underscores (_), dots (.), colons (:), or dashes (-), with a maximum length of 64 */
   name: string;
@@ -22,12 +24,12 @@ export interface MCPToolDefinition<TInput = any, TOutput = any> {
 }
 
 type CreateInput<T extends TableSchema> = {
-  records: ReadonlyArray<ValuesForWrite<T["fields"][number]>>;
+  records: ReadonlyArray<ValuesForWrite<FieldType<T>>>;
 };
 type CreateToolResult<T extends TableSchema> = Array<{
   id: RecordId;
   createdTime: string;
-  fields: ValuesFromRead<T["fields"][number]>;
+  fields: ValuesFromRead<FieldType<T>>;
   url: string;
 }>;
 export function makeCreateTool<
@@ -37,7 +39,7 @@ export function makeCreateTool<
   const zodInputValidator = z4.object({ records: z4.array(recordSchema) });
   async function execute(input: CreateInput<T>) {
     const validated = zodInputValidator.parse(input);
-    const createRecords = await client.createRecords(validated.records as ValuesForWrite<T["fields"][number]>[]);
+    const createRecords = await client.createRecords(validated.records as ValuesForWrite<FieldType<T>>[]);
     return createRecords.map((r) => ({
       ...r,
       // include the URL so the bot can share it with the user
@@ -66,13 +68,13 @@ If you use this, consider giving the user the URLs of the created records in you
 type UpdateInput<T extends TableSchema> = {
   records: Array<{
     id?: string;
-    fields: Partial<ValuesForWrite<T["fields"][number]>>;
+    fields: Partial<ValuesForWrite<FieldType<T>>>;
   }>;
-  options?: UpdateRecordsOptions<T["fields"][number]>;
+  options?: UpdateRecordsOptions<FieldType<T>>;
 };
 export function makeUpdateTool<
   T extends TableSchema,
->(client: TableClient<T>): MCPToolDefinition<UpdateInput<T>, UpdateRecordsResponse<T["fields"][number]>> {
+>(client: TableClient<T>): MCPToolDefinition<UpdateInput<T>, UpdateRecordsResponse<FieldType<T>>> {
   const fieldsZod = makeRecordWriteValidator(client.tableSchema.fields);
   const recordZod = z4.object({
     id: RecordIdSchema.optional(),
@@ -114,7 +116,7 @@ type GetInput = z4.infer<typeof GetInput>;
 type GetToolResult<T extends TableSchema> = {
   id: string;
   createdTime: string;
-  fields: ValuesFromRead<T["fields"][number]>;
+  fields: ValuesFromRead<FieldType<T>>;
   url: string;
 };
 export function makeGetTool<
@@ -138,11 +140,11 @@ export function makeGetTool<
 }
 
 type ListInput<T extends TableSchema> = {
-  options?: ListRecordsOptions<T["fields"][number]>;
+  options?: ListRecordsOptions<FieldType<T>>;
 };
 export function makeListTool<
   T extends TableSchema,
->(client: TableClient<T>): MCPToolDefinition<ListInput<T>, ListRecordsResponse<T["fields"][number]>> {
+>(client: TableClient<T>): MCPToolDefinition<ListInput<T>, ListRecordsResponse<FieldType<T>>> {
   const availableFieldNames = client.tableSchema.fields.map((f) => f.name);
   const zodInputValidator = z4.object({
     options: z4.object({
