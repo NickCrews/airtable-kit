@@ -57,8 +57,8 @@ describe("Converters", () => {
     it("barcode should convert values for write", () => {
       const value = { text: "123456", type: "upce" };
       expect(convertValueForWrite(value, FIELDS.BARCODE)).toEqual(value);
-      expect(convertValueForWrite(null, FIELDS.BARCODE)).toEqual(null);
-      expect(convertValueForWrite(undefined, FIELDS.BARCODE)).toEqual(undefined);
+      expect(convertValueForWrite(null, FIELDS.BARCODE)).toBeNull();
+      expect(convertValueForWrite(undefined, FIELDS.BARCODE)).toBeNull();
     });
     it("barcode should still pass through illegal values", () => {
       // @ts-expect-error invalid barcode type
@@ -83,8 +83,8 @@ describe("Converters", () => {
     it("checkbox should convert values for write", () => {
       expect(convertValueForWrite(true, FIELDS.CHECKBOX)).toBe(true);
       expect(convertValueForWrite(false, FIELDS.CHECKBOX)).toBe(false);
-      expect(convertValueForWrite(null, FIELDS.CHECKBOX)).toBeNull();
-      expect(convertValueForWrite(undefined, FIELDS.CHECKBOX)).toBeUndefined();
+      expect(convertValueForWrite(null, FIELDS.CHECKBOX)).toBe(false);
+      expect(convertValueForWrite(undefined, FIELDS.CHECKBOX)).toBe(false);
     });
   });
   describe("count", () => {
@@ -122,7 +122,7 @@ describe("Converters", () => {
       expect(convertValueForWrite(99.99, FIELDS.CURRENCY)).toBe(99.99);
       expect(convertValueForWrite(0, FIELDS.CURRENCY)).toBe(0);
       expect(convertValueForWrite(null, FIELDS.CURRENCY)).toBeNull();
-      expect(convertValueForWrite(undefined, FIELDS.CURRENCY)).toBeUndefined();
+      expect(convertValueForWrite(undefined, FIELDS.CURRENCY)).toBeNull();
     });
     it("currency should convert to number for read", () => {
       expect(convertValueFromRead(99.99, FIELDS.CURRENCY)).toBe(99.99);
@@ -138,11 +138,15 @@ describe("Converters", () => {
     it("date should accept date string for write", () => {
       expect(convertValueForWrite("2024-01-15", FIELDS.DATE)).toBe("2024-01-15");
     });
+    it("date for write bad strings should typecheck but pass through", () => {
+      // @ts-expect-error invalid date string
+      expect(convertValueForWrite("not a date", FIELDS.DATE)).toBe("not a date");
+    });
     it("date should handle null for write", () => {
       expect(convertValueForWrite(null, FIELDS.DATE)).toBeNull();
     });
     it("date should handle undefined for write", () => {
-      expect(convertValueForWrite(undefined, FIELDS.DATE)).toBeUndefined();
+      expect(convertValueForWrite(undefined, FIELDS.DATE)).toBeNull();
     });
     it("date should convert to string for read", () => {
       expect(convertValueFromRead("2024-01-15", FIELDS.DATE)).toBe("2024-01-15");
@@ -169,7 +173,7 @@ describe("Converters", () => {
       expect(convertValueForWrite(null, FIELDS.DATE_TIME)).toBeNull();
     });
     it("dateTime should handle undefined for write", () => {
-      expect(convertValueForWrite(undefined, FIELDS.DATE_TIME)).toBeUndefined();
+      expect(convertValueForWrite(undefined, FIELDS.DATE_TIME)).toBeNull();
     });
     it("dateTime should convert to Date for read", () => {
       const isoStr = "2024-01-15T10:30:00.000Z";
@@ -198,7 +202,7 @@ describe("Converters", () => {
     it("email should convert for write", () => {
       expect(convertValueForWrite("test@example.com", FIELDS.EMAIL)).toBe("test@example.com");
       expect(convertValueForWrite(null, FIELDS.EMAIL)).toBeNull();
-      expect(convertValueForWrite(undefined, FIELDS.EMAIL)).toBeUndefined();
+      expect(convertValueForWrite(undefined, FIELDS.EMAIL)).toBeNull();
     });
     it("email should convert to string for read", () => {
       expect(convertValueFromRead("test@example.com", FIELDS.EMAIL)).toBe("test@example.com");
@@ -217,41 +221,72 @@ describe("Converters", () => {
     });
   });
   describe("formula", () => {
-    const numberSchema = {
-      type: "formula",
-      options: { isValid: true as const, result: { type: "number" as const } }
-    } as const
-    const singleLineTextSchema = {
-      type: "formula",
-      options: { isValid: true as const, result: { type: "singleLineText" as const } }
-    } as const
-    it("formula can't be written to", () => {
-      // @ts-expect-error
-      expect(() => convertValueForWrite(42, { type: "formula" })).toThrow();
+    describe("formula with checkbox result", () => {
+      const checkboxSchema = {
+        type: "formula",
+        options: { isValid: true, result: { type: "checkbox" } }
+      } as const
+      it("can't be written to", () => {
+        // @ts-expect-error
+        expect(() => convertValueForWrite(true, checkboxSchema)).toThrow();
+      });
+      it.fails('for read converts undefined to false', () => {
+        // @ts-expect-error
+        const result = convertValueFromRead(undefined, checkboxSchema);
+        expect(result).toBe(false);
+      });
+      it("for read should handle true and false", () => {
+        let x: boolean | null = convertValueFromRead(true, checkboxSchema);
+        expect(x).toBe(true);
+        // We should get a type error because the schema says the result is a boolean
+        // @ts-expect-error
+        let y: string = convertValueFromRead(false, checkboxSchema);
+        expect(y).toBe(false);
+      });
     });
-    it("formula for read should handle numbers", () => {
-      let x: number | null = convertValueFromRead(2, numberSchema);
-      expect(x).toBe(42);
-      // We should get a type error because the schema says the result is nullable
-      // @ts-expect-error
-      let y: number = convertValueFromRead(0, numberSchema);
-      expect(y).toBe(0);
-      // We should get a type error because the schema says the result is a number.
-      // @ts-expect-error
-      let z: string = convertValueFromRead(null, numberSchema);
-      expect(z).toBeNull();
+    describe("formula with number result", () => {
+      const numberSchema = {
+        type: "formula",
+        options: { isValid: true, result: { type: "number" } }
+      } as const
+      it("can't be written to", () => {
+        // @ts-expect-error
+        expect(() => convertValueForWrite(42, numberSchema)).toThrow();
+      });
+      it("read should handle numbers", () => {
+        let x: number | null = convertValueFromRead(2, numberSchema);
+        expect(x).toBe(2);
+        // We should get a type error because the schema says the result is nullable
+        // @ts-expect-error
+        let y: number = convertValueFromRead(0, numberSchema);
+        expect(y).toBe(0);
+        // We should get a type error because the schema says the result is a number.
+        // @ts-expect-error
+        let z: string = convertValueFromRead(null, numberSchema);
+        expect(z).toBeNull();
+      });
     });
-    it("formula for read should handle singleLineText", () => {
-      let x: string | null = convertValueFromRead("hello", singleLineTextSchema);
-      expect(x).toBe("hello");
-      // We should get a type error because the schema says the result is nullable
-      // @ts-expect-error
-      let y: string = convertValueFromRead("", singleLineTextSchema);
-      expect(y).toBe("");
-      // We should get a type error because the schema says the result is a string
-      // @ts-expect-error
-      let z: number = convertValueFromRead(null, singleLineTextSchema);
-      expect(z).toBeNull();
+    describe("formula with singleLineText result", () => {
+      const singleLineTextSchema = {
+        type: "formula",
+        options: { isValid: true, result: { type: "singleLineText" } }
+      } as const
+      it("can't be written to", () => {
+        // @ts-expect-error
+        expect(() => convertValueForWrite("hello", singleLineTextSchema)).toThrow();
+      });
+      it("formula for read should handle singleLineText", () => {
+        let x: string | null = convertValueFromRead("hello", singleLineTextSchema);
+        expect(x).toBe("hello");
+        // We should get a type error because the schema says the result is nullable
+        // @ts-expect-error
+        let y: string = convertValueFromRead("", singleLineTextSchema);
+        expect(y).toBe("");
+        // We should get a type error because the schema says the result is a string
+        // @ts-expect-error
+        let z: number = convertValueFromRead(null, singleLineTextSchema);
+        expect(z).toBeNull();
+      });
     });
   });
   describe("lastModifiedBy", () => {
@@ -280,7 +315,7 @@ describe("Converters", () => {
       const text = "Line 1\nLine 2\nLine 3";
       expect(convertValueForWrite(text, FIELDS.MULTILINE_TEXT)).toBe(text);
       expect(convertValueForWrite(null, FIELDS.MULTILINE_TEXT)).toBeNull();
-      expect(convertValueForWrite(undefined, FIELDS.MULTILINE_TEXT)).toBeUndefined();
+      expect(convertValueForWrite(undefined, FIELDS.MULTILINE_TEXT)).toBeNull();
     });
     it("multilineText should convert to string for read", () => {
       const text = "Line 1\nLine 2\nLine 3";
@@ -298,7 +333,7 @@ describe("Converters", () => {
     });
     it("multipleAttachments should handle nullish for write", () => {
       expect(convertValueForWrite(null, FIELDS.MULTIPLE_ATTACHMENTS)).toBeNull();
-      expect(convertValueForWrite(undefined, FIELDS.MULTIPLE_ATTACHMENTS)).toBeUndefined();
+      expect(convertValueForWrite(undefined, FIELDS.MULTIPLE_ATTACHMENTS)).toBeNull();
     });
     it("multipleAttachments should convert to array for read", () => {
       const attachments = [
@@ -391,14 +426,14 @@ describe("Converters", () => {
     it("number should convert for write", () => {
       expect(convertValueForWrite(42.5, FIELDS.NUMBER)).toBe(42.5);
       expect(convertValueFromRead(null, FIELDS.NUMBER)).toBeNull();
-      expect(convertValueForWrite(undefined, FIELDS.NUMBER)).toBeUndefined();
+      expect(convertValueForWrite(undefined, FIELDS.NUMBER)).toBeNull();
     });
   });
   describe("percent", () => {
     it("percent should convert for write", () => {
       expect(convertValueForWrite(0.75, FIELDS.PERCENT)).toBe(0.75);
       expect(convertValueForWrite(null, FIELDS.PERCENT)).toBeNull();
-      expect(convertValueForWrite(undefined, FIELDS.PERCENT)).toBeUndefined();
+      expect(convertValueForWrite(undefined, FIELDS.PERCENT)).toBeNull();
     });
     it("percent should convert to number for read", () => {
       expect(convertValueFromRead(0.75, FIELDS.PERCENT)).toBe(0.75);
@@ -408,7 +443,7 @@ describe("Converters", () => {
     it("phoneNumber should convert for write", () => {
       expect(convertValueForWrite("+1-555-123-4567", FIELDS.PHONE_NUMBER)).toBe("+1-555-123-4567");
       expect(convertValueForWrite(null, FIELDS.PHONE_NUMBER)).toBeNull();
-      expect(convertValueForWrite(undefined, FIELDS.PHONE_NUMBER)).toBeUndefined();
+      expect(convertValueForWrite(undefined, FIELDS.PHONE_NUMBER)).toBeNull();
     });
     it("phoneNumber should convert to string for read", () => {
       expect(convertValueFromRead("+1-555-123-4567", FIELDS.PHONE_NUMBER)).toBe("+1-555-123-4567");
@@ -418,7 +453,7 @@ describe("Converters", () => {
     it("rating should convert for write", () => {
       expect(convertValueForWrite(4, FIELDS.RATING)).toBe(4);
       expect(convertValueForWrite(null, FIELDS.RATING)).toBeNull();
-      expect(convertValueForWrite(undefined, FIELDS.RATING)).toBeUndefined();
+      expect(convertValueForWrite(undefined, FIELDS.RATING)).toBeNull();
     });
     it("rating should convert to number for read", () => {
       expect(convertValueFromRead(4, FIELDS.RATING)).toBe(4);
@@ -429,7 +464,7 @@ describe("Converters", () => {
       const html = "<p>Rich <strong>text</strong></p>";
       expect(convertValueForWrite(html, FIELDS.RICH_TEXT)).toBe(html);
       expect(convertValueForWrite(null, FIELDS.RICH_TEXT)).toBeNull();
-      expect(convertValueForWrite(undefined, FIELDS.RICH_TEXT)).toBeUndefined();
+      expect(convertValueForWrite(undefined, FIELDS.RICH_TEXT)).toBeNull();
     });
     it("richText should convert to string for read", () => {
       const html = "<p>Rich <strong>text</strong></p>";
@@ -473,7 +508,7 @@ describe("Converters", () => {
     });
     it("singleCollaborator should handle nullish for write", () => {
       expect(convertValueForWrite(null, FIELDS.SINGLE_COLLABORATOR)).toBeNull();
-      expect(convertValueForWrite(undefined, FIELDS.SINGLE_COLLABORATOR)).toBeUndefined();
+      expect(convertValueForWrite(undefined, FIELDS.SINGLE_COLLABORATOR)).toBeNull();
     });
     it("singleCollaborator should convert to User for read", () => {
       const user = { id: "usr123", email: "test@example.com", name: "Test User" };
@@ -484,7 +519,7 @@ describe("Converters", () => {
     it("singleLineText should convert for write", () => {
       expect(convertValueForWrite("Hello World", FIELDS.SINGLE_LINE_TEXT)).toBe("Hello World");
       expect(convertValueForWrite(null, FIELDS.SINGLE_LINE_TEXT)).toBeNull();
-      expect(convertValueForWrite(undefined, FIELDS.SINGLE_LINE_TEXT)).toBeUndefined();
+      expect(convertValueForWrite(undefined, FIELDS.SINGLE_LINE_TEXT)).toBeNull();
     });
     it("singleLineText should convert to string for read", () => {
       expect(convertValueFromRead("Hello World", FIELDS.SINGLE_LINE_TEXT)).toBe("Hello World");
@@ -502,7 +537,7 @@ describe("Converters", () => {
       expect(convertValueForWrite(null, FIELDS.SINGLE_SELECT)).toBeNull();
     });
     it("singleSelect for write should handle undefined", () => {
-      expect(convertValueForWrite(undefined, FIELDS.SINGLE_SELECT)).toBeUndefined();
+      expect(convertValueForWrite(undefined, FIELDS.SINGLE_SELECT)).toBeNull();
     });
     it("singleSelect for write should throw on invalid choice", () => {
       // @ts-expect-error
@@ -530,7 +565,7 @@ describe("Converters", () => {
     it("url should convert for write", () => {
       expect(convertValueForWrite("https://example.com", FIELDS.URL)).toBe("https://example.com");
       expect(convertValueForWrite(null, FIELDS.URL)).toBeNull();
-      expect(convertValueForWrite(undefined, FIELDS.URL)).toBeUndefined();
+      expect(convertValueForWrite(undefined, FIELDS.URL)).toBeNull();
     });
     it("url should convert to string for read", () => {
       expect(convertValueFromRead("https://example.com", FIELDS.URL)).toBe("https://example.com");
