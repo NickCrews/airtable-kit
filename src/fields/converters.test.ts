@@ -366,11 +366,77 @@ describe("Converters", () => {
     });
   });
   describe("multipleLookupValues", () => {
-    it("multipleLookupValues can't be written to", () => {
+    describe("multipleLookupValues with checkbox result", () => {
+      const checkboxSchema = {
+        type: "multipleLookupValues",
+        options: { isValid: true, result: { type: "checkbox" } }
+      } as const
+      it("can't be written to", () => {
+        // @ts-expect-error
+        expect(() => convertValueForWrite([true, false], checkboxSchema)).toThrow();
+      });
+      it("for read should handle boolean arrays", () => {
+        let x: (boolean | null)[] | null = convertValueFromRead([true, false, true], checkboxSchema);
+        expect(x).toEqual([true, false, true]);
+        // We should get a type error because the schema says the result is a boolean array
+        // @ts-expect-error
+        let y: string[] = convertValueFromRead([false], checkboxSchema);
+        expect(y).toEqual([false]);
+      });
+      it("for read should handle null", () => {
+        let x: (boolean | null)[] | null = convertValueFromRead(null, checkboxSchema);
+        expect(x).toEqual([]);
+      });
+    });
+    describe("multipleLookupValues with number result", () => {
+      const numberSchema = {
+        type: "multipleLookupValues",
+        options: { isValid: true, result: { type: "number" } }
+      } as const
+      it("can't be written to", () => {
+        // @ts-expect-error
+        expect(() => convertValueForWrite([1, 2, 3], numberSchema)).toThrow();
+      });
+      it("read should handle number arrays", () => {
+        let x: (number | null)[] | null = convertValueFromRead([1, 2, null, 3], numberSchema);
+        expect(x).toEqual([1, 2, null, 3]);
+        // We should get a type error because the schema says the result is a number array
+        // @ts-expect-error
+        let y: string[] = convertValueFromRead([42], numberSchema);
+        expect(y).toEqual([42]);
+      });
+      it("read should handle null", () => {
+        let x: (number | null)[] | null = convertValueFromRead(null, numberSchema);
+        expect(x).toEqual([]);
+      });
+    });
+    describe("multipleLookupValues with singleLineText result", () => {
+      const singleLineTextSchema = {
+        type: "multipleLookupValues",
+        options: { isValid: true, result: { type: "singleLineText" } }
+      } as const
+      it("can't be written to", () => {
+        // @ts-expect-error
+        expect(() => convertValueForWrite(["hello", "world"], singleLineTextSchema)).toThrow();
+      });
+      it("for read should handle string arrays", () => {
+        let x: (string | null)[] | null = convertValueFromRead(["hello", null, "world"], singleLineTextSchema);
+        expect(x).toEqual(["hello", null, "world"]);
+        // We should get a type error because the schema says the result is a string array
+        // @ts-expect-error
+        let y: number[] = convertValueFromRead(["test"], singleLineTextSchema);
+        expect(y).toEqual(["test"]);
+      });
+      it("for read should handle null", () => {
+        let x: (string | null)[] | null = convertValueFromRead(null, singleLineTextSchema);
+        expect(x).toEqual([]);
+      });
+    });
+    it("multipleLookupValues (legacy test) can't be written to", () => {
       // @ts-expect-error
       expect(() => convertValueForWrite([1, 2, 3], FIELDS.MULTIPLE_LOOKUP_VALUES)).toThrow();
     });
-    it("multipleLookupValues should convert to array for read", () => {
+    it("multipleLookupValues (legacy test) should convert to array for read", () => {
       const values = ["value1", "value2", "value3"];
       expect(convertValueFromRead(values, FIELDS.MULTIPLE_LOOKUP_VALUES)).toEqual(values);
     });
@@ -474,33 +540,65 @@ describe("Converters", () => {
     });
   });
   describe("rollup", () => {
-    const numberSchema = {
-      type: "rollup",
-      options: { isValid: true as const, result: { type: "number" as const } }
-    } as const
-    const singleLineTextSchema = {
-      type: "rollup",
-      options: { isValid: true as const, result: { type: "singleLineText" as const } }
-    } as const
-    it("rollup can't be written to", () => {
-      // @ts-expect-error
-      expect(() => convertValueForWrite(42, numberSchema)).toThrow();
+    describe("rollup with checkbox result", () => {
+      const checkboxSchema = {
+        type: "rollup",
+        options: { isValid: true, result: { type: "checkbox" } }
+      } as const
+      it("can't be written to", () => {
+        // @ts-expect-error
+        expect(() => convertValueForWrite(true, checkboxSchema)).toThrow();
+      });
+      it("for read should handle true and false", () => {
+        let x: boolean | null = convertValueFromRead(true, checkboxSchema);
+        expect(x).toBe(true);
+        // We should get a type error because the schema says the result is a boolean
+        // @ts-expect-error
+        let y: string = convertValueFromRead(false, checkboxSchema);
+        expect(y).toBe(false);
+      });
+      it("for read should handle null", () => {
+        // We should get a type error because the schema says the result is a boolean
+        // @ts-expect-error
+        let z: boolean = convertValueFromRead(null, checkboxSchema);
+        expect(z).toBeNull();
+      });
     });
-    it("rollup for read should handle number", () => {
-      let x: number | null = convertValueFromRead(42, numberSchema);
-      expect(x).toBe(42);
-      // We should get a type error because the schema says the result is a number.
-      // @ts-expect-error
-      let y: string = convertValueFromRead(null, numberSchema);
-      expect(y).toBeNull();
+    describe("rollup with number result", () => {
+      const numberSchema = {
+        type: "rollup",
+        options: { isValid: true as const, result: { type: "number" as const } }
+      } as const
+      it("can't be written to", () => {
+        // @ts-expect-error
+        expect(() => convertValueForWrite(42, numberSchema)).toThrow();
+      });
+      it("rollup for read should handle number", () => {
+        let x: number | null = convertValueFromRead(42, numberSchema);
+        expect(x).toBe(42);
+        // We should get a type error because the schema says the result is a number.
+        // @ts-expect-error
+        let y: string = convertValueFromRead(null, numberSchema);
+        expect(y).toBeNull();
+      });
     });
-    it("rollup for read should handle singleLineText", () => {
-      let x: string | null = convertValueFromRead("hello", singleLineTextSchema);
-      expect(x).toBe("hello");
-      // We should get a type error because the schema says the result is a string
-      // @ts-expect-error
-      let y: number = convertValueFromRead(null, singleLineTextSchema);
-      expect(y).toBeNull();
+    describe("rollup with singleLineText result", () => {
+      const singleLineTextSchema = {
+        type: "rollup",
+        options: { isValid: true as const, result: { type: "singleLineText" as const } }
+      } as const
+      it("can't be written to", () => {
+        // @ts-expect-error
+        expect(() => convertValueForWrite("hello", singleLineTextSchema)).toThrow();
+      });
+      it("rollup for read should handle singleLineText", () => {
+        let x: string | null = convertValueFromRead("hello", singleLineTextSchema);
+        expect(x).toBe("hello");
+        // We should get a type error because the schema says the result is a string
+        // @ts-expect-error
+        let y: number = convertValueFromRead(null, singleLineTextSchema);
+        expect(y).toBeNull();
+      });
     });
   });
   describe("singleCollaborator", () => {

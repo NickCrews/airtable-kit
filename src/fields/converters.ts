@@ -322,7 +322,7 @@ function toWriteMultipleCollaborators(value: User[] | null | undefined, fieldSch
 // Lookup fields are read-only and their read value depends on the result type.
 
 function fromReadMultipleLookupValues<T extends PartialExceptTypeAndResultTypeOptions<types.MultipleLookupValuesSchemaRead>>(
-    value: Array<RawResultFromDerivedType<T["options"]>>,
+    value: null | undefined | Array<RawResultFromDerivedType<T["options"]>>,
     fieldSchema: T
 ): Array<RawResultFromDerivedType<T["options"]>> {
     return value ?? [];
