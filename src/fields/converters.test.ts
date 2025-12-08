@@ -16,11 +16,13 @@ describe("Converters", () => {
       // @ts-expect-error
       expect(() => convertValueForWrite("some value", { type: "bogus" })).toThrow();
     });
+    it("should throw on a real field type but bogus options", () => {
+      // @ts-expect-error
+      expect(() => convertValueForWrite("format", { type: "singleSelect", options: { choices: ["wrong", "format"] } })).toThrow();
+    });
   });
   describe("aiText", () => {
     it("aiText can't be written to", () => {
-      // @ts-expect-error
-      expect(() => convertValueForWrite("some slop", FIELDS.AI_TEXT)).toThrow();
       // @ts-expect-error
       expect(() => convertValueForWrite("some slop", { type: "aiText" })).toThrow();
       // @ts-expect-error
