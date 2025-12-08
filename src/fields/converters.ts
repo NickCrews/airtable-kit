@@ -55,8 +55,8 @@ export interface BarcodeValue {
 function fromReadBarcode(value: BarcodeValue | null | undefined, fieldSchema: PartialExceptType<types.BarcodeSchemaRead>): BarcodeValue | null {
     return value ?? null;
 }
-function toWriteBarcode(value: BarcodeValue | null | undefined, fieldSchema: PartialExceptType<types.BarcodeSchemaRead>): BarcodeValue | null | undefined {
-    return value;
+function toWriteBarcode(value: BarcodeValue | null | undefined, fieldSchema: PartialExceptType<types.BarcodeSchemaRead>): BarcodeValue | null {
+    return value ?? null;
 }
 
 // ============================================================================
@@ -138,8 +138,8 @@ function toWriteCreatedTime(value: never, fieldSchema: PartialExceptType<types.C
 function fromReadCurrency(value: number | null | undefined, fieldSchema: PartialExceptType<types.CurrencySchemaRead>): number | null {
     return value ?? null;
 }
-function toWriteCurrency(value: number | null | undefined, fieldSchema: PartialExceptType<types.CurrencySchemaRead>): number | null | undefined {
-    return value;
+function toWriteCurrency(value: number | null | undefined, fieldSchema: PartialExceptType<types.CurrencySchemaRead>): number | null {
+    return value ?? null;
 }
 
 // ============================================================================
@@ -157,11 +157,11 @@ function fromReadDate(value: TDateString | null | undefined, fieldSchema: Partia
     }
     return value;
 }
-function toWriteDate(value: globalThis.Date | TDateString | null | undefined, fieldSchema: PartialExceptType<types.DateSchemaRead>): TDateString | null | undefined {
+function toWriteDate(value: globalThis.Date | TDateString | null | undefined, fieldSchema: PartialExceptType<types.DateSchemaRead>): TDateString | null {
     if (value instanceof globalThis.Date) {
         return value.toISOString().split("T")[0] as TDateString;
     }
-    return value;
+    return value ?? null;
 }
 
 // ============================================================================
@@ -170,11 +170,11 @@ function toWriteDate(value: globalThis.Date | TDateString | null | undefined, fi
 function fromReadDateTime(value: unknown, fieldSchema: PartialExceptType<types.DateTimeSchemaRead>): UtcTimestamp | null {
     return value as UtcTimestamp | null;
 }
-function toWriteDateTime(value: globalThis.Date | string | null | undefined, fieldSchema: PartialExceptType<types.DateTimeSchemaRead>): string | null | undefined {
+function toWriteDateTime(value: globalThis.Date | string | null | undefined, fieldSchema: PartialExceptType<types.DateTimeSchemaRead>): string | null {
     if (value instanceof globalThis.Date) {
         return value.toISOString();
     }
-    return value;
+    return value ?? null;
 }
 
 // ============================================================================
@@ -303,8 +303,8 @@ export type MultipleAttachmentWriteType = {
 function fromReadMultipleAttachments(value: Array<MultipleAttachmentReadType> | null | undefined, fieldSchema: PartialExceptType<types.MultipleAttachmentsSchemaRead>): Array<MultipleAttachmentReadType> {
     return value ?? [];
 }
-function toWriteMultipleAttachments(value: ReadonlyArray<MultipleAttachmentWriteType> | null | undefined, fieldSchema: PartialExceptType<types.MultipleAttachmentsSchemaRead>): ReadonlyArray<MultipleAttachmentWriteType> | null | undefined {
-    return value;
+function toWriteMultipleAttachments(value: ReadonlyArray<MultipleAttachmentWriteType> | null | undefined, fieldSchema: PartialExceptType<types.MultipleAttachmentsSchemaRead>): ReadonlyArray<MultipleAttachmentWriteType> | null {
+    return value ?? null;
 }
 
 // ============================================================================
@@ -534,9 +534,9 @@ function fromReadSingleSelect<F extends PartialExceptTypeAndOptions<types.Single
 function toWriteSingleSelect<F extends PartialExceptTypeAndOptions<types.SingleSelectSchemaRead>>(
     idOrName: F["options"]["choices"][number]["id"] | F["options"]["choices"][number]["name"] | null | undefined,
     fieldSchema: F
-): F["options"]["choices"][number]["id"] | null | undefined {
+): F["options"]["choices"][number]["id"] | null {
     if (idOrName === null || idOrName === undefined) {
-        return idOrName;
+        return null;
     }
     const choices = fieldSchema.options.choices;
     let found = choices.find((option) => option.id === idOrName);
@@ -560,8 +560,8 @@ function toWriteSingleSelect<F extends PartialExceptTypeAndOptions<types.SingleS
 function fromReadUrl(value: string | null | undefined, fieldSchema: PartialExceptType<types.UrlSchemaRead>): string | null {
     return value ?? null;
 }
-function toWriteUrl(value: string | null | undefined, fieldSchema: PartialExceptType<types.UrlSchemaRead>): string | null | undefined {
-    return value;
+function toWriteUrl(value: string | null | undefined, fieldSchema: PartialExceptType<types.UrlSchemaRead>): string | null {
+    return value ?? null;
 }
 
 // ============================================================================
