@@ -230,20 +230,28 @@ describe("Converters", () => {
       expect(() => convertValueForWrite(42, { type: "formula" })).toThrow();
     });
     it("formula for read should handle numbers", () => {
-      let x: number = convertValueFromRead(2, numberSchema);
+      let x: number | null = convertValueFromRead(2, numberSchema);
       expect(x).toBe(42);
+      // We should get a type error because the schema says the result is nullable
+      // @ts-expect-error
+      let y: number = convertValueFromRead(0, numberSchema);
+      expect(y).toBe(0);
       // We should get a type error because the schema says the result is a number.
       // @ts-expect-error
-      let y: string = convertValueFromRead(null, numberSchema);
-      expect(y).toBeNull();
+      let z: string = convertValueFromRead(null, numberSchema);
+      expect(z).toBeNull();
     });
     it("formula for read should handle singleLineText", () => {
-      let x: string = convertValueFromRead("hello", singleLineTextSchema);
+      let x: string | null = convertValueFromRead("hello", singleLineTextSchema);
       expect(x).toBe("hello");
+      // We should get a type error because the schema says the result is nullable
+      // @ts-expect-error
+      let y: string = convertValueFromRead("", singleLineTextSchema);
+      expect(y).toBe("");
       // We should get a type error because the schema says the result is a string
       // @ts-expect-error
-      let y: number = convertValueFromRead(null, singleLineTextSchema);
-      expect(y).toBeNull();
+      let z: number = convertValueFromRead(null, singleLineTextSchema);
+      expect(z).toBeNull();
     });
   });
   describe("lastModifiedBy", () => {
@@ -442,7 +450,7 @@ describe("Converters", () => {
       expect(() => convertValueForWrite(42, numberSchema)).toThrow();
     });
     it("rollup for read should handle number", () => {
-      let x: number = convertValueFromRead(42, numberSchema);
+      let x: number | null = convertValueFromRead(42, numberSchema);
       expect(x).toBe(42);
       // We should get a type error because the schema says the result is a number.
       // @ts-expect-error
@@ -450,7 +458,7 @@ describe("Converters", () => {
       expect(y).toBeNull();
     });
     it("rollup for read should handle singleLineText", () => {
-      let x: string = convertValueFromRead("hello", singleLineTextSchema);
+      let x: string | null = convertValueFromRead("hello", singleLineTextSchema);
       expect(x).toBe("hello");
       // We should get a type error because the schema says the result is a string
       // @ts-expect-error

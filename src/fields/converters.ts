@@ -212,14 +212,19 @@ function toWriteExternalSyncSource(value: unknown, fieldSchema: PartialExceptTyp
 // Formula fields are read-only and their read value depends on the result type.
 // For now, we pass through the raw value. A more sophisticated approach would
 // use the result type from fieldSchema.options.result to properly convert.
+
+type DerivedFieldTypes =
+    | { type: "number" }
+    | { type: "singleLineText" }
+    | { type: "checkbox" }
 type OptionsForDerivingResultType = { isValid: boolean; result: types.FieldTypeAndOptions };
 type RawResultFromDerivedType<T extends OptionsForDerivingResultType> =
-    T extends { isValid: true; result: infer R } ? ValueFromRead<R> : "foobar";
+    T extends { isValid: true; result: infer R extends DerivedFieldTypes } ? ValueFromRead<R> : "foobar";
 
 type PartialExceptTypeAndResultTypeOptions<T extends { type: types.FieldType, options: OptionsForDerivingResultType }> =
-    T extends { options: infer O } ? Pick<T, "type"> & { options: PartialExcept<O, "isValid" | "result"> } & Partial<Omit<T, "type" | "options">> : never
+    T extends { options: infer O extends OptionsForDerivingResultType } ? Pick<T, "type"> & { options: PartialExcept<O, "isValid" | "result"> } & Partial<Omit<T, "type" | "options">> : never
 
-function fromReadFormula<T extends PartialExceptTypeAndOptions<types.FormulaSchemaRead>>(
+function fromReadFormula<T extends PartialExceptTypeAndResultTypeOptions<types.FormulaSchemaRead>>(
     value: RawResultFromDerivedType<T["options"]>,
     fieldSchema: T
 ): RawResultFromDerivedType<T["options"]> {
@@ -316,25 +321,49 @@ function toWriteMultipleCollaborators(value: User[] | null | undefined, fieldSch
 // multipleLookupValues
 // Lookup fields are read-only and their read value depends on the result type.
 
-function fromReadMultipleLookupValues<T extends PartialExceptTypeAndResultTypeOptions<types.MultipleLookupValuesSchemaRead>>(value: Array<RawResultFromDerivedType<T["options"]>>, fieldSchema: T): Array<RawResultFromDerivedType<T["options"]>> {
+function fromReadMultipleLookupValues<T extends PartialExceptTypeAndResultTypeOptions<types.MultipleLookupValuesSchemaRead>>(
+    value: Array<RawResultFromDerivedType<T["options"]>>,
+    fieldSchema: T
+): Array<RawResultFromDerivedType<T["options"]>> {
     return value ?? [];
 }
-function toWriteMultipleLookupValues(value: never, fieldSchema: PartialExceptType<types.MultipleLookupValuesSchemaRead>): never {
+function toWriteMultipleLookupValues(
+    value: never,
+    fieldSchema: PartialExceptType<types.MultipleLookupValuesSchemaRead>
+): never {
     throw new FieldNotWritableError(fieldSchema);
 }
 
-const fieldSchema = {
+const fieldSchemaMultipleLookupValues = {
     type: "multipleLookupValues" as const,
     options: {
         isValid: true,
-        result: { type: "number" as const },
+        result: { type: "number" as const, },
     },
 } as const
-let y: RawResultFromDerivedType<typeof fieldSchema.options>
-let x: FromReadInputValue<typeof fieldSchema>
+let y: RawResultFromDerivedType<typeof fieldSchemaMultipleLookupValues.options>
+let x: FromReadInputValue<typeof fieldSchemaMultipleLookupValues>
 
 // let z = fromReadFormula(123, fieldSchema);
-let z = fromReadMultipleLookupValues("foobar", fieldSchema);
+fromReadMultipleLookupValues([54], fieldSchemaMultipleLookupValues);
+fromReadMultipleLookupValues([], fieldSchemaMultipleLookupValues);
+// @ts-expect-error
+fromReadMultipleLookupValues(["foo"], fieldSchemaMultipleLookupValues);
+
+const fieldSchemaFormula = {
+    type: "multipleLookupValues" as const,
+    options: {
+        isValid: true,
+        result: { type: "singleLineText" as const },
+    },
+} as const
+let ddd: RawResultFromDerivedType<typeof fieldSchemaFormula.options>
+let fff: FromReadInputValue<typeof fieldSchemaFormula>
+
+fromReadMultipleLookupValues(["foo"], fieldSchemaFormula);
+fromReadMultipleLookupValues([], fieldSchemaFormula);
+// @ts-expect-error
+fromReadMultipleLookupValues([54], fieldSchemaFormula);
 
 // ============================================================================
 // multipleRecordLinks
@@ -460,7 +489,10 @@ function toWriteRichText(value: string | null | undefined, fieldSchema: PartialE
 // rollup
 // Rollup fields are read-only and their read value depends on the result type.
 
-function fromReadRollup<T extends PartialExceptTypeAndOptions<types.RollupSchemaRead>>(value: RawResultFromDerivedType<T["options"]>, fieldSchema: T): RawResultFromDerivedType<T["options"]> {
+function fromReadRollup<T extends PartialExceptTypeAndResultTypeOptions<types.RollupSchemaRead>>(
+    value: RawResultFromDerivedType<T["options"]>,
+    fieldSchema: T,
+): RawResultFromDerivedType<T["options"]> {
     return value;
 }
 function toWriteRollup(value: never, fieldSchema: PartialExceptType<types.RollupSchemaRead>): never {
@@ -553,13 +585,13 @@ type ReadFuncFromFieldSchema<T extends FieldSchemaFromRead> =
     T extends FieldSchemaForReadFunc<typeof fromReadDuration> ? typeof fromReadDuration :
     T extends FieldSchemaForReadFunc<typeof fromReadEmail> ? typeof fromReadEmail :
     T extends FieldSchemaForReadFunc<typeof fromReadExternalSyncSource> ? typeof fromReadExternalSyncSource :
-    T extends FieldSchemaForReadFunc<typeof fromReadFormula> ? typeof fromReadFormula :
+    T extends FieldSchemaForReadFunc<typeof fromReadFormula> ? typeof fromReadFormula<T> :
     T extends FieldSchemaForReadFunc<typeof fromReadLastModifiedBy> ? typeof fromReadLastModifiedBy :
     T extends FieldSchemaForReadFunc<typeof fromReadLastModifiedTime> ? typeof fromReadLastModifiedTime :
     T extends FieldSchemaForReadFunc<typeof fromReadMultilineText> ? typeof fromReadMultilineText :
     T extends FieldSchemaForReadFunc<typeof fromReadMultipleAttachments> ? typeof fromReadMultipleAttachments :
     T extends FieldSchemaForReadFunc<typeof fromReadMultipleCollaborators> ? typeof fromReadMultipleCollaborators :
-    T extends FieldSchemaForReadFunc<typeof fromReadMultipleLookupValues> ? typeof fromReadMultipleLookupValues :
+    T extends FieldSchemaForReadFunc<typeof fromReadMultipleLookupValues> ? typeof fromReadMultipleLookupValues<T> :
     T extends FieldSchemaForReadFunc<typeof fromReadMultipleRecordLinks> ? typeof fromReadMultipleRecordLinks :
     T extends FieldSchemaForReadFunc<typeof fromReadMultipleSelects> ? typeof fromReadMultipleSelects<T> :
     T extends FieldSchemaForReadFunc<typeof fromReadNumber> ? typeof fromReadNumber :
@@ -567,7 +599,7 @@ type ReadFuncFromFieldSchema<T extends FieldSchemaFromRead> =
     T extends FieldSchemaForReadFunc<typeof fromReadPhoneNumber> ? typeof fromReadPhoneNumber :
     T extends FieldSchemaForReadFunc<typeof fromReadRating> ? typeof fromReadRating :
     T extends FieldSchemaForReadFunc<typeof fromReadRichText> ? typeof fromReadRichText :
-    T extends FieldSchemaForReadFunc<typeof fromReadRollup> ? typeof fromReadRollup :
+    T extends FieldSchemaForReadFunc<typeof fromReadRollup> ? typeof fromReadRollup<T> :
     T extends FieldSchemaForReadFunc<typeof fromReadSingleCollaborator> ? typeof fromReadSingleCollaborator :
     T extends FieldSchemaForReadFunc<typeof fromReadSingleLineText> ? typeof fromReadSingleLineText :
     T extends FieldSchemaForReadFunc<typeof fromReadSingleSelect> ? typeof fromReadSingleSelect<T> :
