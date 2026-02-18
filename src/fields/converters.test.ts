@@ -29,7 +29,7 @@ describe("Converters", () => {
       expect(() => convertValueForWrite("some slop", { type: "aiText", bogusField: true })).toThrow();
     });
     it("aiText makeFrom should convert from read", () => {
-      const v = { state: "generated" as const, isStale: false, value: "Generated AI text" };
+      const v = { state: "generated", isStale: false, value: "Generated AI text" } as const;
       expect(convertValueFromRead(v, FIELDS.AI_TEXT)).toBe(v);
       expect(convertValueFromRead(v, { type: "aiText" })).toBe(v);
       // @ts-expect-error incorrect type for the options field
@@ -42,7 +42,8 @@ describe("Converters", () => {
       expect(() => convertValueForWrite(42, FIELDS.AUTO_NUMBER)).toThrow();
     });
     it("autoNumber should convert from read", () => {
-      expect(convertValueFromRead(42, FIELDS.AUTO_NUMBER)).toBe(42);
+      const r: 42 = convertValueFromRead(42, FIELDS.AUTO_NUMBER)
+      expect(r).toBe(42);
     });
     it("autoNumber should throw on invalid values on read", () => {
       // @ts-expect-error
