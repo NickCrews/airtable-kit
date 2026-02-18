@@ -410,7 +410,7 @@ interface Rollup {
   options: {
     recordLinkFieldId?: FieldId;
     fieldIdInLinkedTable?: FieldId;
-    referencedFieldIds?: FieldId[];
+    referencedFieldIds?: readonly FieldId[];
     // This determines the type when reading from the API,
     // so we need it for type inference
     result: FieldTypeAndOptions;
@@ -421,7 +421,7 @@ export interface RollupSchemaRead extends Rollup {
   options: {
     recordLinkFieldId: FieldId;
     fieldIdInLinkedTable: FieldId;
-    referencedFieldIds?: FieldId[];
+    referencedFieldIds?: readonly FieldId[];
     result: FieldTypeAndOptions;
     isValid: boolean;
   };
