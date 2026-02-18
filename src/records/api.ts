@@ -6,6 +6,7 @@ import { Formula, formulaToString } from "../formula";
 import { AttachmentId, BaseId, FieldId, RecordId, TableId } from "../types";
 import { convertValuesFromRead, convertValuesForWrite, ValuesFromRead, ValuesForWrite, WriteValuesById } from "./converters";
 import * as exceptions from "../exceptions";
+import { URLSearchParams } from "../url.ts";
 
 type FieldNameOrId<T extends FieldSchemaRead> = T['name'] | T['id'];
 

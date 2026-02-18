@@ -1,6 +1,7 @@
 import { type TableSchema, type BaseSchema, type BaseId, WorkspaceId } from "../types.ts";
 import { doFetch, makeFetcher, type IntoFetcher } from "../fetcher.ts";
 import { TableSchemaCreate } from "../tables/index.ts";
+import { URLSearchParams } from "../url.ts";
 
 export interface BaseSchemaCreate {
   /** The name of the base to create */
