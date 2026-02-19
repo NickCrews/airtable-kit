@@ -298,19 +298,33 @@ export interface MultipleLookupValuesSchemaRead {
   description?: string;
   type: "multipleLookupValues";
   options: {
-    recordLinkFieldId: FieldId;
-    fieldIdInLinkedTable: FieldId;
-    result: FieldTypeAndOptions;
     /** Is the field currently valid (e.g. false if the linked record field has been deleted) */
-    isValid: boolean;
+    isValid: true;
+    /** The linked record field in the current table. */
+    recordLinkFieldId: FieldId;
+    /** The field in the linked table that this field is looking up. */
+    fieldIdInLinkedTable: FieldId;
+    /** The field type and options inside of the linked table. */
+    result: FieldTypeAndOptions;
+  } | {
+    /** Is the field currently valid (e.g. false if the linked record field has been deleted) */
+    isValid: false;
+    /** The linked record field in the current table. */
+    recordLinkFieldId: FieldId | null;
+    /** The field in the linked table that this field is looking up. */
+    fieldIdInLinkedTable: null;
+    /** The field type and options inside of the linked table. `null` because `isValid` is false */
+    result: null;
   };
 }
 export interface MultipleLookupValuesSchemaCreate {
   name: string;
   description?: string;
-  type: "multipleLookupValues";
+  type: "a";
   options: {
+    /** The linked record field in the current table. */
     recordLinkFieldId: FieldId;
+    /** The field in the linked table that this field is looking up. */
     fieldIdInLinkedTable: FieldId;
   }
 }
