@@ -12,7 +12,7 @@
 // and we lose the semantics of "everything in fields is a field schema".
 import { type Timezone } from "./timezones.ts";
 import { type BrightColor, type SelectColor } from "./colors.ts";
-import { FieldId, TableId, type SelectId } from "../types.ts";
+import { FieldId, TableId, type ViewId, type SelectId } from "../types.ts";
 
 type FieldTypeAndOptions = Omit<FieldSchemaRead, "id" | "name" | "description">
 
@@ -320,10 +320,16 @@ export interface MultipleRecordLinksSchemaRead {
   description?: string;
   type: "multipleRecordLinks";
   options: {
+    /** The ID of the table this field links to */
     linkedTableId: TableId;
-    inverseLinkFieldId: FieldId;
-    prefersSingleRecordLink: boolean;
+    /** Whether linked records are rendered in the reverse order from the cell value in the Airtable UI (i.e. most recent first). */
     isReversed: boolean;
+    /** Whether this field prefers to only have a single linked record. While this preference is enforced in the Airtable UI, it is possible for a field that prefers single linked records to have multiple record links (for example, via copy-and-paste or programmatic updates). */
+    prefersSingleRecordLink: boolean;
+    /** The ID of the field in the linked table that links back to this one. Applicable */
+    inverseLinkFieldId?: FieldId;
+    /** The ID of the view in the linked table to use when showing a list of records to select from */
+    viewIdForRecordSelection?: ViewId;
   };
 }
 export interface MultipleRecordLinksSchemaCreate {
@@ -331,9 +337,14 @@ export interface MultipleRecordLinksSchemaCreate {
   description?: string;
   type: "multipleRecordLinks"
   options: {
+    /** The ID of the table this field links to */
     linkedTableId: TableId;
-    inverseLinkFieldId: FieldId;
+    /** Whether this field prefers to only have a single linked record. While this preference is enforced in the Airtable UI, it is possible for a field that prefers single linked records to have multiple record links (for example, via copy-and-paste or programmatic updates). */
     prefersSingleRecordLink: boolean;
+    /** The ID of the field in the linked table that links back to this one. Applicable */
+    inverseLinkFieldId?: FieldId;
+    /** The ID of the view in the linked table to use when showing a list of records to select from */
+    viewIdForRecordSelection?: ViewId;
   };
 }
 export interface MultipleSelectsSchemaRead<C extends SelectChoiceSchemaRead = SelectChoiceSchemaRead> {
