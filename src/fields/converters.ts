@@ -365,7 +365,9 @@ const MultipleCollaboratorsConverters = {
 >;
 
 type MultipleLookupValuesResultType<F extends types.MultipleLookupValuesSchemaRead> = F["options"]["result"]
-type MultipleLookupValuesReadType<F extends types.MultipleLookupValuesSchemaRead> = ValueFromRead<MultipleLookupValuesResultType<F>>;
+// Like ValueFromRead, but if the result type is null, then the output type is null
+type ValueFromReadNullable<F extends null | Omit<FieldSchemaRead, "id" | "name">> = F extends null ? null : ValueFromRead<Exclude<F, null>>;
+type MultipleLookupValuesReadType<F extends types.MultipleLookupValuesSchemaRead> = ValueFromReadNullable<MultipleLookupValuesResultType<F>>;
 const MultipleLookupValuesConverters = {
     type: "multipleLookupValues",
     makeTo: null,
