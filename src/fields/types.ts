@@ -320,7 +320,7 @@ export interface MultipleLookupValuesSchemaRead {
 export interface MultipleLookupValuesSchemaCreate {
   name: string;
   description?: string;
-  type: "a";
+  type: "multipleLookupValues";
   options: {
     /** The linked record field in the current table. */
     recordLinkFieldId: FieldId;
