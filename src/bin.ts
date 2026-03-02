@@ -3,7 +3,7 @@
  * CLI for airtable-kit
  */
 
-import { cli } from "./cli.ts";
+import { cli } from "./cli/cli.ts";
 
 cli(process.argv.slice(2)).catch((error) => {
     console.error("❌ Error:", (error as Error).message);
