@@ -677,12 +677,14 @@ export async function uploadAttachment<T extends FieldId | string>(
         fetcher,
         path: `/${baseId}/${recordId}/${attachmentFieldIdOrName}/uploadAttachment`,
         method: "POST",
-        baseUrl,
         data: {
             contentType: options.contentType,
             file: options.file,
             filename: options.filename,
         },
+        config: {
+            baseUrl
+        }
     });
     if ('error' in result) {
         throw new exceptions.AirtableKitApiError(
