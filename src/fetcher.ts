@@ -18,8 +18,10 @@ export type FetchArgs = {
     config?: FetchConfig;
 }
 
-const DEFAULT_BASE_URL = "https://api.airtable.com/v0";
-const DEFAULT_API_KEY_ENV_VAR = "AIRTABLE_API_KEY";
+/** Default base URL for the Airtable API: "https://api.airtable.com/v0" */
+export const DEFAULT_BASE_URL = "https://api.airtable.com/v0";
+/** Default environment variable name for the Airtable API key: "AIRTABLE_API_KEY" */
+export const DEFAULT_API_KEY_ENV_VAR = "AIRTABLE_API_KEY";
 
 /**
  * Configuration options for fetching data from the Airtable API.

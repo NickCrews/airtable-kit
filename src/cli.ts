@@ -1,12 +1,13 @@
-import { parseArgs, parseEnv } from 'node:util';
+import { parseEnv } from 'node:util';
 import path from "node:path";
 import process from 'node:process';
 import fs from 'node:fs';
+import { Command } from 'commander';
 
 import { BaseId } from "./types.ts";
 import { fetchAllSchemas, getBaseSchema } from "./bases/index.ts";
 import { generateCode } from "./codegen/index.ts";
-import { IntoFetcher } from './fetcher.ts';
+import { IntoFetcher, DEFAULT_API_KEY_ENV_VAR } from './fetcher.ts';
 import { toIdentifier } from './codegen/identifiers.ts';
 
 import * as packageJson from '../package.json';
@@ -78,100 +79,88 @@ async function doCodegenAll({
   console.log(`\n✅ Generated ${baseSchemas.length} schema file(s) in ${outDir}`);
 }
 
-function getHelp() {
-  return `Airtable Kit CLI
-
-Usage:
-  npx airtable-kit codegen base <BASE_ID> [--api-key <API_KEY>] [--format <ts|js>] [--outfile <OUTPUT_FILE>] [--base-name <BASE_NAME>] 
-  npx airtable-kit codegen all            [--api-key <API_KEY>] [--format <ts|js>] [--outdir <OUTPUT_DIR>] 
-  npx airtable-kit --help
-  npx airtable-kit --version
-
-Commands:
-  codegen base    Generate a ts/js schema file for a specific Airtable base.
-  codegen all     Generate ts/js schema files for all Airtable bases.
-
-Global Options:
-  --api-key       Your Airtable API key or a custom fetcher to use for fetching the schema.
-                  If not provided, will try to load from environment variable AIRTABLE_API_KEY,
-                  or from a .env file in the current directory.
-  --format        The output format: "ts" for TypeScript or "js" for JavaScript.
-                  Default is to infer from the output filename extension if provided, otherwise "ts".
-  --help          Show this help message.
-  --version       Show the version number.
-
-Options for "codegen base" command:
-  <BASE_ID>       The ID of the Airtable base to generate the schema from.
-  --outfile       The output file path for the generated schema file. (default: ./<BASE_NAME>-schema.ts or .js)
-
-Options for "codegen all" command:
-  --outdir       The output directory for the generated schema files (default: ./schemas/).
-`.trim();
-}
-
 type Consolish = {
   log: (...args: unknown[]) => void;
   error: (...args: unknown[]) => void;
 };
 
 export async function cli(args: string[], fetcher?: IntoFetcher, console: Consolish = globalThis.console): Promise<void> {
-  const options = {
-    version: { type: 'boolean' },
-    help: { type: 'boolean' },
-    "api-key": { type: 'string' },
-    "format": { type: 'string' },
-    "base-name": { type: 'string' },
-    outfile: { type: 'string' },
-    outdir: { type: 'string' },
-  } as const;
-  const { values, positionals } = parseArgs({ args, options, allowPositionals: true });
+  const program = new Command()
+    .name('airtable-kit')
+    .version(packageJson.version)
+    .description('A better ts/js airtable toolkit')
+    .configureOutput({
+      writeOut: (str) => console.log(str),
+      writeErr: (str) => console.error(str),
+    })
+    .exitOverride();
 
-  if (values.help || positionals[0] === 'help') {
-    console.log(getHelp());
-    return;
-  }
-  if (values.version || positionals[0] === 'version') {
-    console.log(packageJson.version);
-    return;
-  }
-  if (positionals[0] === 'codegen') {
-    const apiKey = getApiKey(values["api-key"]);
-    const sub = positionals[1];
-    if (sub === 'base') {
-      const baseId = positionals[2] as BaseId | undefined;
-      const missings = [] as string[];
-      if (!baseId) missings.push('<BASE_ID>');
-      if (missings.length > 0) {
-        const err = `Missing required options: ${missings.join(', ')}`;
-        console.error(`❌ ${err}`);
-        console.log(getHelp());
-        throw new Error(err);
-      }
-      const providedOut = values.outfile;
-      const providedFormat = getFormat(values.format);
-      const finalFormat = providedFormat ?? (providedOut?.endsWith('.js') ? 'js' : providedOut?.endsWith('.ts') ? 'ts' : undefined) ?? 'ts';
+  const codegen = program
+    .command('codegen')
+    .description('Generate TypeScript or JavaScript schema files from Airtable bases');
+
+  codegen
+    .command('base <baseId>')
+    .description('Generate a ts/js schema file for a specific Airtable base')
+    .option('--api-key <key>', 'Your Airtable API key')
+    .option('--format <format>', 'Output format: "ts" or "js"')
+    .option('--outfile <path>', 'Output file path for the generated schema')
+    .option('--base-name <name>', 'Custom base name')
+    .action(async (baseId: string, options: {
+      apiKey?: string;
+      format?: string;
+      outfile?: string;
+      baseName?: string;
+    }) => {
+      const apiKey = getApiKey(options.apiKey);
+      const providedFormat = getFormat(options.format);
+      const finalFormat = providedFormat ?? (options.outfile?.endsWith('.js') ? 'js' : options.outfile?.endsWith('.ts') ? 'ts' : undefined) ?? 'ts';
+
       await doCodegenBase({
         baseId: baseId as BaseId,
         fetcher: fetcher ?? apiKey,
-        outFile: providedOut,
+        outFile: options.outfile,
         format: finalFormat,
       }, console);
-      return;
-    }
-    if (sub === 'all') {
+    });
+
+  codegen
+    .command('all')
+    .description('Generate ts/js schema files for all Airtable bases')
+    .option('--api-key <key>', 'Your Airtable API key')
+    .option('--format <format>', 'Output format: "ts" or "js"')
+    .option('--outdir <path>', 'Output directory for schema files', './schemas/')
+    .action(async (options: {
+      apiKey?: string;
+      format?: string;
+      outdir?: string;
+    }) => {
+      const apiKey = getApiKey(options.apiKey);
+
       await doCodegenAll({
         fetcher: fetcher ?? apiKey,
-        outDir: values.outdir ?? './schemas/',
-        format: getFormat(values.format),
+        outDir: options.outdir ?? './schemas/',
+        format: getFormat(options.format),
       }, console);
+    });
+
+  try {
+    await program.parseAsync(args, { from: 'user' });
+  } catch (error: any) {
+    if (error.code === 'commander.help' || error.code === 'commander.helpDisplayed') {
       return;
     }
-    console.error('❌ Unknown codegen subcommand');
-    console.log(getHelp());
-    throw new Error('Unknown codegen subcommand');
+    if (error.code === 'commander.version') {
+      return;
+    }
+    if (error.code === 'commander.missingMandatoryOptionValue' ||
+      error.code === 'commander.missingArgument' ||
+      error.code === 'commander.unknownCommand' ||
+      error.code === 'commander.unknownOption') {
+      throw error;
+    }
+    throw error;
   }
-  console.log(getHelp());
-  throw new Error(`Unknown command`);
 }
 
 /** Get an api key from
@@ -185,7 +174,7 @@ function getApiKey(apiKeyRaw: string | undefined): string {
     return apiKeyRaw;
   }
   try {
-    const fromProcessEnv = process.env.AIRTABLE_API_KEY;
+    const fromProcessEnv = process.env[DEFAULT_API_KEY_ENV_VAR];
     if (fromProcessEnv) {
       return fromProcessEnv;
     }
@@ -195,14 +184,14 @@ function getApiKey(apiKeyRaw: string | undefined): string {
   try {
     const envFileContent = fs.readFileSync('.env', 'utf-8');
     const parsed = parseEnv(envFileContent);
-    const fromEnvFile = parsed.AIRTABLE_API_KEY;
+    const fromEnvFile = parsed[DEFAULT_API_KEY_ENV_VAR];
     if (fromEnvFile) {
       return fromEnvFile;
     }
   } catch {
     // ignore
   }
-  throw new Error('No Airtable API key provided. Please provide via --api-key or AIRTABLE_API_KEY env var (also supported in .env file).');
+  throw new Error(`No Airtable API key provided. Please provide via --api-key or ${DEFAULT_API_KEY_ENV_VAR} env var (also supported in .env file).`);
 }
 
 function getFormat(formatRaw: string | undefined): "ts" | "js" | undefined {

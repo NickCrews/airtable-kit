@@ -25,6 +25,7 @@
   "scripts": {
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
+    "cli": "pnpx tsx src/bin.ts",
     "test": "vitest run",
     "test:watch": "vitest watch",
     "build": "zshy && cp README.md dist/README.md && cp LICENSE dist/LICENSE",
@@ -57,5 +58,8 @@
   "files": [
     "dist"
   ],
-  "module": "./dist/index.js"
+  "module": "./dist/index.js",
+  "dependencies": {
+    "commander": "^14.0.3"
+  }
 }

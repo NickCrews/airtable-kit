@@ -74,25 +74,23 @@ describe('CLI', () => {
     });
     it('should display help text with "--help"', async () => {
       await callCli(["--help"]);
-      expect(mockConsole.log).toHaveBeenCalledWith(expect.stringContaining('Airtable Kit CLI'));
+      expect(mockConsole.log).toHaveBeenCalledWith(expect.stringContaining('Usage: airtable-kit'));
       expect(spiedFetch).not.toHaveBeenCalled();
     });
 
     it('should display help text with "help"', async () => {
       await callCli(["help"]);
-      expect(mockConsole.log).toHaveBeenCalledWith(expect.stringContaining('Airtable Kit CLI'));
+      expect(mockConsole.log).toHaveBeenCalledWith(expect.stringContaining('Usage: airtable-kit'));
       expect(spiedFetch).not.toHaveBeenCalled();
     });
 
     it('should display version with "--version"', async () => {
       await callCli(["--version"]);
-      expect(mockConsole.log).toHaveBeenCalledWith(expect.stringMatching(/^\d+\.\d+\.\d+$/));
+      expect(mockConsole.log).toHaveBeenCalledWith(expect.stringMatching(/\d+\.\d+\.\d+/));
       expect(spiedFetch).not.toHaveBeenCalled();
     });
-    it('should display version with "version"', async () => {
-      await callCli(["version"]);
-      expect(mockConsole.log).toHaveBeenCalledWith(expect.stringMatching(/^\d+\.\d+\.\d+$/));
-      expect(spiedFetch).not.toHaveBeenCalled();
+    it('should error when using "version" command', async () => {
+      expect(async () => await callCli(["version"])).rejects.toThrow();
     });
   });
 
