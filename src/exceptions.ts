@@ -1,3 +1,4 @@
+import { FieldForConvert } from "./fields/converters.ts";
 import { FieldSchemaRead } from "./fields/types.ts";
 import { ListRecordsOptions } from "./records/api.ts";
 import { FieldId } from "./types.ts";
@@ -29,11 +30,11 @@ export class AirtableKitApiError extends AirtableKitError {
  * Thrown when a value read from the Airtable API could not be converted to the appropriate TypeScript type.
  */
 export class ReadValueConversionError extends AirtableKitError {
-    public readonly fieldSchema: FieldSchemaRead;
+    public readonly fieldSchema: FieldForConvert;
     public readonly value: unknown;
     public readonly originalError?: Error;
-    constructor(value: unknown, fieldSchema: FieldSchemaRead, originalError?: Error) {
-        super(`Value not convertible for field ${fieldSchema.name} (id: ${fieldSchema.id}, type: ${fieldSchema.type}): ${value}`);
+    constructor(value: unknown, fieldSchema: FieldForConvert, originalError?: Error) {
+        super(`Value not convertible for ${fieldSchema.type} field: ${value}`);
         this.value = value;
         this.fieldSchema = fieldSchema;
         this.originalError = originalError;
@@ -47,11 +48,11 @@ export class ReadValueConversionError extends AirtableKitError {
  * Thrown when a value could not be converted to write to the Airtable API.
  */
 export class WriteValueConversionError extends AirtableKitError {
-    public readonly fieldSchema: FieldSchemaRead;
+    public readonly fieldSchema: FieldForConvert;
     public readonly value: unknown;
     public readonly originalError?: Error;
-    constructor(value: unknown, fieldSchema: FieldSchemaRead, originalError?: Error) {
-        super(`Value not convertible for writing to field ${fieldSchema.name} (id: ${fieldSchema.id}, type: ${fieldSchema.type}): ${value}`);
+    constructor(value: unknown, fieldSchema: FieldForConvert, originalError?: Error) {
+        super(`Value not convertible for writing to ${fieldSchema.type} field: ${value}`);
         this.value = value;
         this.fieldSchema = fieldSchema;
         this.originalError = originalError;
@@ -63,9 +64,9 @@ export class WriteValueConversionError extends AirtableKitError {
 
 /** Thrown when attempting to read from a field that is not readable, eg a 'button' field */
 export class FieldNotReadableError extends AirtableKitError {
-    public readonly fieldSchema: FieldSchemaRead;
-    constructor(fieldSchema: FieldSchemaRead) {
-        super(`Field not readable: ${fieldSchema.name} (id: ${fieldSchema.id}, type: ${fieldSchema.type})`);
+    public readonly fieldSchema: FieldForConvert;
+    constructor(fieldSchema: FieldForConvert) {
+        super(`Field not readable: ${fieldSchema.type} field`);
         this.fieldSchema = fieldSchema;
         this.name = "FieldNotReadableError";
         // Maintain the correct prototype chain
@@ -75,9 +76,9 @@ export class FieldNotReadableError extends AirtableKitError {
 
 /** Thrown when attempting to write to a field that is not writable, eg a 'createdTime' field */
 export class FieldNotWritableError extends AirtableKitError {
-    public readonly fieldSchema: FieldSchemaRead;
-    constructor(fieldSchema: FieldSchemaRead) {
-        super(`Field not writable: ${fieldSchema.name} (id: ${fieldSchema.id}, type: ${fieldSchema.type})`);
+    public readonly fieldSchema: FieldForConvert;
+    constructor(fieldSchema: FieldForConvert) {
+        super(`Field not writable: ${fieldSchema.type} field`);
         this.fieldSchema = fieldSchema;
         this.name = "FieldNotWritableError";
         // Maintain the correct prototype chain
@@ -94,7 +95,7 @@ export class FieldNotWritableError extends AirtableKitError {
 export class MissingFieldReadError extends AirtableKitError {
     public readonly fieldSchema: FieldSchemaRead;
     constructor(fieldSchema: FieldSchemaRead) {
-        super(`Missing required field on read: ${fieldSchema.name} (id: ${fieldSchema.id}, type: ${fieldSchema.type})`);
+        super(`Missing required field on read: ${fieldSchema.type} field`);
         this.fieldSchema = fieldSchema;
         this.name = "MissingFieldReadError";
         // Maintain the correct prototype chain
