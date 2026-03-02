@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import * as api from "./api.ts";
 import testBaseSchema from "../tests/test-base-schema.generated.ts";
-import { getTestEnv } from "../tests/test-utils.ts";
+import { setupTestEnv } from "../tests/test-utils.ts";
 
-const fetcher = getTestEnv().AIRTABLE_KIT_TEST_API_KEY;
+setupTestEnv();
 
 describe("Records API", () => {
     const tasksTable = testBaseSchema.tables.find((t) => t.name === "tasks")!;
@@ -14,7 +14,6 @@ describe("Records API", () => {
             baseId: testBaseSchema.id,
             tableId: tasksTable.id,
             fields: tasksTable.fields,
-            fetcher,
         });
 
         if (allRecords.length > 0) {
@@ -25,7 +24,6 @@ describe("Records API", () => {
                     recordIds: batch,
                     baseId: testBaseSchema.id,
                     tableId: tasksTable.id,
-                    fetcher,
                 });
             }
         }
@@ -43,7 +41,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             expect(result).toHaveLength(1);
@@ -68,7 +65,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             expect(result).toHaveLength(25);
@@ -85,7 +81,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             expect(result).toEqual([]);
@@ -104,7 +99,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             expect(result[0].fields).toMatchObject({
@@ -126,7 +120,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             expect(result).toHaveLength(1);
@@ -145,7 +138,6 @@ describe("Records API", () => {
                     baseId: testBaseSchema.id,
                     tableId: tasksTable.id,
                     fields: tasksTable.fields,
-                    fetcher,
                 })
             ).rejects.toThrow();
         });
@@ -156,7 +148,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             expect(result).toEqual([]);
@@ -174,14 +165,12 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             const result = await api.listRecords({
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             // The test table may be empty, so just verify the call works
@@ -202,7 +191,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             const completedFieldId = tasksTable.fields.find((f) => f.name === "completed")?.id;
@@ -210,7 +198,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
                 options: {
                     filterByFormula: `{${completedFieldId}} = TRUE()`,
                 },
@@ -230,14 +217,12 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             const result = await api.listRecords({
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
                 options: {
                     sort: [{ field: "priority", direction: "asc" }],
                 },
@@ -251,7 +236,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
                 options: {
                     maxRecords: 2,
                 },
@@ -265,7 +249,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
                 options: {
                     fields: ["name", "status"],
                     maxRecords: 1,
@@ -285,14 +268,12 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             const result = await api.listRecords({
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             expect(result.length).toBeGreaterThanOrEqual(35);
@@ -305,7 +286,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
                 options: {
                     pageSize: 5,
                 },
@@ -321,7 +301,6 @@ describe("Records API", () => {
                     baseId: testBaseSchema.id,
                     tableId: tasksTable.id,
                     fields: tasksTable.fields,
-                    fetcher,
                     options: {
                         filterByFormula: "{invalidfield} = TRUE()",
                     },
@@ -334,7 +313,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
                 options: {
                     maxRecords: 1,
                 },
@@ -351,7 +329,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
                 options: {
                     recordMetadata: ["commentCount"],
                     maxRecords: 1,
@@ -369,7 +346,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
                 options: {
                     sort: [{ field: "name", direction: "asc" }],
                     maxRecords: 1,
@@ -385,7 +361,6 @@ describe("Records API", () => {
                     baseId: testBaseSchema.id,
                     tableId: tasksTable.id,
                     fields: tasksTable.fields,
-                    fetcher,
                     options: {
                         sort: [{ field: "nonexistentfield" as any, direction: "asc" }],
                     },
@@ -401,7 +376,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             const result = await api.getRecord({
@@ -409,7 +383,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             expect(result).toMatchObject({
@@ -427,7 +400,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             const result = await api.getRecord({
@@ -435,7 +407,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             expect(result.fields).toHaveProperty("name");
@@ -455,7 +426,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             const result = await api.getRecord({
@@ -463,7 +433,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             expect(result.fields).toBeDefined();
@@ -477,7 +446,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             const result = await api.updateRecords({
@@ -493,7 +461,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             expect(result.records).toHaveLength(1);
@@ -514,7 +481,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             const result = await api.updateRecords({
@@ -527,7 +493,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             expect(result.records).toHaveLength(25);
@@ -546,7 +511,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             const result = await api.updateRecords({
@@ -561,7 +525,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
                 options: {
                     destructive: false,
                 },
@@ -572,7 +535,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             expect(retrieved.fields.name).toBe("Updated Name");
@@ -592,7 +554,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             await api.updateRecords({
@@ -607,7 +568,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
                 options: {
                     destructive: true,
                 },
@@ -618,7 +578,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             expect(retrieved.fields.name).toBe("Updated Name");
@@ -632,7 +591,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             const result = await api.updateRecords({
@@ -647,7 +605,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
                 options: {
                     typecast: true,
                 },
@@ -662,7 +619,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             expect(result).toEqual({ records: [] });
@@ -680,7 +636,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             await api.updateRecords({
@@ -697,7 +652,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             const retrieved = await api.getRecord({
@@ -705,7 +659,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             expect(retrieved.fields.name).toBe("Updated");
@@ -720,7 +673,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             const result = await api.updateRaw({
@@ -736,7 +688,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             expect(result.records).toHaveLength(1);
@@ -755,7 +706,6 @@ describe("Records API", () => {
                     baseId: testBaseSchema.id,
                     tableId: tasksTable.id,
                     fields: tasksTable.fields,
-                    fetcher,
                 })
             ).rejects.toThrow("Can only update up to 10 records at a time");
         });
@@ -766,7 +716,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             expect(result).toEqual({ records: [] });
@@ -780,7 +729,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             const result = await api.deleteRecords({
@@ -804,7 +752,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             const recordIds = created.map((r) => r.id);
@@ -837,7 +784,6 @@ describe("Records API", () => {
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
-                fetcher,
             });
 
             const result = await api.deleteRecordsRaw({
@@ -884,7 +830,6 @@ describe("Records API", () => {
                     baseId: testBaseSchema.id,
                     tableId: tasksTable.id,
                     fields: tasksTable.fields,
-                    fetcher,
                 });
                 const base64File = Buffer.from("test file content").toString("base64");
                 const result = await api.uploadAttachment({
@@ -896,7 +841,6 @@ describe("Records API", () => {
                         "file": base64File,
                         "filename": "test.txt"
                     },
-                    fetcher,
                 });
                 // Now fetch the record and verify attachment field
                 const updatedRecord = await api.getRecord({
@@ -904,7 +848,6 @@ describe("Records API", () => {
                     baseId: testBaseSchema.id,
                     tableId: tasksTable.id,
                     fields: tasksTable.fields,
-                    fetcher,
                 });
 
                 expect(updatedRecord.fields.attachments).toBeDefined();

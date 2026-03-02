@@ -2,6 +2,7 @@
  * Test utilities for real Airtable API integration tests
  */
 
+import { setDefaultConfig } from "../fetcher.ts";
 import { makeBaseClient, BaseClient } from "../clients/index.ts";
 import { type ValuesForWrite } from "../records/converters.ts";
 import type { BaseId, BaseSchema, TableSchema, WorkspaceId } from "../types.ts";
@@ -44,6 +45,12 @@ export function getTestEnv(env?: NodeJS.ProcessEnv): TestEnv {
     };
 }
 
+export function setupTestEnv() {
+    const env = getTestEnv();
+    setDefaultConfig({ apiKey: env.AIRTABLE_KIT_TEST_API_KEY });
+    return env;
+}
+
 /**
  * Get configured clients for the test base.
  * Returns table clients for each table and a reset function.
@@ -51,8 +58,8 @@ export function getTestEnv(env?: NodeJS.ProcessEnv): TestEnv {
  * @returns Object with table clients and resetBaseData function
  */
 export function testBaseClient() {
-    const env = getTestEnv();
-    const baseClient = makeBaseClient({ baseSchema: testBaseSchema, fetcher: env.AIRTABLE_KIT_TEST_API_KEY });
+    setupTestEnv();
+    const baseClient = makeBaseClient({ baseSchema: testBaseSchema });
     return {
         baseClient,
         tasksTableClient: baseClient.tables.tasks,
