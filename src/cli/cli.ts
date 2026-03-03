@@ -15,19 +15,13 @@ import { createRecordCommand } from "./record.ts";
 
 import * as packageJson from '../../package.json';
 
-type Consolish = {
-  log: (...args: unknown[]) => void;
-  error: (...args: unknown[]) => void;
-};
-
-export async function cli(args: string[], fetcher?: IntoFetcher, console: Consolish = globalThis.console): Promise<void> {
+export async function cli(args: string[], fetcher?: IntoFetcher): Promise<void> {
   const program = new Command()
     .name('airtable-kit')
     .version(packageJson.version, "--version")
     .helpCommand(false)
     .description('A better TypeScript Airtable toolkit')
     .option('--api-key <key>', 'Airtable API key')
-    .option('--output <format>', 'Output format: json or markdown (default: markdown)')
     .configureOutput({
       writeOut: (str) => console.log(str),
       writeErr: (str) => console.error(str),
