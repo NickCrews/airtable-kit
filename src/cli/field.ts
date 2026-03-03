@@ -1,12 +1,13 @@
 import { Command } from "commander";
 import { fetchAllSchemas } from "../bases/index.ts";
 import { ConfigManager } from "./config.ts";
-import { format } from "./formatters.ts";
+import { mdTable } from "./md.ts";
 import { resolveBase, resolveTable, resolveField, ensureOneMatch } from "./resolvers.ts";
 import { IntoFetcher } from "../fetcher.ts";
 import { createField, updateField } from "../fields/api.ts";
-import { BaseId, TableId } from "../types.ts";
+import { BaseId, TableId, TableSchema } from "../types.ts";
 import { readInput } from "./input.ts";
+import { FieldSchemaRead } from "../fields/types.ts";
 
 export function createFieldCommand(resolveFetcher: () => IntoFetcher): Command {
   const cmd = new Command("field")
@@ -29,7 +30,11 @@ export function createFieldCommand(resolveFetcher: () => IntoFetcher): Command {
       const tableResolved = resolveTable(baseId || null, tableId || null, allSchemas);
       const { table } = ensureOneMatch(tableResolved, "table", tableId || "(no context)", baseId ? `in base ${baseId}` : undefined);
 
-      console.log(format(table.fields, options.output === "json" ? "json" : "markdown", "field-list"));
+      if (options.output === "json") {
+        console.log(JSON.stringify(table.fields, null, 2));
+      } else {
+        console.log(formatFieldList(table));
+      }
     });
 
   cmd
@@ -49,7 +54,11 @@ export function createFieldCommand(resolveFetcher: () => IntoFetcher): Command {
       const fieldResolved = resolveField(baseId || null, tableId || null, identifier, allSchemas);
       const { field } = ensureOneMatch(fieldResolved, "field", identifier, tableId ? `in table ${tableId}` : undefined);
 
-      console.log(format(field, options.output === "json" ? "json" : "markdown", "field"));
+      if (options.output === "json") {
+        console.log(JSON.stringify(field, null, 2));
+      } else {
+        console.log(formatField(field));
+      }
     });
 
   cmd
@@ -101,7 +110,7 @@ export function createFieldCommand(resolveFetcher: () => IntoFetcher): Command {
         fetcher,
       });
 
-      console.log(format(result, "markdown", "field"));
+      console.log(formatField(result));
       console.log(`\n✅ Field created: ${result.name} (${result.id})`);
     });
 
@@ -138,9 +147,33 @@ export function createFieldCommand(resolveFetcher: () => IntoFetcher): Command {
         fetcher,
       });
 
-      console.log(format(updated, "markdown", "field"));
+      console.log(formatField(updated));
       console.log(`\n✅ Field updated: ${updated.name}`);
     });
 
   return cmd;
+}
+
+export function formatField(field: FieldSchemaRead): string {
+  const description = field.description ? `\n- **Description**: ${field.description}` : "";
+  const options = (field as any).options ? `\n\n## Options\n\n\`\`\`json\n${JSON.stringify((field as any).options, null, 2)}\n\`\`\`` : "";
+  return `# Field \`${field.name}\` (${field.id})
+
+- **Name**: ${field.name}
+- **ID**: ${field.id}
+- **Type**: ${field.type}${description}${options}`;
+}
+
+export function formatFieldList(table: TableSchema): string {
+  const fields = table.fields;
+  if (fields.length === 0) {
+    return "No fields found.";
+  }
+  const primaryField = fields.find(f => f.id === table.primaryFieldId);
+
+  return `# Fields in table \`${table.name}\` (${table.id})
+
+- **Total: ${fields.length} fields**
+${primaryField ? `- **Primary field**: \`${primaryField.name}\` (${primaryField.id})\`\n` : ""}
+${mdTable(["Name", "ID", "Type", "Description"], fields.map(f => [f.name, f.id, f.type, f.description]))}`;
 }

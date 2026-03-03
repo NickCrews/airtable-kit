@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { fetchAllSchemas } from "../bases/index.ts";
 import { ConfigManager } from "./config.ts";
-import { format } from "./formatters.ts";
+import { mdTable } from "./md.ts";
 import { resolveTable, ensureOneMatch } from "./resolvers.ts";
 import { IntoFetcher } from "../fetcher.ts";
 import { BaseId } from "../types.ts";
@@ -57,7 +57,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
       if (options.output === "json") {
         console.log(JSON.stringify(records, null, 2));
       } else {
-        console.log(format({ records, fields: table.fields }, "markdown", "record-list"));
+        console.log(formatRecordList(records, table.fields));
       }
     });
 
@@ -85,7 +85,11 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
       });
 
       const record = await client.getRecord(recordId as any);
-      console.log(format(record, options.output === "json" ? "json" : "markdown", "record"));
+      if (options.output === "json") {
+        console.log(JSON.stringify(record, null, 2));
+      } else {
+        console.log(formatRecord(record, table.fields));
+      }
     });
 
   cmd
@@ -125,7 +129,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
       if (options.output === "json") {
         console.log(JSON.stringify(results, null, 2));
       } else {
-        console.log(format({ records: results, fields: table.fields }, "markdown", "record-list"));
+        console.log(formatRecordList(results, table.fields));
       }
       console.log(`\n✅ Created ${results.length} record(s)`);
     });
@@ -174,7 +178,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
       if (options.output === "json") {
         console.log(JSON.stringify(updated, null, 2));
       } else {
-        console.log(format(updated, options.output === "json" ? "json" : "markdown", "record"));
+        console.log(formatRecord(updated, table.fields));
       }
       console.log(`\n✅ Updated record: ${recordId}`);
     });
@@ -251,10 +255,59 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
       if (options.output === "json") {
         console.log(JSON.stringify(results, null, 2));
       } else {
-        console.log(format({ records: results.records, fields: table.fields }, "markdown", "record-list"));
+        console.log(formatRecordList(results.records, table.fields));
       }
       console.log(`\n✅ Upserted ${results.records.length} record(s)`);
     });
 
   return cmd;
+}
+
+function truncate(str: string, maxLen: number = 60): string {
+  if (str.length <= maxLen) return str;
+  return str.slice(0, maxLen) + "...";
+}
+
+export function formatRecord(record: { id: string; fields: Record<string, any> }, tableFields?: readonly any[]): string {
+  const rows: [string, string][] = [["ID", record.id]];
+
+  for (const [fieldId, value] of Object.entries(record.fields)) {
+    const field = tableFields?.find((f: any) => f.id === fieldId);
+    const fieldName = field?.name || fieldId;
+    const displayValue =
+      value === null ? "(empty)" :
+        Array.isArray(value) ? `[${value.length} items]` :
+          typeof value === "object" ? JSON.stringify(value).slice(0, 50) :
+            String(value);
+    rows.push([fieldName, truncate(displayValue)]);
+  }
+
+  return `# Record ${record.id}
+
+${mdTable(["Field", "Value"], rows as string[][])}`;
+}
+
+export function formatRecordList(records: any[], fields?: readonly any[]): string {
+  if (records.length === 0) {
+    return "No records found.";
+  }
+
+  const fieldNames = fields?.map((f: any) => f.name) || [];
+
+  const headers = ["ID", ...fieldNames];
+  const rows = records.map(record => [
+    record.id,
+    ...fieldNames.map(fname => {
+      const field = fields?.find((f: any) => f.name === fname);
+      const value = record.fields[field?.id];
+      return truncate(
+        value === null ? "(empty)" :
+          Array.isArray(value) ? `[${value.length}]` :
+            typeof value === "object" ? JSON.stringify(value) :
+              String(value)
+      );
+    }),
+  ]);
+
+  return `** Total: ${records.length} records **\n\n${mdTable(headers, rows)}`;
 }

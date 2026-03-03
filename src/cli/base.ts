@@ -1,12 +1,13 @@
 import { Command } from "commander";
 import { fetchAllSchemas } from "../bases/index.ts";
 import { ConfigManager } from "./config.ts";
-import { format } from "./formatters.ts";
+import { mdTable } from "./md.ts";
 import { resolveBase, ensureOneMatch } from "./resolvers.ts";
 import { IntoFetcher } from "../fetcher.ts";
 import { generateCode } from "../codegen/index.ts";
 import path from "node:path";
 import { toIdentifier } from "../codegen/identifiers.ts";
+import { BaseSchema } from "../types.ts";
 
 export function createBaseCommand(resolveFetcher: () => IntoFetcher): Command {
   const cmd = new Command("base")
@@ -19,7 +20,12 @@ export function createBaseCommand(resolveFetcher: () => IntoFetcher): Command {
     .action(async (options: any) => {
       const fetcher = resolveFetcher();
       const schemas = await fetchAllSchemas({ fetcher });
-      console.log(format(schemas, options.output === "json" ? "json" : "markdown", "base-list"));
+      if (options.output === "json") {
+        console.log(JSON.stringify(schemas, null, 2));
+        return;
+      } else {
+        console.log(formatBaseList(schemas));
+      }
     });
 
   cmd
@@ -34,8 +40,12 @@ export function createBaseCommand(resolveFetcher: () => IntoFetcher): Command {
       const resolvedId = baseId || config.getBaseId();
       const resolved = resolveBase(resolvedId || null, schemas);
       const base = ensureOneMatch(resolved, "base", resolvedId || "(no context)");
-
-      console.log(format(base, options.output === "json" ? "json" : "markdown", "base"));
+      if (options.output === "json") {
+        console.log(JSON.stringify(base, null, 2));
+        return;
+      } else {
+        console.log(formatBase(base));
+      }
     });
 
   cmd
@@ -81,4 +91,38 @@ export function createBaseCommand(resolveFetcher: () => IntoFetcher): Command {
     });
 
   return cmd;
+}
+
+
+export function formatBase(base: BaseSchema): string {
+  const tableTable = mdTable(
+    ["Name", "ID", "Fields", "Description"],
+    base.tables.map(t => [
+      t.name,
+      t.id,
+      t.fields.length,
+      t.description,
+    ])
+  );
+
+  return `# Base \`${base.name}\` (${base.id})
+  
+- **Name**: ${base.name}
+- **ID**: ${base.id}
+- **URL**: [https://airtable.com/${base.id}](https://airtable.com/${base.id})
+
+## Tables (${base.tables.length})
+
+${base.tables.length ? tableTable : "No tables found."}`;
+}
+
+export function formatBaseList(bases: BaseSchema[]): string {
+  if (bases.length === 0) {
+    return "No bases found.";
+  }
+
+  const rows = bases.map(b => [b.name, b.id, String(b.tables.length)]);
+  return `# Bases (${bases.length})
+  
+${mdTable(["Name", "ID", "Tables"], rows)}`;
 }

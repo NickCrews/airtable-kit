@@ -1,11 +1,11 @@
 import { Command } from "commander";
 import { fetchAllSchemas } from "../bases/index.ts";
 import { ConfigManager } from "./config.ts";
-import { format } from "./formatters.ts";
+import { mdTable } from "./md.ts";
 import { resolveBase, resolveTable, ensureOneMatch } from "./resolvers.ts";
 import { IntoFetcher } from "../fetcher.ts";
 import { createTable, updateTable } from "../tables/index.ts";
-import { BaseId, TableId } from "../types.ts";
+import { BaseId, BaseSchema, TableId, TableSchema } from "../types.ts";
 
 export function createTableCommand(resolveFetcher: () => IntoFetcher): Command {
   const cmd = new Command("table")
@@ -25,7 +25,11 @@ export function createTableCommand(resolveFetcher: () => IntoFetcher): Command {
       const baseResolved = resolveBase(baseId || null, allSchemas);
       const base = ensureOneMatch(baseResolved, "base", baseId || "(no context)");
 
-      console.log(format(base.tables, options.output === "json" ? "json" : "markdown", "table-list"));
+      if (options.output === "json") {
+        console.log(JSON.stringify(base.tables, null, 2));
+      } else {
+        console.log(formatTableList(base));
+      }
     });
 
   cmd
@@ -42,7 +46,11 @@ export function createTableCommand(resolveFetcher: () => IntoFetcher): Command {
       const tableResolved = resolveTable(baseId || null, identifier, allSchemas);
       const { table } = ensureOneMatch(tableResolved, "table", identifier, baseId ? `in base ${baseId}` : undefined);
 
-      console.log(format(table, options.output === "json" ? "json" : "markdown", "table"));
+      if (options.output === "json") {
+        console.log(JSON.stringify(table, null, 2));
+      } else {
+        console.log(formatTable(table));
+      }
     });
 
   cmd
@@ -93,7 +101,7 @@ export function createTableCommand(resolveFetcher: () => IntoFetcher): Command {
         fetcher,
       });
 
-      console.log(format(result, "markdown", "table"));
+      console.log(formatTable(result));
       console.log(`\n✅ Table created: ${result.name} (${result.id})`);
     });
 
@@ -123,9 +131,67 @@ export function createTableCommand(resolveFetcher: () => IntoFetcher): Command {
         fetcher,
       });
 
-      console.log(format(updated, "markdown", "table"));
+      console.log(formatTable(updated));
       console.log(`\n✅ Table updated: ${updated.name}`);
     });
 
   return cmd;
+}
+
+export function formatTable(table: TableSchema): string {
+  let metadata = `- **Name**: ${table.name}
+- **ID**: ${table.id}`;
+  if (table.description) {
+    metadata += `\n- **Description**: ${table.description}`;
+  }
+  const primaryField = table.fields.find(f => f.id === table.primaryFieldId);
+  if (primaryField) {
+    metadata += `\n- **Primary field**: \`${primaryField.name}\` (${primaryField.id})`;
+  }
+
+  const fieldTable = mdTable(
+    ["Name", "ID", "Type", "Description"],
+    table.fields.map(f => [
+      f.name,
+      f.id,
+      (f as any).type,
+      f.description || "",
+    ])
+  );
+
+  const views = table.views || [];
+  const viewText = views.length ? mdTable(
+    ["Name", "ID", "Type"],
+    views.map(v => [
+      v.name,
+      v.id,
+      v.type,
+    ])
+  ) : 'No views found.';
+
+  return `# Table \`${table.name}\` (${table.id})
+
+${metadata}
+
+## Fields ${table.fields.length ? `(${table.fields.length})` : ""}
+
+${fieldTable}
+
+## Views ${views.length ? `(${views.length})` : ""}
+
+${viewText}`;
+}
+
+export function formatTableList(base: BaseSchema): string {
+  const tables = base.tables;
+  if (tables.length === 0) {
+    return "No tables found.";
+  }
+
+  const rows = tables.map(t => [t.name, t.id, String(t.fields.length), t.description || ""]);
+  return `# Tables in base \`${base.name}\` (${base.id})
+
+Total: **${tables.length}** tables
+
+${mdTable(["Name", "ID", "Fields", "Description"], rows)}`;
 }
