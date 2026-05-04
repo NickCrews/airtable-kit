@@ -3,7 +3,7 @@
  */
 
 import { setDefaultConfig } from "../fetcher.ts";
-import { makeBaseClient, BaseClient } from "../clients/index.ts";
+import { makeBaseClient, BaseClient } from "../bases/base-client.ts";
 import { type ValuesForWrite } from "../records/converters.ts";
 import type { BaseId, BaseSchema, TableSchema, WorkspaceId } from "../types.ts";
 // import { linkedItemsSeedData, usersSeedData, getTasksSeedData, getAllTypesSeedData } from "./seed-data.ts";

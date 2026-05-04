@@ -1,7 +1,7 @@
 import { type RecordId, type BaseId, type TableSchema, FieldId } from "../types.ts";
 import { IntoFetcher } from "../fetcher.ts";
 import * as r from "../records/index.ts";
-import { updateTable } from "../tables/index.ts";
+import { updateTable } from "./index.ts";
 import { createField, updateField } from "../fields/api.ts";
 import { Formula, formulaToString } from "../formula/formula.ts";
 import { FieldSchemaCreate, FieldSchemaRead } from "../fields/types.ts";

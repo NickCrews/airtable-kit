@@ -4,7 +4,7 @@ import process from 'node:process';
 import fs from 'node:fs';
 import { Command } from 'commander';
 
-import { fetchAllSchemas } from "../bases/index.ts";
+import { fetchAllSchemas } from "../bases/api.ts";
 import { generateCode } from "../codegen/index.ts";
 import { IntoFetcher, DEFAULT_API_KEY_ENV_VAR } from '../fetcher.ts';
 import { toIdentifier } from '../codegen/identifiers.ts';

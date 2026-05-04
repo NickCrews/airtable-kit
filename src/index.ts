@@ -6,7 +6,6 @@
  */
 
 import * as bases from "./bases/index.ts";
-import * as clients from "./clients/index.ts";
 import * as codegen from "./codegen/index.ts";
 import * as exceptions from "./exceptions.ts";
 import * as fetcher from "./fetcher.ts";
@@ -20,7 +19,6 @@ import * as validators from "./validators/index.ts";
 
 export {
     bases,
-    clients,
     codegen,
     exceptions,
     fetcher,

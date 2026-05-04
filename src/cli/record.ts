@@ -6,7 +6,7 @@ import { resolveTable, ensureOneMatch } from "./resolvers.ts";
 import { IntoFetcher } from "../fetcher.ts";
 import { BaseId } from "../types.ts";
 import { readInput, validateRecordData, validateBatchData } from "./input.ts";
-import { makeTableClient } from "../clients/table-client.ts";
+import { makeTableClient } from "../tables/table-client.ts";
 
 export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command {
   const cmd = new Command("record")

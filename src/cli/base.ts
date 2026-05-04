@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { fetchAllSchemas } from "../bases/index.ts";
+import { fetchAllSchemas } from "../bases/api.ts";
 import { ConfigManager } from "./config.ts";
 import { mdTable } from "./md.ts";
 import { resolveBase, ensureOneMatch } from "./resolvers.ts";

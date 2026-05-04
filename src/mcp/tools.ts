@@ -3,7 +3,7 @@
  */
 
 import type { RecordId, TableSchema } from '../types.ts';
-import { type TableClient } from '../clients/table-client.ts';
+import { type TableClient } from '../tables/table-client.ts';
 import { type ValuesFromRead, type ValuesForWrite } from '../records/converters.ts';
 import * as z4 from 'zod/v4';
 import { makeRecordWriteValidator } from '../validators/schema-to-zod.ts';
