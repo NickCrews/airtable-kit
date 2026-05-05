@@ -208,6 +208,7 @@ const agent = new ToolLoopAgent({
 
 ```typescript
 import { createField } from 'airtable-kit/fields';
+import { updateRecords } from 'airtable-kit/records';
 
 createField(
   {
@@ -221,7 +222,7 @@ createField(
   }
 )
 
-atk.records.updateRecords(
+updateRecords(
   {
     records: [
       {id: 'recXXXXXXXXXXXX', fields: { 'fldYYYYYYYYYYYYYY': 47 } },
