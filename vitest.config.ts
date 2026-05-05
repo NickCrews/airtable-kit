@@ -12,5 +12,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    // Vitest's default behavior is to run each test file in parallel.
+    // But our tests all share the same real Airtable test base.
+    // So they clobber each other, with one test deleting records as another is reading them, etc.
+    fileParallelism: false,
   },
 });
