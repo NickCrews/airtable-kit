@@ -1,6 +1,6 @@
-import { type BaseSchema } from "../types.ts";
 import { IntoFetcher } from "../fetcher.ts";
 import { BaseClient, makeBaseClient } from "./base-client.ts";
+import { BaseSchema } from "./types.ts";
 
 type BaseClients<T extends ReadonlyArray<BaseSchema>> = {
     [K in T[number]as K["name"]]: BaseClient<K>;

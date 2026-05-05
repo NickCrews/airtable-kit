@@ -1,5 +1,7 @@
+import * as atk_bases from 'airtable-kit/bases';
+import * as atk_codegen from 'airtable-kit/codegen';
 import { createSignal, For, Show, onMount, createEffect } from 'solid-js'
-import * as atk from 'airtable-kit'
+
 import { ExternalLink } from 'lucide-solid'
 import './App.css'
 
@@ -18,7 +20,7 @@ interface KeyValidation {
 
 interface BasesForKey {
   key: string
-  bases: atk.types.BaseSchema[]
+  bases: atk_bases.BaseSchema[]
 }
 
 interface AddedKey {
@@ -31,7 +33,7 @@ function App() {
   const [apiKeyBeingAdded, setApiKeyBeingAdded] = createSignal('')
   const [loading, setLoading] = createSignal(false)
   const [error, setError] = createSignal<string | null>(null)
-  const [bases, setBases] = createSignal<atk.types.BaseSchema[]>([])
+  const [bases, setBases] = createSignal<atk_bases.BaseSchema[]>([])
   const [selectedBaseId, setSelectedBaseId] = createSignal<string>('')
   const [expandedTables, setExpandedTables] = createSignal<Set<string>>(new Set())
   const [selectedItems, setSelectedItems] = createSignal<SelectedItems>({
@@ -72,7 +74,7 @@ function App() {
     const results: BasesForKey[] = []
     for (const key of enabledKeys) {
       try {
-        const fetchedBases = await atk.bases.fetchAllSchemas({ fetcher: key })
+        const fetchedBases = await atk_bases.fetchAllSchemas({ fetcher: key })
         results.push({ key, bases: fetchedBases })
         setKeyValidation((prev) => ({ ...prev, [key]: true }))
       } catch {
@@ -142,7 +144,7 @@ function App() {
     setLoading(true)
     setError(null)
     try {
-      const fetchedBases = await atk.bases.fetchAllSchemas({ fetcher: key })
+      const fetchedBases = await atk_bases.fetchAllSchemas({ fetcher: key })
       if (fetchedBases.length === 0) {
         setError('No bases found. Make sure your API key has access to at least one base.')
         setKeyValidation((prev) => ({ ...prev, [key]: false }))
@@ -225,7 +227,7 @@ function App() {
     }
 
     const selected = selectedItems()
-    const filteredBase: atk.types.BaseSchema = {
+    const filteredBase: atk_bases.BaseSchema = {
       ...base,
       tables: base.tables
         .filter((t) => selected.tableIds.has(t.id))
@@ -243,7 +245,7 @@ function App() {
       if (format() === 'json') {
         code = JSON.stringify(filteredBase, null, 2)
       } else {
-        code = await atk.codegen.generateCode(filteredBase, { format: format() as 'ts' | 'js' })
+        code = await atk_codegen.generateCode(filteredBase, { format: format() as 'ts' | 'js' })
       }
       setGeneratedCode(code)
     } catch (err) {
@@ -288,7 +290,7 @@ function App() {
 
   const downloadFile = () => {
     const base = bases().find((b) => b.id === selectedBaseId())
-    const baseName = base ? atk.codegen.toIdentifier(base.name) : 'schema'
+    const baseName = base ? atk_codegen.toIdentifier(base.name) : 'schema'
     const ext = format() === 'json' ? 'json' : format()
     const filename = `${baseName}.${ext}`
 

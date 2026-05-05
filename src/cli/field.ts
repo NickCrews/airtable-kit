@@ -1,13 +1,13 @@
 import { Command } from "commander";
-import { fetchAllSchemas } from "../bases/index.ts";
+import { fetchAllSchemas } from "../bases/api.ts";
 import { ConfigManager } from "./config.ts";
 import { mdTable } from "./md.ts";
 import { resolveBase, resolveTable, resolveField, ensureOneMatch } from "./resolvers.ts";
 import { IntoFetcher } from "../fetcher.ts";
 import { createField, updateField } from "../fields/api.ts";
-import { BaseId, TableId, TableSchema } from "../types.ts";
 import { readInput } from "./input.ts";
 import { FieldSchemaRead } from "../fields/types.ts";
+import { TableSchema } from "../tables/types.ts";
 
 export function createFieldCommand(resolveFetcher: () => IntoFetcher): Command {
   const cmd = new Command("field")
@@ -104,8 +104,8 @@ export function createFieldCommand(resolveFetcher: () => IntoFetcher): Command {
       };
 
       const result = await createField({
-        baseId: base.id as BaseId,
-        tableId: table.id as TableId,
+        baseId: base.id,
+        tableId: table.id,
         field: field as any,
         fetcher,
       });
@@ -136,8 +136,8 @@ export function createFieldCommand(resolveFetcher: () => IntoFetcher): Command {
       const { table, field } = ensureOneMatch(fieldResolved, "field", identifier, tableId ? `in table ${tableId}` : undefined);
 
       const updated = await updateField({
-        baseId: base.id as BaseId,
-        tableId: table.id as TableId,
+        baseId: base.id,
+        tableId: table.id,
         field: {
           ...field,
           id: field.id,

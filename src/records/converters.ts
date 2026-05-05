@@ -1,5 +1,4 @@
-import { FieldSchemaRead } from "../fields/types.ts";
-import { FieldId } from "../types.ts";
+import { FieldId, FieldSchemaRead } from "../fields/types.ts";
 import { convertValueFromRead, convertValueForWrite, ValueFromRead, ValueForWrite } from "../fields/converters.ts";
 import * as exceptions from "../exceptions.ts";
 
@@ -54,7 +53,7 @@ export type ValuesFromRead<T extends FieldSchemaRead> = {
 export function convertValuesFromRead<
     F extends FieldSchemaRead,
 >(
-    rawValues: Readonly<Record<FieldId, unknown>>,
+    rawValues: Readonly<Record<F['id'], unknown>>,
     fieldSchemas: ReadonlyArray<F>,
     onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; }
 ): ValuesFromRead<F> {

@@ -1,4 +1,5 @@
-import type { BaseId, TableId, BaseSchema, TableSchema } from "../types.ts";
+import { BaseId, BaseSchema } from "../bases/types.ts";
+import { TableId, TableSchema } from "../tables/types.ts";
 
 export interface ResolutionResult<T> {
     matches: T[];

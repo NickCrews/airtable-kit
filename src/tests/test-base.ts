@@ -1,11 +1,12 @@
 import { IntoFetcher } from "../fetcher";
 import { generateCode } from "../codegen";
-import { type BaseId, type BaseSchema, type WorkspaceId } from "../types";
 import { createField, fieldCreationAbility, updateField } from "../fields/api";
 import { type FieldSchemaCreate, type FieldSchemaRead } from "../fields/types";
-import { createTable, updateTable } from "../tables";
-import { createBase, BaseSchemaCreate, getBaseSchema } from "../bases";
+import { createTable, updateTable } from "../tables/api";
+import { createBase, BaseSchemaCreate, getBaseSchema } from "../bases/api";
 import dotenv from "dotenv";
+import { BaseId, BaseSchema } from "../bases/types";
+import { WorkspaceId } from "../workspaces/types";
 
 // make this relative to the current file
 const TEST_BASE_SCHEMA_FILEPATH = new URL("./test-base-schema.generated.ts", import.meta.url).pathname;
@@ -573,7 +574,7 @@ async function main() {
         workspaceId as WorkspaceId,
         TEST_BASE_SCHEMA_FILEPATH,
         apiKey,
-        baseId as BaseId | undefined
+        baseId as BaseId | undefined,
     );
 }
 

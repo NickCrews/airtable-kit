@@ -1,10 +1,9 @@
 import { Command } from "commander";
-import { fetchAllSchemas } from "../bases/index.ts";
+import { fetchAllSchemas } from "../bases/api.ts";
 import { ConfigManager } from "./config.ts";
 import { mdTable } from "./md.ts";
 import { resolveTable, ensureOneMatch } from "./resolvers.ts";
 import { IntoFetcher } from "../fetcher.ts";
-import { BaseId } from "../types.ts";
 import { readInput, validateRecordData, validateBatchData } from "./input.ts";
 import { makeTableClient } from "../tables/table-client.ts";
 
@@ -35,7 +34,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
       const { base, table } = ensureOneMatch(tableResolved, "table", tableId || "(no context)", baseId ? `in base ${baseId}` : undefined);
 
       const client = makeTableClient({
-        baseId: base.id as BaseId,
+        baseId: base.id,
         tableSchema: table,
         fetcher,
       });
@@ -79,7 +78,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
       const { base, table } = ensureOneMatch(tableResolved, "table", tableId || "(no context)", baseId ? `in base ${baseId}` : undefined);
 
       const client = makeTableClient({
-        baseId: base.id as BaseId,
+        baseId: base.id,
         tableSchema: table,
         fetcher,
       });
@@ -120,7 +119,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
       const records = validateBatchData(data);
 
       const client = makeTableClient({
-        baseId: base.id as BaseId,
+        baseId: base.id,
         tableSchema: table,
         fetcher,
       });
@@ -164,7 +163,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
       validateRecordData(data);
 
       const client = makeTableClient({
-        baseId: base.id as BaseId,
+        baseId: base.id,
         tableSchema: table,
         fetcher,
       });
@@ -200,7 +199,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
       const { base, table } = ensureOneMatch(tableResolved, "table", tableId || "(no context)", baseId ? `in base ${baseId}` : undefined);
 
       const client = makeTableClient({
-        baseId: base.id as BaseId,
+        baseId: base.id,
         tableSchema: table,
         fetcher,
       });
@@ -242,7 +241,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
       const records = validateBatchData(data);
 
       const client = makeTableClient({
-        baseId: base.id as BaseId,
+        baseId: base.id,
         tableSchema: table,
         fetcher,
       });

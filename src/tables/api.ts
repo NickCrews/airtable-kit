@@ -1,6 +1,7 @@
+import { BaseId } from "../bases/types";
 import { IntoFetcher, makeFetcher } from "../fetcher";
 import { FieldSchemaCreate } from "../fields";
-import { BaseId, TableId, TableSchema } from "../types";
+import { TableId, TableSchema } from "./types";
 
 
 export interface TableSchemaCreate {

@@ -1,7 +1,5 @@
 import { FieldForConvert } from "./fields/converters.ts";
-import { FieldSchemaRead } from "./fields/types.ts";
-import { ListRecordsOptions } from "./records/api.ts";
-import { FieldId } from "./types.ts";
+import { FieldId, FieldSchemaRead } from "./fields/types.ts";
 
 export class AirtableKitError extends Error {
     constructor(message: string) {

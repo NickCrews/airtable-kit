@@ -1,7 +1,8 @@
-import { type BaseSchema, type TableSchema } from "../types.ts";
 import { IntoFetcher } from "../fetcher.ts";
 import { TableClient, makeTableClient } from "../tables/table-client.ts";
 import { TableSchemaCreate, createTable, updateTable, UpdateTableSchema } from "../tables/api.ts";
+import { TableSchema } from "../tables/types.ts";
+import { BaseSchema } from "./types.ts";
 
 type TableClientsByName<T extends ReadonlyArray<TableSchema>> = {
     [K in T[number]as K["name"]]: TableClient<K>;

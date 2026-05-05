@@ -1,5 +1,7 @@
+import { BaseId } from "../bases/types.ts";
 import { IntoFetcher, doFetch } from "../fetcher.ts";
-import { BaseId, FieldId, TableId } from "../types";
+import { TableId } from "../tables/types.ts";
+import { FieldId } from "./types.ts";
 
 import { FieldSchemaRead, FieldSchemaCreate, FieldType } from './types.ts';
 

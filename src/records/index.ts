@@ -37,3 +37,6 @@ export {
     type UploadAttachmentResponse,
     uploadAttachment,
 } from "./api.ts";
+export {
+    type RecordId,
+} from "./types.ts";

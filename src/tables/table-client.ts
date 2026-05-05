@@ -1,10 +1,12 @@
-import { type RecordId, type BaseId, type TableSchema, FieldId } from "../types.ts";
 import { IntoFetcher } from "../fetcher.ts";
 import * as r from "../records/index.ts";
 import { updateTable } from "./index.ts";
 import { createField, updateField } from "../fields/api.ts";
 import { Formula, formulaToString } from "../formula/formula.ts";
-import { FieldSchemaCreate, FieldSchemaRead } from "../fields/types.ts";
+import { FieldSchemaCreate, FieldSchemaRead, type FieldId } from "../fields/types.ts";
+import { TableSchema } from "./types.ts";
+import { BaseId } from "../bases/types.ts";
+import { RecordId } from "../records/index.ts";
 
 type FieldsByName<T extends Array<FieldSchemaRead> | ReadonlyArray<FieldSchemaRead>> = {
     [K in T[number]as K["name"]]: K;

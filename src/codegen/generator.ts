@@ -2,11 +2,9 @@
  * Code generator - generate static TypeScript code from Airtable schema
  */
 
-import fs from "node:fs/promises";
-import path from "node:path";
-import { type BaseSchema } from "../types.ts";
-import { getBaseSchema } from "../bases";
+import { getBaseSchema } from "../bases/api.ts";
 import { toIdentifier } from "./identifiers.ts";
+import { BaseSchema } from "../bases/types.ts";
 
 export interface CodegenOptions {
     outPath?: string;
@@ -41,7 +39,8 @@ export async function generateCode(schema: BaseSchema, options?: CodegenOptions)
 export default ${JSON.stringify(namesSafeSchema, null, 2)}${asConstModifier};
 `;
     if (options?.outPath) {
-        const outputDir = path.dirname(options.outPath);
+        const fs = await import("node:fs/promises");
+        const path = await import("node:path"); const outputDir = path.dirname(options.outPath);
         await fs.mkdir(outputDir, { recursive: true });
         await fs.writeFile(options.outPath, result, "utf-8");
     }

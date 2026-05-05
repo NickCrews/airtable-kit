@@ -3,9 +3,9 @@
  */
 
 import * as types from "./types.ts";
-import { type FieldSchemaRead, type FieldType } from "./types.ts";
-import { AttachmentId, RecordId, FieldId } from "../types.ts";
+import { AttachmentId, type FieldSchemaRead, type FieldType } from "./types.ts";
 import * as exceptions from "../exceptions.ts";
+import { RecordId } from "../records/types.ts";
 
 /** ISO 8601 string in UTC, e.g. "2024-01-01T00:00:00.000Z" */
 type UtcTimestamp = string;

@@ -1,11 +1,12 @@
 import { Command } from "commander";
-import { fetchAllSchemas } from "../bases/index.ts";
+import { fetchAllSchemas } from "../bases/api.ts";
 import { ConfigManager } from "./config.ts";
 import { mdTable } from "./md.ts";
 import { resolveBase, resolveTable, ensureOneMatch } from "./resolvers.ts";
 import { IntoFetcher } from "../fetcher.ts";
-import { createTable, updateTable } from "../tables/index.ts";
-import { BaseId, BaseSchema, TableId, TableSchema } from "../types.ts";
+import { createTable, updateTable } from "../tables/api.ts";
+import { TableSchema } from "../tables/types.ts";
+import { BaseSchema } from "../bases/types.ts";
 
 export function createTableCommand(resolveFetcher: () => IntoFetcher): Command {
   const cmd = new Command("table")
@@ -96,7 +97,7 @@ export function createTableCommand(resolveFetcher: () => IntoFetcher): Command {
       };
 
       const result = await createTable({
-        baseId: base.id as BaseId,
+        baseId: base.id,
         table: tableSchema,
         fetcher,
       });
@@ -121,10 +122,10 @@ export function createTableCommand(resolveFetcher: () => IntoFetcher): Command {
       const { base, table } = ensureOneMatch(tableResolved, "table", identifier, baseId ? `in base ${baseId}` : undefined);
 
       const updated = await updateTable({
-        baseId: base.id as BaseId,
+        baseId: base.id,
         table: {
           ...table,
-          id: table.id as TableId,
+          id: table.id,
           name: options.name || table.name,
           description: options.description !== undefined ? options.description : table.description,
         },

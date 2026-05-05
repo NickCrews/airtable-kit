@@ -1,5 +1,3 @@
-import process from "node:process";
-
 /**
  * Arguments for performing a fetch operation against the Airtable API.
  */
@@ -168,7 +166,8 @@ function ensureApiKey(apiKey: string | undefined, apiKeyEnvVar: string): string 
     if (apiKey) {
         return apiKey;
     }
-    apiKey = process.env[apiKeyEnvVar];
+    const isNode = typeof process !== 'undefined';
+    apiKey = isNode ? process.env[apiKeyEnvVar] : undefined;
     if (!apiKey) {
         throw new Error(
             `No API key provided for Fetcher. Provide an API key string, or set the ${apiKeyEnvVar} environment variable.`,

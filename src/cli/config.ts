@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
-import type { BaseId, TableId } from "../types.ts";
+import { BaseId } from "../bases/types";
+import { TableId } from "../tables/types";
 
 export interface AtkConfig {
   currentBase?: BaseId | string;

@@ -2,7 +2,6 @@
  * MCP tools for Airtable operations - per-table typed tools
  */
 
-import type { RecordId, TableSchema } from '../types.ts';
 import { type TableClient } from '../tables/table-client.ts';
 import { type ValuesFromRead, type ValuesForWrite } from '../records/converters.ts';
 import * as z4 from 'zod/v4';
@@ -11,6 +10,8 @@ import { toIdentifier } from '../codegen/identifiers.ts';
 import { RecordIdSchema } from '../validators/index.ts';
 import { TIMEZONES } from '../fields/timezones.ts';
 import { ListRecordsOptions, ListRecordsResponse, UpdateRecordsOptions, UpdateRecordsResponse } from '../records/api.ts';
+import { TableSchema } from '../tables/types.ts';
+import { RecordId } from '../records/types.ts';
 
 export interface MCPToolDefinition<TInput = any, TOutput = any> {
   /**Must start with a letter or an underscore. Must be alphameric (a-z, A-Z, 0-9), underscores (_), dots (.), colons (:), or dashes (-), with a maximum length of 64 */

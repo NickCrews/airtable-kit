@@ -1,12 +1,14 @@
 import { doFetch, IntoFetcher } from "../fetcher";
 import { ValueFromRead } from "../fields/converters";
 import { Timezone } from "../fields/timezones";
-import { FieldSchemaRead } from "../fields/types";
+import { AttachmentId, FieldId, FieldSchemaRead } from "../fields/types";
 import { Formula, formulaToString } from "../formula";
-import { AttachmentId, BaseId, FieldId, RecordId, TableId } from "../types";
 import { convertValuesFromRead, convertValuesForWrite, ValuesFromRead, ValuesForWrite, WriteValuesById } from "./converters";
 import * as exceptions from "../exceptions";
 import { URLSearchParams } from "../url.ts";
+import { BaseId } from "../bases/types.ts";
+import { TableId } from "../tables/types.ts";
+import { RecordId } from "./types.ts";
 
 type FieldNameOrId<T extends FieldSchemaRead> = T['name'] | T['id'];
 
@@ -235,7 +237,7 @@ export async function listRecordsRaw<T extends FieldSchemaRead>(
     if (options?.filterByFormula) queryParams.append('filterByFormula', typeof options.filterByFormula === 'string' ? options.filterByFormula : formulaToString(fields, options.filterByFormula));
     if (options?.cellFormat) queryParams.append('cellFormat', options.cellFormat);
 
-    const toFieldId = (field: FieldNameOrId<T>): FieldId => {
+    const toFieldId = (field: FieldNameOrId<T>) => {
         const spec = fields.find(f => f.id === field || f.name === field);
         if (!spec) {
             throw new Error(`Field "${field}" not found in table schema.`);

@@ -12,7 +12,11 @@
 // and we lose the semantics of "everything in fields is a field schema".
 import { type Timezone } from "./timezones.ts";
 import { type BrightColor, type SelectColor } from "./colors.ts";
-import { FieldId, TableId, type ViewId, type SelectId } from "../types.ts";
+import { type TableId, type ViewId } from "../tables/types.ts";
+
+export type FieldId = `fld${string}`;
+export type SelectId = `sel${string}`;
+export type AttachmentId = `att${string}`;
 
 type FieldTypeAndOptions = Omit<FieldSchemaRead, "id" | "name" | "description">
 

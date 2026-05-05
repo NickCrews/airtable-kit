@@ -1,13 +1,7 @@
-import { type FieldSchemaRead } from "./fields/types.ts";
+import { type FieldSchemaRead, type FieldId } from "../fields/types.ts";
 
-export type RecordId = `rec${string}`;
-export type FieldId = `fld${string}`;
 export type TableId = `tbl${string}`;
 export type ViewId = `viw${string}`;
-export type BaseId = `app${string}`;
-export type WorkspaceId = `wsp${string}`;
-export type SelectId = `sel${string}`;
-export type AttachmentId = `att${string}`;
 
 /**
  * Schema for an Airtable table.
@@ -32,23 +26,19 @@ export interface TableSchema<
     views?: ReadonlyArray<ViewSchema>;
 }
 
-export type ViewType =
-    | "grid"
-    | "form"
-    | "calendar"
-    | "gallery"
-    | "kanban"
-    | "timeline"
-    | "block";
+export const VIEW_TYPES = [
+    "grid",
+    "form",
+    "calendar",
+    "gallery",
+    "kanban",
+    "timeline",
+    "block",
+] as const;
+export type ViewType = typeof VIEW_TYPES[number];
 
 export interface ViewSchema {
     id: ViewId;
     name: string;
     type: ViewType;
-}
-
-export interface BaseSchema<I extends BaseId = BaseId, T extends ReadonlyArray<TableSchema> = ReadonlyArray<TableSchema>> {
-    id: I;
-    name: string;
-    tables: T;
 }

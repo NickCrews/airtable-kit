@@ -12,14 +12,42 @@
   "engines": {
     "node": ">=20"
   },
-  "main": "./dist/index.cjs",
-  "types": "./dist/index.d.cts",
   "bin": "./dist/bin.cjs",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.cts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+    "./fetcher": {
+      "types": "./dist/fetcher.d.cts",
+      "import": "./dist/fetcher.js",
+      "require": "./dist/fetcher.cjs"
+    },
+    "./bases": {
+      "types": "./dist/bases/index.d.cts",
+      "import": "./dist/bases/index.js",
+      "require": "./dist/bases/index.cjs"
+    },
+    "./tables": {
+      "types": "./dist/tables/index.d.cts",
+      "import": "./dist/tables/index.js",
+      "require": "./dist/tables/index.cjs"
+    },
+    "./fields": {
+      "types": "./dist/fields/index.d.cts",
+      "import": "./dist/fields/index.js",
+      "require": "./dist/fields/index.cjs"
+    },
+    "./records": {
+      "types": "./dist/records/index.d.cts",
+      "import": "./dist/records/index.js",
+      "require": "./dist/records/index.cjs"
+    },
+    "./mcp": {
+      "types": "./dist/mcp/index.d.cts",
+      "import": "./dist/mcp/index.js",
+      "require": "./dist/mcp/index.cjs"
+    },
+    "./codegen": {
+      "types": "./dist/codegen/index.d.cts",
+      "import": "./dist/codegen/index.js",
+      "require": "./dist/codegen/index.cjs"
     }
   },
   "scripts": {
@@ -52,7 +80,13 @@
   "zshy": {
     "bin": "./src/bin.ts",
     "exports": {
-      ".": "./src/index.ts"
+      "./fetcher": "./src/fetcher.ts",
+      "./bases": "./src/bases/index.ts",
+      "./tables": "./src/tables/index.ts",
+      "./fields": "./src/fields/index.ts",
+      "./records": "./src/records/index.ts",
+      "./mcp": "./src/mcp/index.ts",
+      "./codegen": "./src/codegen/index.ts"
     }
   },
   "files": [

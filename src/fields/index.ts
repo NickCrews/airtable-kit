@@ -1,11 +1,13 @@
 import * as colors from "./colors.ts";
 import * as converters from "./converters.ts";
 import * as timezones from "./timezones.ts";
-import * as types from "./types.ts";
-import {
-  FieldSchemaRead,
-  FieldSchemaCreate,
-  FieldType,
+export {
+  type FieldSchemaRead,
+  type FieldSchemaCreate,
+  type FieldType,
+  type FieldId,
+  type SelectId,
+  type AttachmentId,
 } from "./types.ts";
 
 export {
@@ -22,8 +24,4 @@ export {
   colors,
   converters,
   timezones,
-  types,
-  FieldType,
-  FieldSchemaCreate,
-  FieldSchemaRead,
 }
