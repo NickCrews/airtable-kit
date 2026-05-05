@@ -1,8 +1,13 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { testBaseClient } from "../tests/test-utils.ts";
+import { prepTestBaseClient } from '../src/tests/test-utils.ts';
+import { makeBaseClient } from "airtable-kit/bases";
+
+import testBaseSchema from "../src/tests/test-base-schema.generated.ts";
+const baseClient = makeBaseClient({ baseSchema: testBaseSchema });
+const { resetBaseData } = prepTestBaseClient(baseClient);
 
 describe("TableClient", () => {
-    const { tasksTableClient, resetBaseData } = testBaseClient();
+    const tasksTableClient = baseClient.tables.tasks;
 
     beforeEach(async () => {
         await resetBaseData();

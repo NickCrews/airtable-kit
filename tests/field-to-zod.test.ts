@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { makeFieldWriteValidator } from './field-to-zod.ts';
-import * as testFields from '../fields/_example-fields.ts';
+import { makeFieldWriteValidator, InferFieldWriteValidator } from 'airtable-kit/validators';
+import * as testFields from './_example-fields.ts';
 import { z } from 'zod';
 
 describe('fieldTypeToZod', () => {
@@ -191,3 +191,74 @@ describe('fieldTypeToZod', () => {
   });
 });
 
+
+
+// Examples for testing validator inference
+type _aiWriteValidator = InferFieldWriteValidator<typeof testFields.AI_TEXT>;
+type _autoNumberWriteValidator = InferFieldWriteValidator<typeof testFields.AUTO_NUMBER>;
+type _barcodeWriteValidator = InferFieldWriteValidator<typeof testFields.BARCODE>;
+type _buttonWriteValidator = InferFieldWriteValidator<typeof testFields.BUTTON>;
+type _checkboxWriteValidator = InferFieldWriteValidator<typeof testFields.CHECKBOX>;
+type _countWriteValidator = InferFieldWriteValidator<typeof testFields.COUNT>;
+type _createdByWriteValidator = InferFieldWriteValidator<typeof testFields.CREATED_BY>;
+type _createdTimeWriteValidator = InferFieldWriteValidator<typeof testFields.CREATED_TIME>;
+type _currencyWriteValidator = InferFieldWriteValidator<typeof testFields.CURRENCY>;
+type _dateWriteValidator = InferFieldWriteValidator<typeof testFields.DATE>;
+type _dateTimeWriteValidator = InferFieldWriteValidator<typeof testFields.DATE_TIME>;
+type _durationWriteValidator = InferFieldWriteValidator<typeof testFields.DURATION>;
+type _emailWriteValidator = InferFieldWriteValidator<typeof testFields.EMAIL>;
+type _externalSyncSourceWriteValidator = InferFieldWriteValidator<typeof testFields.EXTERNAL_SYNC_SOURCE>;
+type _formulaWriteValidator = InferFieldWriteValidator<typeof testFields.FORMULA>;
+type _lastModifiedByWriteValidator = InferFieldWriteValidator<typeof testFields.LAST_MODIFIED_BY>;
+type _lastModifiedTimeWriteValidator = InferFieldWriteValidator<typeof testFields.LAST_MODIFIED_TIME>;
+type _multilineTextWriteValidator = InferFieldWriteValidator<typeof testFields.MULTILINE_TEXT>;
+type _multipleAttachmentsWriteValidator = InferFieldWriteValidator<typeof testFields.MULTIPLE_ATTACHMENTS>;
+type _multipleCollaboratorsWriteValidator = InferFieldWriteValidator<typeof testFields.MULTIPLE_COLLABORATORS>;
+type _multipleLookupValuesWriteValidator = InferFieldWriteValidator<typeof testFields.MULTIPLE_LOOKUP_VALUES>;
+type _multipleRecordLinksWriteValidator = InferFieldWriteValidator<typeof testFields.MULTIPLE_RECORD_LINKS>;
+type _multipleSelectsWriteValidator = InferFieldWriteValidator<typeof testFields.MULTIPLE_SELECTS>;
+type _numberWriteValidator = InferFieldWriteValidator<typeof testFields.NUMBER>;
+type _percentWriteValidator = InferFieldWriteValidator<typeof testFields.PERCENT>;
+type _phoneNumberWriteValidator = InferFieldWriteValidator<typeof testFields.PHONE_NUMBER>;
+type _ratingWriteValidator = InferFieldWriteValidator<typeof testFields.RATING>;
+type _richTextWriteValidator = InferFieldWriteValidator<typeof testFields.RICH_TEXT>;
+type _rollupWriteValidator = InferFieldWriteValidator<typeof testFields.ROLLUP>;
+type _singleCollaboratorWriteValidator = InferFieldWriteValidator<typeof testFields.SINGLE_COLLABORATOR>;
+type _singleLineTextWriteValidator = InferFieldWriteValidator<typeof testFields.SINGLE_LINE_TEXT>;
+type _singleSelectWriteValidator = InferFieldWriteValidator<typeof testFields.SINGLE_SELECT>;
+type _urlWriteValidator = InferFieldWriteValidator<typeof testFields.URL>;
+
+// Test inferred ts types
+type _aiWriteType = z.infer<_aiWriteValidator>
+type _autoNumberWriteType = z.infer<_autoNumberWriteValidator>
+type _barcodeWriteType = z.infer<_barcodeWriteValidator>
+type _buttonWriteType = z.infer<_buttonWriteValidator>
+type _checkboxWriteType = z.infer<_checkboxWriteValidator>
+type _countWriteType = z.infer<_countWriteValidator>
+type _createdByWriteType = z.infer<_createdByWriteValidator>
+type _createdTimeWriteType = z.infer<_createdTimeWriteValidator>
+type _currencyWriteType = z.infer<_currencyWriteValidator>
+type _dateWriteType = z.infer<_dateWriteValidator>
+type _dateTimeWriteType = z.infer<_dateTimeWriteValidator>
+type _durationWriteType = z.infer<_durationWriteValidator>
+type _emailWriteType = z.infer<_emailWriteValidator>
+type _externalSyncSourceWriteType = z.infer<_externalSyncSourceWriteValidator>
+type _formulaWriteType = z.infer<_formulaWriteValidator>
+type _lastModifiedByWriteType = z.infer<_lastModifiedByWriteValidator>
+type _lastModifiedTimeWriteType = z.infer<_lastModifiedTimeWriteValidator>
+type _multilineTextWriteType = z.infer<_multilineTextWriteValidator>
+type _multipleAttachmentsWriteType = z.infer<_multipleAttachmentsWriteValidator>
+type _multipleCollaboratorsWriteType = z.infer<_multipleCollaboratorsWriteValidator>
+type _multipleLookupValuesWriteType = z.infer<_multipleLookupValuesWriteValidator>
+type _multipleRecordLinksWriteType = z.infer<_multipleRecordLinksWriteValidator>
+type _multipleSelectsWriteType = z.infer<_multipleSelectsWriteValidator>
+type _numberWriteType = z.infer<_numberWriteValidator>
+type _percentWriteType = z.infer<_percentWriteValidator>
+type _phoneNumberWriteType = z.infer<_phoneNumberWriteValidator>
+type _ratingWriteType = z.infer<_ratingWriteValidator>
+type _richTextWriteType = z.infer<_richTextWriteValidator>
+type _rollupWriteType = z.infer<_rollupWriteValidator>
+type _singleCollaboratorWriteType = z.infer<_singleCollaboratorWriteValidator>
+type _singleLineTextWriteType = z.infer<_singleLineTextWriteValidator>
+type _singleSelectWriteType = z.infer<_singleSelectWriteValidator>
+type _urlWriteType = z.infer<_urlWriteValidator>

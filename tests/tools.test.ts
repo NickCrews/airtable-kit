@@ -5,10 +5,14 @@ import {
   makeGetTool,
   makeListTool,
   makeDeleteTool,
-} from './index.ts';
-import { testBaseClient } from '../tests/test-utils.ts';
+} from '../src/mcp/index.ts';
+import { makeBaseClient } from "../src/bases/base-client.ts";
+import { prepTestBaseClient } from '../src/tests/test-utils.ts';
 
-const { tasksTableClient, resetBaseData } = testBaseClient();
+import testBaseSchema from "../src/tests/test-base-schema.generated.ts";
+const baseClient = makeBaseClient({ baseSchema: testBaseSchema });
+const tasksTableClient = baseClient.tables.tasks;
+const { resetBaseData } = prepTestBaseClient(baseClient);
 
 describe('MCP Tool - Create Tool', () => {
   beforeEach(resetBaseData);

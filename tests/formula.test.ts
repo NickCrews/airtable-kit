@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
     formulaToString,
     type Formula,
-} from "./formula.ts";
-import taskBaseSchema from "../tests/taskBase.ts";
+} from "airtable-kit/formula";
+import taskBaseSchema from "../src/tests/taskBase.ts";
 
 const fields = taskBaseSchema.tables.find(t => t.name === "tasks")!.fields;
 type Field = typeof fields[number];

@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { BarcodeValue, convertValueForWrite, convertValueFromRead, type FieldForConvert } from "./converters.ts";
+import { BarcodeValue, convertValueForWrite, convertValueFromRead, type FieldForConvert } from "airtable-kit/fields";
 import * as FIELDS from "./_example-fields.ts";
 
 describe("Converters", () => {

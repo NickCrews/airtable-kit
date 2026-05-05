@@ -6,12 +6,12 @@ import * as z4 from 'zod/v4';
 
 export {
   makeFieldWriteValidator,
-  type inferFieldWriteValidator,
+  type InferFieldWriteValidator,
 } from './field-to-zod.ts';
 
 export {
   makeRecordWriteValidator,
-  type inferRecordWriteValidator,
+  type InferRecordWriteValidator,
 } from './schema-to-zod.ts';
 
 export const RecordIdSchema = z4.templateLiteral(["rec", z4.string().length(14)]).describe("Airtable Record ID of the form 'recXXXXXXXXXXXXXX'");

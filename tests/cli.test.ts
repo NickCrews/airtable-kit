@@ -4,10 +4,10 @@
 
 import fs from 'node:fs';
 import { describe, it, expect, beforeEach, vi, afterAll } from 'vitest';
-import { cli } from './cli.ts';
-import { makeInTmpDir } from '../tests/inTmpDir.ts';
-import { getTestEnv } from '../tests/test-utils.ts';
-import realSchema from '../tests/test-base-schema.generated.ts';
+import { cli } from '../src/cli/cli.ts';
+import { makeInTmpDir } from '../src/tests/inTmpDir.ts';
+import { getTestEnv } from '../src/tests/test-utils.ts';
+import realSchema from '../src/tests/test-base-schema.generated.ts';
 
 const {
   AIRTABLE_KIT_TEST_API_KEY: apiKey,

@@ -12,6 +12,8 @@ import dotenv from "dotenv";
 import { TableSchema } from "../tables/types.ts";
 import { BaseId, BaseSchema } from "../bases/types.ts";
 import { WorkspaceId } from "../workspaces/types.ts";
+
+type TestBaseClient = BaseClient<typeof testBaseSchema>;
 export interface TestEnv {
     AIRTABLE_KIT_TEST_API_KEY: string;
     AIRTABLE_KIT_TEST_BASE_ID: BaseId;
@@ -54,20 +56,12 @@ export function setupTestEnv() {
 }
 
 /**
- * Get configured clients for the test base.
- * Returns table clients for each table and a reset function.
- *
- * @returns Object with table clients and resetBaseData function
+ * Given BaseClient with the right schema, setup the test env and return helpers for resetting base data between tests.
  */
-export function testBaseClient() {
+export function prepTestBaseClient(testBaseClient: TestBaseClient) {
     setupTestEnv();
-    const baseClient = makeBaseClient({ baseSchema: testBaseSchema });
     return {
-        baseClient,
-        tasksTableClient: baseClient.tables.tasks,
-        linkedItemsTableClient: baseClient.tables.linkedItems,
-        allTypesTableClient: baseClient.tables.allTypes,
-        resetBaseData: () => resetBaseData(baseClient),
+        resetBaseData: () => resetBaseData(testBaseClient),
     };
 }
 
@@ -314,7 +308,7 @@ export function getAllTypesSeedData(linkedItemRecordIds: string[]) {
  * Populate the test base with initial seed data
  */
 async function populateSeedData(
-    baseClient: BaseClient<typeof testBaseSchema>
+    baseClient: TestBaseClient
 ): Promise<void> {
     const linkedItemRecords = await baseClient.tables.linkedItems.createRecords(linkedItemsSeedData);
     const linkedItemRecordIds = linkedItemRecords.map((r: any) => r.id);
@@ -329,7 +323,7 @@ async function populateSeedData(
  * Reset all data in the test base to the initial seed state.
  * This deletes all records from all tables and recreates the seed data.
  */
-export async function resetBaseData(baseClient: BaseClient<typeof testBaseSchema>): Promise<void> {
+export async function resetBaseData(baseClient: TestBaseClient): Promise<void> {
     for (const tableClient of Object.values(baseClient.tables)) {
         const records = await tableClient.listRecords();
 
