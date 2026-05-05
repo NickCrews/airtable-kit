@@ -48,6 +48,21 @@
       "types": "./dist/codegen/index.d.cts",
       "import": "./dist/codegen/index.js",
       "require": "./dist/codegen/index.cjs"
+    },
+    "./formula": {
+      "types": "./dist/formula/index.d.cts",
+      "import": "./dist/formula/index.js",
+      "require": "./dist/formula/index.cjs"
+    },
+    "./exceptions": {
+      "types": "./dist/exceptions.d.cts",
+      "import": "./dist/exceptions.js",
+      "require": "./dist/exceptions.cjs"
+    },
+    "./validators": {
+      "types": "./dist/validators/index.d.cts",
+      "import": "./dist/validators/index.js",
+      "require": "./dist/validators/index.cjs"
     }
   },
   "scripts": {
@@ -86,7 +101,10 @@
       "./fields": "./src/fields/index.ts",
       "./records": "./src/records/index.ts",
       "./mcp": "./src/mcp/index.ts",
-      "./codegen": "./src/codegen/index.ts"
+      "./codegen": "./src/codegen/index.ts",
+      "./formula": "./src/formula/index.ts",
+      "./exceptions": "./src/exceptions.ts",
+      "./validators": "./src/validators/index.ts"
     }
   },
   "files": [

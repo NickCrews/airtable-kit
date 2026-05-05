@@ -114,10 +114,10 @@ are working with javascript. You can get the CLI to do this with the `--format j
 Now, use the generated schema to create a type-safe Airtable client:
 
 ```typescript
-import * as atk from 'airtable-kit';
+import { makeBaseClient } from 'airtable-kit/bases';
 import projectTrackerSchema from './schemas/projectTracker.ts';
 
-const client = atk.clients.makeBaseClient({
+const client = makeBaseClient({
   baseSchema: projectTrackerSchema,
   fetcher: 'YOUR_API_KEY',
 });
@@ -165,11 +165,11 @@ console.log(tasks);
 This also supports multi-base clients!
 
 ```typescript
-import * as atk from 'airtable-kit';
+import { makeOrgClient } from 'airtable-kit/bases';
 import projectTrackerSchema from './schemas/projectTracker.ts';
 import otherBase from './schemas/otherBase.ts';
 
-const client = atk.clients.makeOrgClient({
+const client = makeOrgClient({
   bases: [projectTrackerSchema, otherBase],
   fetcher: 'YOUR_API_KEY',
 });
@@ -181,12 +181,13 @@ client.bases.otherBase.tables.someTable.createRecords([ ... ]);
 ### Use Case 2: Dynamic Client for Unknown Bases, eg an MCP Tool
 
 ```typescript
-import * as atk from 'airtable-kit';
+import { getBaseSchema, makeBaseClient } from 'airtable-kit/bases';
+import { makeListTool } from 'airtable-kit/mcp';
 
 const fetcher = 'YOUR_API_KEY';
-const baseSchema = await atk.bases.getBaseSchema({ baseId: 'appXXXXXXXXXXXXXX', fetcher });
-const client = atk.clients.makeBaseClient({ baseSchema, fetcher });
-const listTool = atk.mcp.makeListTool(client);
+const baseSchema = await getBaseSchema({ baseId: 'appXXXXXXXXXXXXXX', fetcher });
+const client = makeBaseClient({ baseSchema, fetcher });
+const listTool = makeListTool(client);
 
 // Now you can pass this off to an AI agent framework, eg Vercel's AI SDK (https://github.com/vercel/ai)
 import { tool, ToolLoopAgent } from 'ai'
@@ -206,9 +207,9 @@ const agent = new ToolLoopAgent({
 ### Use Case 3: Use the functional API for simple uses
 
 ```typescript
-import atk from 'airtable-kit';
+import { createField } from 'airtable-kit/fields';
 
-atk.fields.createField(
+createField(
   {
     baseId: 'appZZZZZZZZZZZ',
     tableId: 'tblAAAAAAAAAAAAAA',
