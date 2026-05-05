@@ -2,67 +2,80 @@
  * Converters for field values to/from Airtable API format.
  */
 
-import * as types from "./types.ts";
-import { AttachmentId, type FieldSchemaRead, type FieldType } from "./types.ts";
+import { AttachmentId, type FieldSchemaRead, type FieldType } from "../fields/types.ts";
 import * as exceptions from "../exceptions.ts";
 import { RecordId } from "../records/types.ts";
 
 /** ISO 8601 string in UTC, e.g. "2024-01-01T00:00:00.000Z" */
 type UtcTimestamp = string;
 
+// What we need to convert between a selection's option name and id
+type SelectChoiceForConvert = Pick<FieldSchemaRead<'multipleSelects'>['options']['choices'][0], 'id' | 'name'>;
+
+type AiTextValueRead = {
+    state: "empty" | "loading" | "generated";
+    isStale: boolean;
+    value: string | null;
+} | {
+    state: "error";
+    isStale: boolean;
+    value: string | null;
+    errorType: string;
+};
+
 // Minimal schema types needed for conversions
 // These types only include the information actually used by converters,
 // rather than the full FieldSchemaRead which includes UI display options etc.
-export type AiTextForConvert = { type: 'aiText' };
-export type AutoNumberForConvert = { type: 'autoNumber' };
-export type BarcodeForConvert = { type: 'barcode' };
-export type ButtonForConvert = { type: 'button' };
-export type CheckboxForConvert = { type: 'checkbox' };
-export type CountForConvert = { type: 'count' };
-export type CreatedByForConvert = { type: 'createdBy' };
-export type CreatedTimeForConvert = { type: 'createdTime' };
-export type CurrencyForConvert = { type: 'currency' };
-export type DateForConvert = { type: 'date' };
-export type DateTimeForConvert = { type: 'dateTime' };
-export type DurationForConvert = { type: 'duration' };
-export type EmailForConvert = { type: 'email' };
-export type ExternalSyncSourceForConvert = { type: 'externalSyncSource' };
-export type FormulaForConvert = {
+type AiTextForConvert = { type: 'aiText' };
+type AutoNumberForConvert = { type: 'autoNumber' };
+type BarcodeForConvert = { type: 'barcode' };
+type ButtonForConvert = { type: 'button' };
+type CheckboxForConvert = { type: 'checkbox' };
+type CountForConvert = { type: 'count' };
+type CreatedByForConvert = { type: 'createdBy' };
+type CreatedTimeForConvert = { type: 'createdTime' };
+type CurrencyForConvert = { type: 'currency' };
+type DateForConvert = { type: 'date' };
+type DateTimeForConvert = { type: 'dateTime' };
+type DurationForConvert = { type: 'duration' };
+type EmailForConvert = { type: 'email' };
+type ExternalSyncSourceForConvert = { type: 'externalSyncSource' };
+type FormulaForConvert = {
     type: 'formula';
     options: { result: Omit<FieldSchemaRead, "id" | "name" | "description"> };
 };
-export type LastModifiedByForConvert = { type: 'lastModifiedBy' };
-export type LastModifiedTimeForConvert = { type: 'lastModifiedTime' };
-export type MultilineTextForConvert = { type: 'multilineText' };
-export type MultipleAttachmentsForConvert = { type: 'multipleAttachments' };
-export type MultipleCollaboratorsForConvert = { type: 'multipleCollaborators' };
-export type MultipleLookupValuesForConvert = {
+type LastModifiedByForConvert = { type: 'lastModifiedBy' };
+type LastModifiedTimeForConvert = { type: 'lastModifiedTime' };
+type MultilineTextForConvert = { type: 'multilineText' };
+type MultipleAttachmentsForConvert = { type: 'multipleAttachments' };
+type MultipleCollaboratorsForConvert = { type: 'multipleCollaborators' };
+type MultipleLookupValuesForConvert = {
     type: 'multipleLookupValues';
     options: { result: Omit<FieldSchemaRead, "id" | "name" | "description"> | null };
 };
-export type MultipleRecordLinksForConvert = { type: 'multipleRecordLinks' };
-export type MultipleSelectsForConvert<C extends types.SelectChoiceSchemaRead = types.SelectChoiceSchemaRead> = {
+type MultipleRecordLinksForConvert = { type: 'multipleRecordLinks' };
+type MultipleSelectsForConvert<C extends SelectChoiceForConvert = SelectChoiceForConvert> = {
     type: 'multipleSelects';
     options: { choices: ReadonlyArray<C> };
 };
-export type NumberForConvert = { type: 'number' };
-export type PercentForConvert = { type: 'percent' };
-export type PhoneNumberForConvert = { type: 'phoneNumber' };
-export type RatingForConvert = { type: 'rating' };
-export type RichTextForConvert = { type: 'richText' };
-export type RollupForConvert = {
+type NumberForConvert = { type: 'number' };
+type PercentForConvert = { type: 'percent' };
+type PhoneNumberForConvert = { type: 'phoneNumber' };
+type RatingForConvert = { type: 'rating' };
+type RichTextForConvert = { type: 'richText' };
+type RollupForConvert = {
     type: 'rollup';
     options: { result: Omit<FieldSchemaRead, "id" | "name" | "description"> };
 };
-export type SingleCollaboratorForConvert = { type: 'singleCollaborator' };
-export type SingleLineTextForConvert = { type: 'singleLineText' };
-export type SingleSelectForConvert<C extends types.SelectChoiceSchemaRead = types.SelectChoiceSchemaRead> = {
+type SingleCollaboratorForConvert = { type: 'singleCollaborator' };
+type SingleLineTextForConvert = { type: 'singleLineText' };
+type SingleSelectForConvert<C extends SelectChoiceForConvert = SelectChoiceForConvert> = {
     type: 'singleSelect';
     options: { choices: ReadonlyArray<C> };
 };
-export type UrlForConvert = { type: 'url' };
+type UrlForConvert = { type: 'url' };
 
-export type FieldForConvert =
+type _FieldForConvert =
     | AiTextForConvert
     | AutoNumberForConvert
     | BarcodeForConvert
@@ -96,13 +109,14 @@ export type FieldForConvert =
     | SingleLineTextForConvert
     | SingleSelectForConvert
     | UrlForConvert;
+export type FieldSchemaForConvert<T extends FieldType = FieldType> = Extract<_FieldForConvert, { type: T }>;
 
 type ToAirtableConverter<T> = (value: T) => unknown;
 type FromAirtableConverter<T> = (value: any) => T;
 interface IConverters<
     ToArg,
     FromResult,
-    F extends FieldForConvert,
+    F extends FieldSchemaForConvert,
 > {
     type: F["type"];
     /** null implies the field can't be written to (eg is createdTime or formula) */
@@ -111,16 +125,19 @@ interface IConverters<
     makeFrom: null | ((fieldSchema: F) => FromAirtableConverter<FromResult>);
 }
 
-type FieldOfType<T extends FieldType> = Extract<FieldSchemaRead, { type: T }>;
-type FieldForConvertOfType<T extends FieldType> = Extract<FieldForConvert, { type: T }>;
+type FieldForConvertOfType<T extends FieldType> = Extract<FieldSchemaForConvert, { type: T }>;
 
 const AiTextConverters = {
     type: "aiText",
     makeTo: null,
     makeFrom:
         (_fieldSchema: FieldForConvertOfType<"aiText">) =>
-            (value: types.AiTextValueRead): types.AiTextValueRead => value,
-} as const satisfies IConverters<never, types.AiTextValueRead, FieldForConvertOfType<"aiText">>;
+            (value: AiTextValueRead): AiTextValueRead => value,
+} as const satisfies IConverters<
+    never,
+    AiTextValueRead,
+    FieldForConvertOfType<"aiText">
+>;
 
 const AutoNumberConverters = {
     type: "autoNumber",
@@ -311,8 +328,8 @@ const DurationConverters = {
 
 const EmailConverters = {
     type: "email",
-    makeTo: (_: FieldForConvert) => (value: string | null | undefined): string | null | undefined => value,
-    makeFrom: (_: FieldForConvert) => (value: string | null): string => value ? value : "",
+    makeTo: (_: FieldSchemaForConvert) => (value: string | null | undefined): string | null | undefined => value,
+    makeFrom: (_: FieldSchemaForConvert) => (value: string | null): string => value ? value : "",
 } as const satisfies IConverters<string | null | undefined, string, FieldForConvertOfType<"email">>;
 
 const ExternalSyncSourceConverters = {
@@ -377,8 +394,8 @@ const LastModifiedTimeConverters = {
 
 const MultilineTextConverters = {
     type: "multilineText",
-    makeTo: (_: FieldForConvert) => (value: string | null | undefined): string | null | undefined => value,
-    makeFrom: (_: FieldForConvert) => (value: string | null): string => value ? value : "",
+    makeTo: (_: FieldSchemaForConvert) => (value: string | null | undefined): string | null | undefined => value,
+    makeFrom: (_: FieldSchemaForConvert) => (value: string | null): string => value ? value : "",
 } as const satisfies IConverters<
     string | null | undefined,
     string,
@@ -496,7 +513,7 @@ const MultipleRecordLinksConverters = {
 * See
 * https://airtable.com/developers/web/api/field-model#select
 */
-function convertFromReadSelectValue<C extends types.SelectChoiceSchemaRead>(
+function convertFromReadSelectValue<C extends SelectChoiceForConvert>(
     raw: string,
     fieldSchema: MultipleSelectsForConvert<C> | SingleSelectForConvert<C>
 ): C["name"] {
@@ -510,7 +527,7 @@ function convertFromReadSelectValue<C extends types.SelectChoiceSchemaRead>(
 const MultipleSelectsConverters = {
     type: "multipleSelects",
     makeTo:
-        <C extends types.SelectChoiceSchemaRead>(fieldSchema: MultipleSelectsForConvert<C>) =>
+        <C extends SelectChoiceForConvert>(fieldSchema: MultipleSelectsForConvert<C>) =>
             (idsOrValues: Array<C["id"] | C["name"]> | null | undefined): Array<C["id"]> => {
                 if (!idsOrValues) return [];
                 const choices = fieldSchema.options.choices;
@@ -532,7 +549,7 @@ const MultipleSelectsConverters = {
                 });
             },
     makeFrom:
-        <C extends types.SelectChoiceSchemaRead>(fieldSchema: MultipleSelectsForConvert<C>) =>
+        <C extends SelectChoiceForConvert>(fieldSchema: MultipleSelectsForConvert<C>) =>
             (value: unknown): Array<C["name"]> => {
                 if (!value) return [];
                 return (value as Array<string>).map((item) => convertFromReadSelectValue(item, fieldSchema));
@@ -561,8 +578,8 @@ const PercentConverters = {
 
 const PhoneNumberConverters = {
     type: "phoneNumber",
-    makeTo: (_: FieldForConvert) => (value: string | null | undefined): string | null | undefined => value,
-    makeFrom: (_: FieldForConvert) => (value: string | null): string | null => value,
+    makeTo: (_: FieldSchemaForConvert) => (value: string | null | undefined): string | null | undefined => value,
+    makeFrom: (_: FieldSchemaForConvert) => (value: string | null): string | null => value,
 } as const satisfies IConverters<
     string | null | undefined,
     string | null,
@@ -579,8 +596,8 @@ const RatingConverters = {
 
 const RichTextConverters = {
     type: "richText",
-    makeTo: (_: FieldForConvert) => (value: string | null | undefined): string | null | undefined => value,
-    makeFrom: (_: FieldForConvert) => (value: string | null): string => value ? value : "",
+    makeTo: (_: FieldSchemaForConvert) => (value: string | null | undefined): string | null | undefined => value,
+    makeFrom: (_: FieldSchemaForConvert) => (value: string | null): string => value ? value : "",
 } as const satisfies IConverters<
     string | null | undefined,
     string,
@@ -614,8 +631,8 @@ const SingleCollaboratorConverters = {
 
 const SingleLineTextConverters = {
     type: "singleLineText",
-    makeTo: (_: FieldForConvert) => (value: string | null | undefined): string | null | undefined => value,
-    makeFrom: (_: FieldForConvert) => (value: string | null): string => value ? value : "",
+    makeTo: (_: FieldSchemaForConvert) => (value: string | null | undefined): string | null | undefined => value,
+    makeFrom: (_: FieldSchemaForConvert) => (value: string | null): string => value ? value : "",
 } as const satisfies IConverters<
     string | null | undefined,
     string,
@@ -625,7 +642,7 @@ const SingleLineTextConverters = {
 const SingleSelectConverters = {
     type: "singleSelect",
     makeTo:
-        <C extends types.SelectChoiceSchemaRead>(fieldSchema: SingleSelectForConvert<C>) =>
+        <C extends SelectChoiceForConvert>(fieldSchema: SingleSelectForConvert<C>) =>
             (idOrValue: C["id"] | C["name"] | null | undefined): C["id"] | null | undefined => {
                 if (idOrValue === null || idOrValue === undefined) {
                     return idOrValue;
@@ -647,7 +664,7 @@ const SingleSelectConverters = {
                 );
             },
     makeFrom:
-        <C extends types.SelectChoiceSchemaRead>(fieldSchema: SingleSelectForConvert<C>) =>
+        <C extends SelectChoiceForConvert>(fieldSchema: SingleSelectForConvert<C>) =>
             (value: unknown): C["name"] | null => {
                 if (value === null || value === undefined) {
                     return null;
@@ -658,8 +675,8 @@ const SingleSelectConverters = {
 
 const UrlConverters = {
     type: "url",
-    makeTo: (_: FieldForConvert) => (value: string | null | undefined): string | null | undefined => value,
-    makeFrom: (_: FieldForConvert) => (value: string | null): string => value ? value : "",
+    makeTo: (_: FieldSchemaForConvert) => (value: string | null | undefined): string | null | undefined => value,
+    makeFrom: (_: FieldSchemaForConvert) => (value: string | null): string => value ? value : "",
 } as const satisfies IConverters<string | null | undefined, string, FieldForConvertOfType<"url">>;
 
 export const CONVERTERS = {
@@ -701,8 +718,8 @@ export const CONVERTERS = {
 export type Converters = typeof CONVERTERS[keyof typeof CONVERTERS];
 
 /** Given a FieldSchema, return the typescript type will be returned when you read from it */
-export type ValueFromRead<F extends Omit<FieldForConvert, "id" | "name">> =
-    F extends FieldForConvertOfType<"aiText"> ? types.AiTextValueRead
+export type ValueFromRead<F extends Omit<FieldSchemaForConvert, "id" | "name">> =
+    F extends FieldForConvertOfType<"aiText"> ? AiTextValueRead
     : F extends FieldForConvertOfType<"autoNumber"> ? number | null
     : F extends FieldForConvertOfType<"barcode"> ? BarcodeValue | null
     : F extends FieldForConvertOfType<"button"> ? never
@@ -738,7 +755,7 @@ export type ValueFromRead<F extends Omit<FieldForConvert, "id" | "name">> =
     : never;
 
 /** Given a FieldSchema, return the typescript type that can be written to it */
-export type ValueForWrite<F extends FieldForConvert> = F extends FieldForConvertOfType<"aiText">
+export type ValueForWrite<F extends FieldSchemaForConvert> = F extends FieldForConvertOfType<"aiText">
     ? never
     : F extends FieldForConvertOfType<"autoNumber"> ? never
     : F extends FieldForConvertOfType<"barcode"> ? BarcodeValue | null | undefined
@@ -777,13 +794,13 @@ export type ValueForWrite<F extends FieldForConvert> = F extends FieldForConvert
 /**
  * Convert a value from the appropriate TypeScript type into the raw value for writing to Airtable for the given field schema.
  * @param value The value in the appropriate TypeScript type
- * @param fieldSchema The {@link FieldForConvert} describing the field
+ * @param fieldSchema The {@link FieldSchemaForConvert} describing the field
  * @returns The raw value to write to Airtable
  *
  * @throws {@link FieldNotWritableError} if the field type cannot be written to.
  * @throws {@link WriteValueConversionError} if the value could not be converted for writing.
  */
-export function convertValueForWrite<F extends FieldForConvert>(
+export function convertValueForWrite<F extends FieldSchemaForConvert>(
     value: ValueForWrite<F>,
     fieldSchema: F,
 ): unknown {
@@ -793,7 +810,7 @@ export function convertValueForWrite<F extends FieldForConvert>(
         throw new Error(`No converter found for field type: ${type}`);
     }
     type AnyConverter = {
-        makeTo: null | ((fs: FieldForConvert) => ((v: unknown) => unknown));
+        makeTo: null | ((fs: FieldSchemaForConvert) => ((v: unknown) => unknown));
     };
     const makeTo = (converterObj as AnyConverter).makeTo;
     if (makeTo === null) {
@@ -811,12 +828,12 @@ export function convertValueForWrite<F extends FieldForConvert>(
  * Convert a value from the Airtable into the appropriate TypeScript type for the given field schema.
  * 
  * @param value The raw value from Airtable
- * @param fieldSchema The {@link FieldForConvert} describing the field
+ * @param fieldSchema The {@link FieldSchemaForConvert} describing the field
  * @returns The converted value in the appropriate TypeScript type
  * @throws {@link FieldNotReadableError} if the field type cannot be read from.
  * @throws {@link ReadValueConversionError} if the value could not be converted for reading.
  */
-export function convertValueFromRead<F extends FieldForConvert>(
+export function convertValueFromRead<F extends FieldSchemaForConvert>(
     value: unknown,
     fieldSchema: F,
 ): ValueFromRead<F> {

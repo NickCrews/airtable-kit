@@ -15,7 +15,20 @@
     "sourceMap": true,
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "paths": {
+      "airtable-kit/fetcher": ["./src/fetcher.ts"],
+      "airtable-kit/bases": ["./src/bases/index.ts"],
+      "airtable-kit/tables": ["./src/tables/index.ts"],
+      "airtable-kit/fields": ["./src/fields/index.ts"],
+      "airtable-kit/value-converters": ["./src/value-converters/index.ts"],
+      "airtable-kit/records": ["./src/records/index.ts"],
+      "airtable-kit/mcp": ["./src/mcp/index.ts"],
+      "airtable-kit/codegen": ["./src/codegen/index.ts"],
+      "airtable-kit/formula": ["./src/formula/index.ts"],
+      "airtable-kit/exceptions": ["./src/exceptions.ts"],
+      "airtable-kit/validators": ["./src/validators/index.ts"]
+    }
   },
   "include": ["src/**/*", "tests/**/*"],
   "exclude": ["node_modules", "dist"]

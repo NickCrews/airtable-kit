@@ -1,3 +1,4 @@
+/** The Colors that can be used in 'rating' and 'checkbox' fields. */
 export const BRIGHT_COLORS = [
     "greenBright",
     "tealBright",
@@ -10,6 +11,7 @@ export const BRIGHT_COLORS = [
     "yellowBright",
     "grayBright",
 ] as const;
+/** The Colors that can be used in 'rating' and 'checkbox' fields. */
 export type BrightColor = typeof BRIGHT_COLORS[number];
 
 export const SELECT_COLORS = [

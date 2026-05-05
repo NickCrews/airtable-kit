@@ -1,6 +1,4 @@
-import * as colors from "./colors.ts";
-import * as converters from "./converters.ts";
-import * as timezones from "./timezones.ts";
+// export * as colors from "./colors.ts";
 export {
   type FieldSchemaRead,
   type FieldSchemaCreate,
@@ -9,7 +7,6 @@ export {
   type SelectId,
   type AttachmentId,
 } from "./types.ts";
-
 export {
   FieldCreationAbility,
   fieldCreationAbility,
@@ -19,9 +16,13 @@ export {
   UpdateFieldParams,
   updateField,
 } from "./api.ts";
-
 export {
-  colors,
-  converters,
-  timezones,
-}
+  TIMEZONES,
+  type Timezone,
+} from "./timezones.ts";
+export {
+  BRIGHT_COLORS,
+  type BrightColor,
+  SELECT_COLORS,
+  type SelectColor,
+} from './colors.ts'

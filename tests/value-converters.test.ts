@@ -1,15 +1,13 @@
 /**
- * Comprehensive tests for converters
+ * Comprehensive tests for value converters
  */
 
 import { describe, expect, it } from "vitest";
-import { BarcodeValue, convertValueForWrite, convertValueFromRead, type FieldForConvert } from "airtable-kit/fields";
-import * as FIELDS from "./_example-fields.ts";
+import { BarcodeValue, convertValueForWrite, convertValueFromRead, type FieldSchemaForConvert } from "airtable-kit/value-converters";
 
-describe("Converters", () => {
+describe("Value Converters", () => {
   describe("aiText", () => {
-    const { type } = FIELDS.AI_TEXT;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'aiText' } satisfies FieldSchemaForConvert<'aiText'>;
     it("aiText can't be written to", () => {
       // @ts-expect-error should be null
       expect(() => convertValueForWrite("some slop", fieldSchema)).toThrow();
@@ -19,8 +17,7 @@ describe("Converters", () => {
     });
   });
   describe("autoNumber", () => {
-    const { type } = FIELDS.AUTO_NUMBER;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'autoNumber' } satisfies FieldSchemaForConvert<'autoNumber'>;
     it("autoNumber can't be written to", () => {
       // @ts-expect-error should be null
       expect(() => convertValueForWrite(42, fieldSchema)).toThrow();
@@ -30,8 +27,7 @@ describe("Converters", () => {
     });
   });
   describe("barcode", () => {
-    const { type } = FIELDS.BARCODE;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'barcode' } satisfies FieldSchemaForConvert<'barcode'>;
     it("barcode should convert BarcodeValue for write", () => {
       const value: BarcodeValue = { text: "123456", type: "upce" };
       expect(convertValueForWrite(value, fieldSchema)).toEqual(value);
@@ -45,8 +41,7 @@ describe("Converters", () => {
     });
   });
   describe("button", () => {
-    const { type } = FIELDS.BUTTON;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'button' } satisfies FieldSchemaForConvert<'button'>;
     it("button can't be written to", () => {
       // @ts-expect-error should be null
       expect(() => convertValueForWrite("some value", fieldSchema)).toThrow();
@@ -57,8 +52,7 @@ describe("Converters", () => {
     });
   });
   describe("checkbox", () => {
-    const { type } = FIELDS.CHECKBOX;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'checkbox' } satisfies FieldSchemaForConvert<'checkbox'>;
     it("checkbox should convert values for write", () => {
       expect(convertValueForWrite(true, fieldSchema)).toBe(true);
       expect(convertValueForWrite(false, fieldSchema)).toBe(false);
@@ -71,8 +65,7 @@ describe("Converters", () => {
     });
   });
   describe("count", () => {
-    const { type } = FIELDS.COUNT;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'count' } satisfies FieldSchemaForConvert<'count'>;
     it("count should can't be written to", () => {
       // @ts-expect-error should be null
       expect(() => convertValueForWrite(42, fieldSchema)).toThrow();
@@ -82,8 +75,7 @@ describe("Converters", () => {
     });
   });
   describe("createdBy", () => {
-    const { type } = FIELDS.CREATED_BY;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'createdBy' } satisfies FieldSchemaForConvert<'createdBy'>;
     it("createdBy can't be written to", () => {
       // @ts-expect-error should be null
       expect(() => convertValueForWrite({ id: "usr123", email: "test@example.com" }, fieldSchema)).toThrow();
@@ -94,8 +86,7 @@ describe("Converters", () => {
     });
   });
   describe("createdTime", () => {
-    const { type } = FIELDS.CREATED_TIME;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'createdTime' } satisfies FieldSchemaForConvert<'createdTime'>;
     it("createdTime can't be written to", () => {
       // @ts-expect-error should be null
       expect(() => convertValueForWrite(new Date(), fieldSchema)).toThrow();
@@ -107,8 +98,7 @@ describe("Converters", () => {
     });
   });
   describe("currency", () => {
-    const { type } = FIELDS.CURRENCY;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'currency' } satisfies FieldSchemaForConvert<'currency'>;
     it("currency should convert for write", () => {
       expect(convertValueForWrite(99.99, fieldSchema)).toBe(99.99);
       expect(convertValueForWrite(null, fieldSchema)).toBeNull();
@@ -120,8 +110,7 @@ describe("Converters", () => {
     });
   });
   describe("date", () => {
-    const { type } = FIELDS.DATE;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'date' } satisfies FieldSchemaForConvert<'date'>;
     it("date should convert Date to ISO string for write", () => {
       const date = new Date("2024-01-15T10:30:00.000Z");
       expect(convertValueForWrite(date, fieldSchema)).toBe("2024-01-15");
@@ -140,8 +129,7 @@ describe("Converters", () => {
     });
   });
   describe("dateTime", () => {
-    const { type } = FIELDS.DATE_TIME;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'dateTime' } satisfies FieldSchemaForConvert<'dateTime'>;
     it("dateTime should convert Date to ISO string for write", () => {
       const date = new Date("2024-01-15T10:30:00.000Z");
       expect(convertValueForWrite(date, fieldSchema)).toBe(date.toISOString());
@@ -174,8 +162,7 @@ describe("Converters", () => {
     });
   });
   describe("duration", () => {
-    const { type } = FIELDS.DURATION;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'duration' } satisfies FieldSchemaForConvert<'duration'>;
     it("duration should convert for write", () => {
       expect(convertValueForWrite(3600, fieldSchema)).toBe(3600);
       expect(convertValueForWrite(null, fieldSchema)).toBeNull();
@@ -186,8 +173,7 @@ describe("Converters", () => {
     });
   });
   describe("email", () => {
-    const { type } = FIELDS.EMAIL;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'email' } satisfies FieldSchemaForConvert<'email'>;
     it("email should convert for write", () => {
       expect(convertValueForWrite("test@example.com", fieldSchema)).toBe("test@example.com");
       expect(convertValueForWrite(null, fieldSchema)).toBeNull();
@@ -198,8 +184,7 @@ describe("Converters", () => {
     });
   });
   describe("externalSyncSource", () => {
-    const { type } = FIELDS.EXTERNAL_SYNC_SOURCE;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'externalSyncSource' } satisfies FieldSchemaForConvert<'externalSyncSource'>;
     it("externalSyncSource should pass through for write", () => {
       const value = { someData: "test" };
       expect(convertValueForWrite(value, fieldSchema)).toEqual(value);
@@ -210,8 +195,7 @@ describe("Converters", () => {
     });
   });
   describe("formula", () => {
-    const { type, options } = FIELDS.FORMULA;
-    const fieldSchema = { type, options } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'formula', options: { result: { type: 'number' } } } satisfies FieldSchemaForConvert<'formula'>;
     it("formula can't be written to", () => {
       // @ts-expect-error should be null
       expect(() => convertValueForWrite(42, fieldSchema)).toThrow();
@@ -221,8 +205,7 @@ describe("Converters", () => {
     });
   });
   describe("lastModifiedBy", () => {
-    const { type } = FIELDS.LAST_MODIFIED_BY;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'lastModifiedBy' } satisfies FieldSchemaForConvert<'lastModifiedBy'>;
     it("lastModifiedBy can't be written to", () => {
       // @ts-expect-error should be null
       expect(() => convertValueForWrite({ id: "usr123", email: "test@example.com" }, fieldSchema)).toThrow();
@@ -233,8 +216,7 @@ describe("Converters", () => {
     });
   });
   describe("lastModifiedTime", () => {
-    const { type } = FIELDS.LAST_MODIFIED_TIME;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'lastModifiedTime' } satisfies FieldSchemaForConvert<'lastModifiedTime'>;
     it("lastModifiedTime can't be written to", () => {
       // @ts-expect-error should be null
       expect(() => convertValueForWrite(new Date(), fieldSchema)).toThrow();
@@ -246,8 +228,7 @@ describe("Converters", () => {
     });
   });
   describe("multilineText", () => {
-    const { type } = FIELDS.MULTILINE_TEXT;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'multilineText' } satisfies FieldSchemaForConvert<'multilineText'>;
     it("multilineText should convert for write", () => {
       const text = "Line 1\nLine 2\nLine 3";
       expect(convertValueForWrite(text, fieldSchema)).toBe(text);
@@ -260,8 +241,7 @@ describe("Converters", () => {
     });
   });
   describe("multipleAttachments", () => {
-    const { type } = FIELDS.MULTIPLE_ATTACHMENTS;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'multipleAttachments' } satisfies FieldSchemaForConvert<'multipleAttachments'>;
     it("multipleAttachments should convert array for write", () => {
       const attachments = [
         { url: "https://example.com/file1.pdf", filename: "file1.pdf" },
@@ -283,8 +263,7 @@ describe("Converters", () => {
     });
   });
   describe("multipleCollaborators", () => {
-    const { type } = FIELDS.MULTIPLE_COLLABORATORS;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'multipleCollaborators' } satisfies FieldSchemaForConvert<'multipleCollaborators'>;
     it("multipleCollaborators should convert array for write", () => {
       const users = [
         { id: "usr1", email: "user1@example.com" },
@@ -305,8 +284,7 @@ describe("Converters", () => {
     });
   });
   describe("multipleLookupValues", () => {
-    const { type, options } = FIELDS.MULTIPLE_LOOKUP_VALUES;
-    const fieldSchema = { type, options } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'multipleLookupValues', options: { result: { type: 'singleLineText' } } } satisfies FieldSchemaForConvert;
     it("multipleLookupValues can't be written to", () => {
       // @ts-expect-error should be never
       expect(() => convertValueForWrite([1, 2, 3], fieldSchema)).toThrow();
@@ -317,8 +295,7 @@ describe("Converters", () => {
     });
   });
   describe("multipleRecordLinks", () => {
-    const { type } = FIELDS.MULTIPLE_RECORD_LINKS;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'multipleRecordLinks' } satisfies FieldSchemaForConvert<'multipleRecordLinks'>;
     it("multipleRecordLinks should convert array for write", () => {
       const links = ["rec123", "rec456"] as const;
       expect(convertValueForWrite(links, fieldSchema)).toEqual(links);
@@ -338,8 +315,7 @@ describe("Converters", () => {
     });
   });
   describe("multipleSelects", () => {
-    const { type, options } = FIELDS.MULTIPLE_SELECTS;
-    const fieldSchema = { type, options } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'multipleSelects', options: { choices: [{ id: "selGood", name: "good" }, { id: "selBad", name: "bad" }] } } as const satisfies FieldSchemaForConvert;
     it("multipleSelects should convert choice IDs for write", () => {
       const result = convertValueForWrite(["selGood"], fieldSchema);
       expect(result).toEqual(["selGood"]);
@@ -365,8 +341,7 @@ describe("Converters", () => {
     });
   });
   describe("number", () => {
-    const { type } = FIELDS.NUMBER;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'number' } satisfies FieldSchemaForConvert<'number'>;
     it("number should convert for write", () => {
       expect(convertValueForWrite(42.5, fieldSchema)).toBe(42.5);
       expect(convertValueFromRead(null, fieldSchema)).toBeNull();
@@ -374,8 +349,7 @@ describe("Converters", () => {
     });
   });
   describe("percent", () => {
-    const { type } = FIELDS.PERCENT;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'percent' } satisfies FieldSchemaForConvert<'percent'>;
     it("percent should convert for write", () => {
       expect(convertValueForWrite(0.75, fieldSchema)).toBe(0.75);
       expect(convertValueForWrite(null, fieldSchema)).toBeNull();
@@ -386,8 +360,7 @@ describe("Converters", () => {
     });
   });
   describe("phoneNumber", () => {
-    const { type } = FIELDS.PHONE_NUMBER;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'phoneNumber' } satisfies FieldSchemaForConvert<'phoneNumber'>;
     it("phoneNumber should convert for write", () => {
       expect(convertValueForWrite("+1-555-123-4567", fieldSchema)).toBe("+1-555-123-4567");
       expect(convertValueForWrite(null, fieldSchema)).toBeNull();
@@ -398,8 +371,7 @@ describe("Converters", () => {
     });
   });
   describe("rating", () => {
-    const { type } = FIELDS.RATING;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'rating' } satisfies FieldSchemaForConvert<'rating'>;
     it("rating should convert for write", () => {
       expect(convertValueForWrite(4, fieldSchema)).toBe(4);
       expect(convertValueForWrite(null, fieldSchema)).toBeNull();
@@ -410,8 +382,7 @@ describe("Converters", () => {
     });
   });
   describe("richText", () => {
-    const { type } = FIELDS.RICH_TEXT;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'richText' } satisfies FieldSchemaForConvert<'richText'>;
     it("richText should convert for write", () => {
       const html = "<p>Rich <strong>text</strong></p>";
       expect(convertValueForWrite(html, fieldSchema)).toBe(html);
@@ -424,8 +395,7 @@ describe("Converters", () => {
     });
   });
   describe("rollup", () => {
-    const { type, options } = FIELDS.ROLLUP;
-    const fieldSchema = { type, options } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'rollup', options: { result: { type: 'singleLineText' } } } satisfies FieldSchemaForConvert<'rollup'>;
     it("rollup can't be written to", () => {
       // @ts-expect-error should be null
       expect(() => convertValueForWrite(42, fieldSchema)).toThrow();
@@ -436,8 +406,7 @@ describe("Converters", () => {
     });
   });
   describe("singleCollaborator", () => {
-    const { type } = FIELDS.SINGLE_COLLABORATOR;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'singleCollaborator' } satisfies FieldSchemaForConvert<'singleCollaborator'>;
     it("singleCollaborator should convert user for write", () => {
       const user = { id: "usr123", email: "test@example.com" };
       expect(convertValueForWrite(user, fieldSchema)).toEqual(user);
@@ -452,8 +421,7 @@ describe("Converters", () => {
     });
   });
   describe("singleLineText", () => {
-    const { type } = FIELDS.SINGLE_LINE_TEXT;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'singleLineText' } satisfies FieldSchemaForConvert<'singleLineText'>;
     it("singleLineText should convert for write", () => {
       expect(convertValueForWrite("Hello World", fieldSchema)).toBe("Hello World");
       expect(convertValueForWrite(null, fieldSchema)).toBeNull();
@@ -464,8 +432,10 @@ describe("Converters", () => {
     });
   });
   describe("singleSelect", () => {
-    const { type, options } = FIELDS.SINGLE_SELECT;
-    const fieldSchema = { type, options } as const satisfies FieldForConvert;
+    const fieldSchema = {
+      type: 'singleSelect',
+      options: { choices: [{ id: "selTodo", name: "todo" }, { id: "selDone", name: "done" }] }
+    } as const satisfies FieldSchemaForConvert<'singleSelect'>;
     it("singleSelect should convert choice ID for write", () => {
       expect(convertValueForWrite("selTodo", fieldSchema)).toBe("selTodo");
     });
@@ -492,8 +462,7 @@ describe("Converters", () => {
     });
   });
   describe("url", () => {
-    const { type } = FIELDS.URL;
-    const fieldSchema = { type } as const satisfies FieldForConvert;
+    const fieldSchema = { type: 'url' } satisfies FieldSchemaForConvert<'url'>;
     it("url should convert for write", () => {
       expect(convertValueForWrite("https://example.com", fieldSchema)).toBe("https://example.com");
       expect(convertValueForWrite(null, fieldSchema)).toBeNull();

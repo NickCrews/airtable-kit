@@ -1,5 +1,5 @@
 import { doFetch, IntoFetcher } from "../fetcher";
-import { ValueFromRead } from "../fields/converters";
+import { ValueFromRead } from "../value-converters/index.ts";
 import { Timezone } from "../fields/timezones";
 import { AttachmentId, FieldId, FieldSchemaRead } from "../fields/types";
 import { Formula, formulaToString } from "../formula";

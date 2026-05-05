@@ -1,15 +1,7 @@
 /**
- * Airtable field type definitions
+ * Airtable field schema definitions. This has to do with reading/writing the schema of fields.
+ * For dealing with the read/write shapes of of filed **values**, see value-converters/index.ts
  */
-
-// This should ONLY export the individual field schemas,
-// so users can do
-// ```
-// import * as fields from 'airtable/fields';
-// type MyField = fields.SingleSelect;
-// ```
-// If we export other stuff here, the namespace will be polluted,
-// and we lose the semantics of "everything in fields is a field schema".
 import { type Timezone } from "./timezones.ts";
 import { type BrightColor, type SelectColor } from "./colors.ts";
 import { type TableId, type ViewId } from "../tables/types.ts";
@@ -20,16 +12,16 @@ export type AttachmentId = `att${string}`;
 
 type FieldTypeAndOptions = Omit<FieldSchemaRead, "id" | "name" | "description">
 
-export type SelectChoiceSchemaRead = {
+type SelectChoiceSchemaRead = {
   id: SelectId;
   name: string;
   color: SelectColor;
 }
-export type SelectChoiceSchemaWrite = {
+type SelectChoiceSchemaWrite = {
   name: string;
   color: SelectColor;
 }
-export interface AiTextSchemaRead {
+interface AiTextSchemaRead {
   id: FieldId;
   name: string;
   description?: string;
@@ -40,46 +32,34 @@ export interface AiTextSchemaRead {
     referencedFieldIds: Array<FieldId>
   }
 }
-export type AiTextSchemaCreate = never
+type AiTextSchemaCreate = never
 
-export type AiTextValueRead = {
-  state: "empty" | "loading" | "generated";
-  isStale: boolean;
-  value: string | null;
-} | {
-  state: "error";
-  errorType: string;
-  isStale: boolean;
-  value: string | null;
-};
-export type AiTextValueCreate = never
-
-export type AutoNumberSchemaRead = {
+type AutoNumberSchemaRead = {
   id: FieldId;
   name: string;
   type: "autoNumber";
   description?: string;
 }
-export type AutoNumberSchemaCreate = Omit<AutoNumberSchemaRead, "id">;
+type AutoNumberSchemaCreate = Omit<AutoNumberSchemaRead, "id">;
 
-export interface BarcodeSchemaRead {
+interface BarcodeSchemaRead {
   id: FieldId;
   name: string;
   description?: string;
   type: "barcode";
 };
-export type BarcodeSchemaCreate = Omit<BarcodeSchemaRead, "id">;
+type BarcodeSchemaCreate = Omit<BarcodeSchemaRead, "id">;
 
 
-export type ButtonSchemaRead = {
+type ButtonSchemaRead = {
   id: FieldId;
   name: string;
   type: "button";
   description?: string;
 };
-export type ButtonSchemaCreate = Omit<ButtonSchemaRead, "id">;
+type ButtonSchemaCreate = Omit<ButtonSchemaRead, "id">;
 
-export type CheckboxIcon =
+type CheckboxIcon =
   | "check"
   | "xCheckbox"
   | "star"
@@ -87,7 +67,7 @@ export type CheckboxIcon =
   | "thumbsUp"
   | "flag"
   | "dot";
-export interface CheckboxSchemaRead {
+interface CheckboxSchemaRead {
   id: FieldId;
   name: string;
   description?: string;
@@ -97,9 +77,9 @@ export interface CheckboxSchemaRead {
     color: BrightColor;
   }
 }
-export type CheckboxSchemaCreate = Omit<CheckboxSchemaRead, "id">
+type CheckboxSchemaCreate = Omit<CheckboxSchemaRead, "id">
 
-export interface CountSchemaRead {
+interface CountSchemaRead {
   id: FieldId;
   name: string;
   description?: string;
@@ -110,22 +90,22 @@ export interface CountSchemaRead {
     recordLinkFieldId?: FieldId | null;
   };
 }
-export type CountSchemaCreate = Omit<CountSchemaRead, "id">
-export interface CreatedBySchemaRead {
+type CountSchemaCreate = Omit<CountSchemaRead, "id">
+interface CreatedBySchemaRead {
   id: FieldId;
   name: string;
   description?: string;
   type: "createdBy";
 }
-export type CreatedBySchemaCreate = Omit<CreatedBySchemaRead, "id">;
-export interface CreatedTimeSchemaRead {
+type CreatedBySchemaCreate = Omit<CreatedBySchemaRead, "id">;
+interface CreatedTimeSchemaRead {
   id: FieldId;
   name: string;
   description?: string;
   type: "createdTime";
 };
-export type CreatedTimeSchemaCreate = Omit<CreatedTimeSchemaRead, "id">;
-export interface CurrencySchemaRead {
+type CreatedTimeSchemaCreate = Omit<CreatedTimeSchemaRead, "id">;
+interface CurrencySchemaRead {
   id: FieldId;
   name: string;
   description?: string;
@@ -136,12 +116,12 @@ export interface CurrencySchemaRead {
     symbol: string;
   };
 }
-export type CurrencySchemaCreate = Omit<CurrencySchemaRead, "id">;
+type CurrencySchemaCreate = Omit<CurrencySchemaRead, "id">;
 
-export type DateFormatName = "local" | "friendly" | "us" | "european" | "iso";
-export type DateFormatFormat = "l" | "LL" | "M/D/YYYY" | "D/M/YYYY" | "YYYY-MM-DD";
-export type TimeFormatName = "12hour" | "24hour";
-export type TimeFormatFormat = "h:mma" | "HH:mm";
+type DateFormatName = "local" | "friendly" | "us" | "european" | "iso";
+type DateFormatFormat = "l" | "LL" | "M/D/YYYY" | "D/M/YYYY" | "YYYY-MM-DD";
+type TimeFormatName = "12hour" | "24hour";
+type TimeFormatFormat = "h:mma" | "HH:mm";
 
 export interface DateSchemaRead {
   id: FieldId;

@@ -1,5 +1,5 @@
 import { FieldId, FieldSchemaRead } from "../fields/types.ts";
-import { convertValueFromRead, convertValueForWrite, ValueFromRead, ValueForWrite } from "../fields/converters.ts";
+import { convertValueFromRead, convertValueForWrite, ValueFromRead, ValueForWrite } from "../value-converters/index.ts";
 import * as exceptions from "../exceptions.ts";
 
 export type WriteValuesById<T extends FieldSchemaRead> = {

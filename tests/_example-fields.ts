@@ -1,4 +1,4 @@
-import * as f from './types.ts';
+import { FieldSchemaRead } from 'airtable-kit/fields';
 
 export const AI_TEXT = {
     type: 'aiText',
@@ -8,25 +8,25 @@ export const AI_TEXT = {
         prompt: [],
         referencedFieldIds: [],
     }
-} as const satisfies f.AiTextSchemaRead;
+} as const satisfies FieldSchemaRead<'aiText'>;
 
 export const AUTO_NUMBER = {
     type: 'autoNumber',
     id: 'fldAutoNumber',
     name: 'Auto Number Field',
-} as const satisfies f.AutoNumberSchemaRead;
+} as const satisfies FieldSchemaRead<'autoNumber'>;
 
 export const BARCODE = {
     type: 'barcode',
     id: 'fldBarcode',
     name: 'Barcode Field',
-} as const satisfies f.BarcodeSchemaRead;
+} as const satisfies FieldSchemaRead<'barcode'>;
 
 export const BUTTON = {
     type: 'button',
     id: 'fldButton',
     name: 'Button Field',
-} as const satisfies f.ButtonSchemaRead;
+} as const satisfies FieldSchemaRead<'button'>;
 
 export const CHECKBOX = {
     type: 'checkbox',
@@ -36,7 +36,7 @@ export const CHECKBOX = {
         icon: 'check',
         color: 'blueBright',
     },
-} as const satisfies f.CheckboxSchemaRead;
+} as const satisfies FieldSchemaRead<'checkbox'>;
 
 export const COUNT = {
     type: 'count',
@@ -46,19 +46,19 @@ export const COUNT = {
         isValid: true,
         recordLinkFieldId: 'fldLinkedRecords',
     },
-} as const satisfies f.CountSchemaRead;
+} as const satisfies FieldSchemaRead<'count'>;
 
 export const CREATED_BY = {
     type: 'createdBy',
     id: 'fldCreatedBy',
     name: 'Created By Field',
-} as const satisfies f.CreatedBySchemaRead;
+} as const satisfies FieldSchemaRead<'createdBy'>;
 
 export const CREATED_TIME = {
     type: 'createdTime',
     id: 'fldCreatedTime',
     name: 'Created Time Field',
-} as const satisfies f.CreatedTimeSchemaRead;
+} as const satisfies FieldSchemaRead<'createdTime'>;
 
 export const CURRENCY = {
     type: 'currency',
@@ -68,7 +68,7 @@ export const CURRENCY = {
         symbol: '$',
         precision: 2,
     },
-} as const satisfies f.CurrencySchemaRead;
+} as const satisfies FieldSchemaRead<'currency'>;
 
 export const DATE = {
     type: 'date',
@@ -80,7 +80,7 @@ export const DATE = {
             name: 'iso',
         },
     },
-} as const satisfies f.DateSchemaRead;
+} as const satisfies FieldSchemaRead<'date'>;
 
 export const DATE_TIME = {
     type: 'dateTime',
@@ -97,7 +97,7 @@ export const DATE_TIME = {
         },
         timeZone: 'client',
     },
-} as const satisfies f.DateTimeSchemaRead;
+} as const satisfies FieldSchemaRead<'dateTime'>;
 
 export const DURATION = {
     type: 'duration',
@@ -106,19 +106,19 @@ export const DURATION = {
     options: {
         durationFormat: 'h:mm:ss',
     },
-} as const satisfies f.DurationSchemaRead;
+} as const satisfies FieldSchemaRead<'duration'>;
 
 export const EMAIL = {
     type: 'email',
     id: 'fldEmail',
     name: 'Email Field',
-} as const satisfies f.EmailSchemaRead;
+} as const satisfies FieldSchemaRead<'email'>;
 
 export const EXTERNAL_SYNC_SOURCE = {
     type: 'externalSyncSource',
     id: 'fldExternalSyncSource',
     name: 'External Sync Source Field',
-} as const satisfies f.ExternalSyncSourceSchemaRead;
+} as const satisfies FieldSchemaRead<'externalSyncSource'>;
 
 export const FORMULA = {
     type: 'formula',
@@ -130,25 +130,25 @@ export const FORMULA = {
             type: 'number',
         }
     },
-} as const satisfies f.FormulaSchemaRead;
+} as const satisfies FieldSchemaRead<'formula'>;
 
 export const LAST_MODIFIED_BY = {
     type: 'lastModifiedBy',
     id: 'fldLastModifiedBy',
     name: 'Last Modified By Field',
-} as const satisfies f.LastModifiedBySchemaRead;
+} as const satisfies FieldSchemaRead<'lastModifiedBy'>;
 
 export const LAST_MODIFIED_TIME = {
     type: 'lastModifiedTime',
     id: 'fldLastModifiedTime',
     name: 'Last Modified Time Field',
-} as const satisfies f.LastModifiedTimeSchemaRead;
+} as const satisfies FieldSchemaRead<'lastModifiedTime'>;
 
 export const MULTILINE_TEXT = {
     type: 'multilineText',
     id: 'fldMultilineText',
     name: 'Multiline Text Field',
-} as const satisfies f.MultilineTextSchemaRead;
+} as const satisfies FieldSchemaRead<'multilineText'>;
 
 export const MULTIPLE_ATTACHMENTS = {
     type: 'multipleAttachments',
@@ -157,13 +157,13 @@ export const MULTIPLE_ATTACHMENTS = {
     options: {
         isReversed: false,
     },
-} as const satisfies f.MultipleAttachmentsSchemaRead;
+} as const satisfies FieldSchemaRead<'multipleAttachments'>;
 
 export const MULTIPLE_COLLABORATORS = {
     type: 'multipleCollaborators',
     id: 'fldMultipleCollaborators',
     name: 'Multiple Collaborators Field',
-} as const satisfies f.MultipleCollaboratorsSchemaRead;
+} as const satisfies FieldSchemaRead<'multipleCollaborators'>;
 
 export const MULTIPLE_LOOKUP_VALUES = {
     type: 'multipleLookupValues',
@@ -177,7 +177,7 @@ export const MULTIPLE_LOOKUP_VALUES = {
             type: 'singleLineText',
         },
     },
-} as const satisfies f.MultipleLookupValuesSchemaRead;
+} as const satisfies FieldSchemaRead<'multipleLookupValues'>;
 
 export const MULTIPLE_RECORD_LINKS = {
     type: 'multipleRecordLinks',
@@ -189,7 +189,7 @@ export const MULTIPLE_RECORD_LINKS = {
         isReversed: false,
         prefersSingleRecordLink: false,
     },
-} as const satisfies f.MultipleRecordLinksSchemaRead;
+} as const satisfies FieldSchemaRead<'multipleRecordLinks'>;
 
 export const MULTIPLE_SELECTS = {
     type: 'multipleSelects',
@@ -201,7 +201,7 @@ export const MULTIPLE_SELECTS = {
             { id: 'selBad', name: 'bad', color: 'redLight1' },
         ],
     },
-} as const satisfies f.MultipleSelectsSchemaRead;
+} as const satisfies FieldSchemaRead<'multipleSelects'>;
 
 export const NUMBER = {
     type: 'number',
@@ -210,7 +210,7 @@ export const NUMBER = {
     options: {
         precision: 2,
     },
-} as const satisfies f.NumberSchemaRead;
+} as const satisfies FieldSchemaRead<'number'>;
 
 export const PERCENT = {
     type: 'percent',
@@ -219,13 +219,13 @@ export const PERCENT = {
     options: {
         precision: 1,
     },
-} as const satisfies f.PercentSchemaRead;
+} as const satisfies FieldSchemaRead<'percent'>;
 
 export const PHONE_NUMBER = {
     type: 'phoneNumber',
     id: 'fldPhoneNumber',
     name: 'Phone Number Field',
-} as const satisfies f.PhoneNumberSchemaRead;
+} as const satisfies FieldSchemaRead<'phoneNumber'>;
 
 export const RATING = {
     type: 'rating',
@@ -235,13 +235,13 @@ export const RATING = {
         max: 5,
         icon: 'star',
     },
-} as const satisfies f.RatingSchemaRead;
+} as const satisfies FieldSchemaRead<'rating'>;
 
 export const RICH_TEXT = {
     type: 'richText',
     id: 'fldRichText',
     name: 'Rich Text Field',
-} as const satisfies f.RichTextSchemaRead;
+} as const satisfies FieldSchemaRead<'richText'>;
 
 export const ROLLUP = {
     type: 'rollup',
@@ -256,19 +256,19 @@ export const ROLLUP = {
         fieldIdInLinkedTable: 'fldSomeField',
         referencedFieldIds: ['fldSomeField'],
     },
-} as const satisfies f.RollupSchemaRead;
+} as const satisfies FieldSchemaRead<'rollup'>;
 
 export const SINGLE_COLLABORATOR = {
     type: 'singleCollaborator',
     id: 'fldSingleCollaborator',
     name: 'Single Collaborator Field',
-} as const satisfies f.SingleCollaboratorSchemaRead;
+} as const satisfies FieldSchemaRead<'singleCollaborator'>;
 
 export const SINGLE_LINE_TEXT = {
     type: 'singleLineText',
     id: 'fldSingleLineText',
     name: 'Single Line Text Field',
-} as const satisfies f.SingleLineTextSchemaRead;
+} as const satisfies FieldSchemaRead<'singleLineText'>;
 
 export const SINGLE_SELECT = {
     type: 'singleSelect',
@@ -280,10 +280,10 @@ export const SINGLE_SELECT = {
             { id: 'selDone', name: 'done', color: 'greenLight1' },
         ],
     },
-} as const satisfies f.SingleSelectSchemaRead;
+} as const satisfies FieldSchemaRead<'singleSelect'>;
 
 export const URL = {
     type: 'url',
     id: 'fldUrl',
     name: 'URL Field',
-} as const satisfies f.UrlSchemaRead;
+} as const satisfies FieldSchemaRead<'url'>;

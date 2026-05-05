@@ -88,6 +88,7 @@
     "@types/node": "^22.10.5",
     "dotenv": "^17.2.3",
     "typescript": "^5.7.2",
+    "vite-tsconfig-paths": "^6.1.1",
     "vitest": "~2.1.9",
     "zod": "^4",
     "zshy": "^0.4.4"
@@ -99,6 +100,7 @@
       "./bases": "./src/bases/index.ts",
       "./tables": "./src/tables/index.ts",
       "./fields": "./src/fields/index.ts",
+      "./value-converters": "./src/value-converters/index.ts",
       "./records": "./src/records/index.ts",
       "./mcp": "./src/mcp/index.ts",
       "./codegen": "./src/codegen/index.ts",
