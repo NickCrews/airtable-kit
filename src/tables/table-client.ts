@@ -54,7 +54,7 @@ export interface TableClient<T extends TableSchema = TableSchema> {
      * Any values of `null` or `undefined` in the input record will not be passed
      * to Airtable, effectively leaving those fields blank on creation.
      */
-    createRecord(record: r.ValuesForWrite<FieldType<T>>): Promise<r.CreateRecordsRawResponse<FieldType<T>>[number]>;
+    createRecord(record: r.ValuesForWrite<FieldType<T>>): Promise<r.CreateRecordsResponse<FieldType<T>>[number]>;
 
     /** Create multiple records into the table
      * 
@@ -193,7 +193,7 @@ export function makeTableClient<T extends TableSchema>(
             });
         },
         async createRecord(record: r.ValuesForWrite<FieldType<T>>) {
-            const raw = await r.createRecordsRaw<FieldType<T>>({
+            const raw = await r.createRecords<FieldType<T>>({
                 records: [record],
                 baseId,
                 tableId: tableSchema.id,

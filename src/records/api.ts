@@ -43,7 +43,9 @@ export async function createRecords<T extends FieldSchemaRead>(
         fetcher,
     }: CreateRecordsParams<T>,
 ) {
-    const BATCH_SIZE = 10;
+    // on 2026-05-05 I got:
+    // Fetch error: 422 Unprocessable Entity - {"error":{"type":"INVALID_RECORDS","message":"A maximum of 25 records can be created per request but you have provided 35."}}
+    const BATCH_SIZE = 25;
     const result: Array<{
         id: RecordId,
         fields: ValuesFromRead<T>,
@@ -429,7 +431,7 @@ export async function updateRecords<T extends FieldSchemaRead>(
     const promises = [];
     for (let i = 0; i < records.length; i += BATCH_SIZE) {
         const batch = records.slice(i, i + BATCH_SIZE);
-        promises.push(updateRaw<T>({
+        promises.push(updateRecordsRaw<T>({
             records: batch,
             options,
             fields,
@@ -446,7 +448,7 @@ export async function updateRecords<T extends FieldSchemaRead>(
     return result;
 }
 
-export interface UpdateRawParams<T extends FieldSchemaRead> {
+export interface UpdateRecordsRawParams<T extends FieldSchemaRead> {
     records: Array<{ id?: string; fields: ValuesForWrite<T> }>;
     options?: UpdateRecordsOptions<T>;
     fields: ReadonlyArray<T>;
@@ -455,9 +457,9 @@ export interface UpdateRawParams<T extends FieldSchemaRead> {
     fetcher?: IntoFetcher;
     onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
 }
-export type UpdateRawResponse<T extends FieldSchemaRead> = UpdateRecordsResponse<T>;
+export type UpdateRecordsRawResponse<T extends FieldSchemaRead> = UpdateRecordsResponse<T>;
 
-export async function updateRaw<T extends FieldSchemaRead>(
+export async function updateRecordsRaw<T extends FieldSchemaRead>(
     {
         records,
         options,
@@ -466,13 +468,13 @@ export async function updateRaw<T extends FieldSchemaRead>(
         baseId,
         tableId,
         onUnexpectedField,
-    }: UpdateRawParams<T>,
-): Promise<UpdateRawResponse<T>> {
+    }: UpdateRecordsRawParams<T>,
+): Promise<UpdateRecordsRawResponse<T>> {
     if (records.length === 0) {
         return { records: [] };
     }
     if (records.length > 10) {
-        throw new Error("Can only update up to 10 records at a time in updateRaw. Use update for automatic batching.");
+        throw new Error("Can only update up to 10 records at a time in updateRecordsRaw(). Use updateRecords() for automatic batching.");
     }
     // https://airtable.com/developers/web/api/update-multiple-records
     type UpdateApiRequestBody<T extends FieldSchemaRead> = {

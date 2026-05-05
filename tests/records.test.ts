@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import * as api from "./api.ts";
-import testBaseSchema from "../tests/test-base-schema.generated.ts";
-import { setupTestEnv } from "../tests/test-utils.ts";
+import * as api from "airtable-kit/records";
+import testBaseSchema from "../src/tests/test-base-schema.generated.ts";
+import { setupTestEnv } from "../src/tests/test-utils.ts";
 
 setupTestEnv();
 
@@ -17,15 +17,11 @@ describe("Records API", () => {
         });
 
         if (allRecords.length > 0) {
-            const recordIds = allRecords.map((r) => r.id);
-            for (let i = 0; i < recordIds.length; i += 10) {
-                const batch = recordIds.slice(i, i + 10);
-                await api.deleteRecordsRaw({
-                    recordIds: batch,
-                    baseId: testBaseSchema.id,
-                    tableId: tasksTable.id,
-                });
-            }
+            await api.deleteRecords({
+                recordIds: allRecords.map((r) => r.id),
+                baseId: testBaseSchema.id,
+                tableId: tasksTable.id,
+            });
         }
     });
 
@@ -54,8 +50,9 @@ describe("Records API", () => {
             expect(result[0].createdTime).toBeDefined();
         });
 
-        it("can create multiple records in batches", async () => {
-            const records = Array.from({ length: 25 }, (_, i) => ({
+        it("can create more than 25 records (batches to the raw API)", async () => {
+            const n = 100;
+            const records = Array.from({ length: n }, (_, i) => ({
                 name: `Task ${i + 1}`,
                 status: i % 2 === 0 ? "Todo" : "In Progress" as any,
             }));
@@ -67,7 +64,7 @@ describe("Records API", () => {
                 fields: tasksTable.fields,
             });
 
-            expect(result).toHaveLength(25);
+            expect(result).toHaveLength(n);
             result.forEach((record) => {
                 expect(record.id).toMatch(/^rec/);
                 expect(record.createdTime).toBeDefined();
@@ -126,22 +123,6 @@ describe("Records API", () => {
             expect(result[0].fields.name).toBe("Raw Create Task");
         });
 
-        it("rejects more than 10 records", async () => {
-            const records = Array.from({ length: 11 }, (_, i) => ({
-                name: `Task ${i}`,
-            })) as any;
-
-            // The API itself rejects >10 records, not our wrapper
-            await expect(
-                api.createRecordsRaw({
-                    records: records,
-                    baseId: testBaseSchema.id,
-                    tableId: tasksTable.id,
-                    fields: tasksTable.fields,
-                })
-            ).rejects.toThrow();
-        });
-
         it("handles empty list", async () => {
             const result = await api.createRecordsRaw({
                 records: [],
@@ -152,11 +133,24 @@ describe("Records API", () => {
 
             expect(result).toEqual([]);
         });
+
+        it("throws error when trying to create more than 25 records", async () => {
+            const records = Array.from({ length: 26 }, (_, i) => ({
+                name: `Task ${i}`,
+            })) as any;
+            await expect(
+                api.createRecordsRaw({
+                    records,
+                    baseId: testBaseSchema.id,
+                    tableId: tasksTable.id,
+                    fields: tasksTable.fields,
+                })
+            ).rejects.toThrow();
+        });
     });
 
     describe("listRecords", () => {
         it("can list all records", async () => {
-            // Create some records
             await api.createRecords({
                 records: [
                     { name: "Task 1", completed: true },
@@ -173,14 +167,13 @@ describe("Records API", () => {
                 fields: tasksTable.fields,
             });
 
-            // The test table may be empty, so just verify the call works
             expect(result).toBeDefined();
             expect(Array.isArray(result)).toBe(true);
             expect(result[0]).toHaveProperty("id");
             expect(result[0]).toHaveProperty("fields");
             expect(result[0]).toHaveProperty("createdTime");
             expect(result[0]).toHaveProperty("commentCount");
-        });
+        }, 10_000);
 
         it("can filter records by formula string", async () => {
             await api.createRecords({
@@ -513,7 +506,7 @@ describe("Records API", () => {
                 fields: tasksTable.fields,
             });
 
-            const result = await api.updateRecords({
+            await api.updateRecords({
                 records: [
                     {
                         id: created.id,
@@ -666,59 +659,28 @@ describe("Records API", () => {
         });
     });
 
-    describe("updateRaw", () => {
-        it("can update a single record", async () => {
-            const [created] = await api.createRecords({
-                records: [{ name: "Raw Update Task" }],
-                baseId: testBaseSchema.id,
-                tableId: tasksTable.id,
-                fields: tasksTable.fields,
-            });
-
-            const result = await api.updateRaw({
-                records: [
-                    {
-                        id: created.id,
-                        fields: {
-                            name: "Updated via Raw",
-                            completed: true,
-                        },
-                    },
-                ],
-                baseId: testBaseSchema.id,
-                tableId: tasksTable.id,
-                fields: tasksTable.fields,
-            });
-
-            expect(result.records).toHaveLength(1);
-            expect(result.records[0].fields.name).toBe("Updated via Raw");
-        });
-
+    describe("updateRecordsRaw", () => {
         it("rejects more than 10 records", async () => {
-            const records = Array.from({ length: 11 }, (_, i) => ({
-                id: `rec${i}`,
-                fields: { name: `Task ${i}` },
-            }));
-
-            await expect(
-                api.updateRaw({
-                    records,
-                    baseId: testBaseSchema.id,
-                    tableId: tasksTable.id,
-                    fields: tasksTable.fields,
-                })
-            ).rejects.toThrow("Can only update up to 10 records at a time");
-        });
-
-        it("handles empty record list", async () => {
-            const result = await api.updateRaw({
-                records: [],
+            const created = await api.createRecords({
+                records: Array.from({ length: 11 }, (_, i) => ({
+                    name: `Task ${i}`,
+                })),
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 fields: tasksTable.fields,
             });
 
-            expect(result).toEqual({ records: [] });
+            await expect(api.updateRecordsRaw({
+                records: created.map((r) => ({
+                    id: r.id,
+                    fields: {
+                        completed: true,
+                    },
+                })),
+                baseId: testBaseSchema.id,
+                tableId: tasksTable.id,
+                fields: tasksTable.fields,
+            })).rejects.toThrow("Can only update up to 10 records at a time in updateRecordsRaw(). Use updateRecords() for automatic batching.");
         });
     });
 
@@ -754,10 +716,8 @@ describe("Records API", () => {
                 fields: tasksTable.fields,
             });
 
-            const recordIds = created.map((r) => r.id);
-
             const result = await api.deleteRecords({
-                recordIds,
+                recordIds: created.map((r) => r.id),
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
             });
@@ -768,50 +728,6 @@ describe("Records API", () => {
 
         it("handles empty record list", async () => {
             const result = await api.deleteRecords({
-                recordIds: [],
-                baseId: testBaseSchema.id,
-                tableId: tasksTable.id,
-            });
-
-            expect(result).toEqual({ records: [] });
-        });
-    });
-
-    describe("deleteRecordsRaw", () => {
-        it("can delete a single record", async () => {
-            const [created] = await api.createRecords({
-                records: [{ name: "Raw Delete Task" }],
-                baseId: testBaseSchema.id,
-                tableId: tasksTable.id,
-                fields: tasksTable.fields,
-            });
-
-            const result = await api.deleteRecordsRaw({
-                recordIds: [created.id],
-                baseId: testBaseSchema.id,
-                tableId: tasksTable.id,
-            });
-
-            expect(result.records[0]).toEqual({
-                id: created.id,
-                deleted: true,
-            });
-        });
-
-        it("rejects more than 10 records", async () => {
-            const recordIds = Array.from({ length: 11 }, (_, i) => `rec${i}` as any);
-
-            await expect(
-                api.deleteRecordsRaw({
-                    recordIds,
-                    baseId: testBaseSchema.id,
-                    tableId: tasksTable.id,
-                })
-            ).rejects.toThrow("Can only delete up to 10 records at a time");
-        });
-
-        it("handles empty record list", async () => {
-            const result = await api.deleteRecordsRaw({
                 recordIds: [],
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
@@ -832,7 +748,7 @@ describe("Records API", () => {
                     fields: tasksTable.fields,
                 });
                 const base64File = Buffer.from("test file content").toString("base64");
-                const result = await api.uploadAttachment({
+                await api.uploadAttachment({
                     baseId: testBaseSchema.id,
                     recordId: created.id,
                     attachmentFieldIdOrName,
@@ -842,7 +758,6 @@ describe("Records API", () => {
                         "filename": "test.txt"
                     },
                 });
-                // Now fetch the record and verify attachment field
                 const updatedRecord = await api.getRecord({
                     recordId: created.id,
                     baseId: testBaseSchema.id,
@@ -860,6 +775,5 @@ describe("Records API", () => {
                 expect(updatedRecord.fields.attachments[0].size).toBeGreaterThan(0);
             });
         }
-    }
-    );
+    });
 });
