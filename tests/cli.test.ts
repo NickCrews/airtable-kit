@@ -1695,13 +1695,13 @@ describe('CLI', { timeout: 10_000 }, () => {
           [
             "** Total: 5 records **
 
-        | ID                | name      | numberValue | singleLineTextValue |
-        | ----------------- | --------- | ----------- | ------------------- |
-        | rec0 | undefined | undefined   | undefined           |
-        | rec1 | undefined | undefined   | undefined           |
-        | rec2 | undefined | undefined   | undefined           |
-        | rec3 | undefined | undefined   | undefined           |
-        | rec4 | undefined | undefined   | undefined           |",
+        | ID                | name   | numberValue | singleLineTextValue |
+        | ----------------- | ------ | ----------- | ------------------- |
+        | rec0 | Item A | 10          | 10                  |
+        | rec1 | Item B | 20          | 20                  |
+        | rec2 | Item C | 30          | 30                  |
+        | rec3 | Item D | 40          | 40                  |
+        | rec4 | Item E | 50          | 50                  |",
           ],
         ]
       `);
@@ -1785,13 +1785,13 @@ describe('CLI', { timeout: 10_000 }, () => {
           [
             "** Total: 5 records **
 
-        | ID                | name      | numberValue | singleLineTextValue |
-        | ----------------- | --------- | ----------- | ------------------- |
-        | rec0 | undefined | undefined   | undefined           |
-        | rec1 | undefined | undefined   | undefined           |
-        | rec2 | undefined | undefined   | undefined           |
-        | rec3 | undefined | undefined   | undefined           |
-        | rec4 | undefined | undefined   | undefined           |",
+        | ID                | name   | numberValue | singleLineTextValue |
+        | ----------------- | ------ | ----------- | ------------------- |
+        | rec0 | Item A | (empty)     |                     |
+        | rec1 | Item B | (empty)     |                     |
+        | rec2 | Item C | (empty)     |                     |
+        | rec3 | Item D | (empty)     |                     |
+        | rec4 | Item E | (empty)     |                     |",
           ],
         ]
       `);
@@ -1808,9 +1808,9 @@ describe('CLI', { timeout: 10_000 }, () => {
           [
             "** Total: 1 records **
 
-        | ID                | name      | numberValue | singleLineTextValue |
-        | ----------------- | --------- | ----------- | ------------------- |
-        | rec0 | undefined | undefined   | undefined           |",
+        | ID                | name   | numberValue | singleLineTextValue |
+        | ----------------- | ------ | ----------- | ------------------- |
+        | rec0 | Item A | 10          | 10                  |",
           ],
         ]
       `);

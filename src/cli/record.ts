@@ -49,6 +49,11 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
       if (options.sort) {
         const [field, direction] = options.sort.split(":");
         listOptions.sort = [{ field, direction: direction || "asc" }];
+      } else {
+        const primaryField = table.fields.find((f: any) => f.id === table.primaryFieldId);
+        if (primaryField?.name) {
+          listOptions.sort = [{ field: primaryField.name, direction: "asc" }];
+        }
       }
 
       const records = await client.listRecords(listOptions);
@@ -293,12 +298,22 @@ export function formatRecordList(records: any[], fields?: readonly any[]): strin
 
   const fieldNames = fields?.map((f: any) => f.name) || [];
 
+  const getFieldValue = (recordFields: Record<string, any>, fieldName: string): any => {
+    if (fieldName in recordFields) {
+      return recordFields[fieldName];
+    }
+    const field = fields?.find((f: any) => f.name === fieldName);
+    if (field?.id && field.id in recordFields) {
+      return recordFields[field.id];
+    }
+    return undefined;
+  };
+
   const headers = ["ID", ...fieldNames];
   const rows = records.map(record => [
     record.id,
     ...fieldNames.map(fname => {
-      const field = fields?.find((f: any) => f.name === fname);
-      const value = record.fields[field?.id];
+      const value = getFieldValue(record.fields, fname);
       return truncate(
         value === null ? "(empty)" :
           Array.isArray(value) ? `[${value.length}]` :
