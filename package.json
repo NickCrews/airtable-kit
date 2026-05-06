@@ -12,57 +12,62 @@
   "engines": {
     "node": ">=20"
   },
-  "bin": "./dist/bin.cjs",
+  "bin": "./dist/src/bin.cjs",
   "exports": {
     "./fetcher": {
-      "types": "./dist/fetcher.d.cts",
-      "import": "./dist/fetcher.js",
-      "require": "./dist/fetcher.cjs"
+      "types": "./dist/src/fetcher.d.cts",
+      "import": "./dist/src/fetcher.js",
+      "require": "./dist/src/fetcher.cjs"
     },
     "./bases": {
-      "types": "./dist/bases/index.d.cts",
-      "import": "./dist/bases/index.js",
-      "require": "./dist/bases/index.cjs"
+      "types": "./dist/src/bases/index.d.cts",
+      "import": "./dist/src/bases/index.js",
+      "require": "./dist/src/bases/index.cjs"
     },
     "./tables": {
-      "types": "./dist/tables/index.d.cts",
-      "import": "./dist/tables/index.js",
-      "require": "./dist/tables/index.cjs"
+      "types": "./dist/src/tables/index.d.cts",
+      "import": "./dist/src/tables/index.js",
+      "require": "./dist/src/tables/index.cjs"
     },
     "./fields": {
-      "types": "./dist/fields/index.d.cts",
-      "import": "./dist/fields/index.js",
-      "require": "./dist/fields/index.cjs"
+      "types": "./dist/src/fields/index.d.cts",
+      "import": "./dist/src/fields/index.js",
+      "require": "./dist/src/fields/index.cjs"
+    },
+    "./value-converters": {
+      "types": "./dist/src/value-converters/index.d.cts",
+      "import": "./dist/src/value-converters/index.js",
+      "require": "./dist/src/value-converters/index.cjs"
     },
     "./records": {
-      "types": "./dist/records/index.d.cts",
-      "import": "./dist/records/index.js",
-      "require": "./dist/records/index.cjs"
+      "types": "./dist/src/records/index.d.cts",
+      "import": "./dist/src/records/index.js",
+      "require": "./dist/src/records/index.cjs"
     },
     "./mcp": {
-      "types": "./dist/mcp/index.d.cts",
-      "import": "./dist/mcp/index.js",
-      "require": "./dist/mcp/index.cjs"
+      "types": "./dist/src/mcp/index.d.cts",
+      "import": "./dist/src/mcp/index.js",
+      "require": "./dist/src/mcp/index.cjs"
     },
     "./codegen": {
-      "types": "./dist/codegen/index.d.cts",
-      "import": "./dist/codegen/index.js",
-      "require": "./dist/codegen/index.cjs"
+      "types": "./dist/src/codegen/index.d.cts",
+      "import": "./dist/src/codegen/index.js",
+      "require": "./dist/src/codegen/index.cjs"
     },
     "./formula": {
-      "types": "./dist/formula/index.d.cts",
-      "import": "./dist/formula/index.js",
-      "require": "./dist/formula/index.cjs"
+      "types": "./dist/src/formula/index.d.cts",
+      "import": "./dist/src/formula/index.js",
+      "require": "./dist/src/formula/index.cjs"
     },
     "./exceptions": {
-      "types": "./dist/exceptions.d.cts",
-      "import": "./dist/exceptions.js",
-      "require": "./dist/exceptions.cjs"
+      "types": "./dist/src/exceptions.d.cts",
+      "import": "./dist/src/exceptions.js",
+      "require": "./dist/src/exceptions.cjs"
     },
     "./validators": {
-      "types": "./dist/validators/index.d.cts",
-      "import": "./dist/validators/index.js",
-      "require": "./dist/validators/index.cjs"
+      "types": "./dist/src/validators/index.d.cts",
+      "import": "./dist/src/validators/index.js",
+      "require": "./dist/src/validators/index.cjs"
     }
   },
   "scripts": {
