@@ -1,6 +1,9 @@
 # airtable-kit
 
-A type-safe, fully-featured, and standards-centric Airtable API client for TypeScript and JavaScript.
+A type-safe, fully-featured, and standards-centric Airtable API client for TypeScript and JavaScript. Plus a CLI!
+
+Status: Beta. The basic shape of most functions is fairly stable.
+But I will still make breaking changes, you should pin your version.
 
 ## Motivation
 
@@ -29,6 +32,31 @@ This has several advantages:
 - **Portable**: Works in Node.js, Deno, and the browser, including in sandboxed environments, e.g. where `process.env` and `os.homedir()` are not available.
 - **Runtime Validation**: Optionally, dynamically generate Zod validators from the schema to validate all data sent to Airtable at runtime.
 - **MCP Tools**: Ready-to-use MCP tools for LLM integration.
+
+## CLI Usage
+
+We ship a CLI in the style of `gh`, for performing verbs such as `list`, `get`, `create`, and `update`
+on each of the airtable nouns of `base`, `table`, `field`, and `record`.
+
+Try it with no installation by `npx airtable-kit --help`, which gives:
+
+```
+Usage: airtable-kit [options] [command]
+
+A better TypeScript Airtable toolkit
+
+Options:
+  --version          output the version number
+  --api-key <key>    Airtable API key
+  -h, --help         display help for command
+
+Commands:
+  base               Manage Airtable bases
+  table              Manage Airtable tables
+  field              Manage Airtable fields
+  record             Manage Airtable records
+  codegen [options]  Generate ts/js schema files for all bases. Shortcut for running "base codegen <baseId>" command with all bases sequentially.
+```
 
 ## Installation
 
