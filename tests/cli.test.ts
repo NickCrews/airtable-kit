@@ -6,8 +6,12 @@ import fs from 'node:fs';
 import { describe, it, expect, beforeEach, vi, afterAll } from 'vitest';
 import { cli } from '../src/cli/cli.ts';
 import { makeInTmpDir } from '../src/tests/inTmpDir.ts';
-import { getTestEnv } from '../src/tests/test-utils.ts';
+import { getTestEnv, prepTestBaseClient } from '../src/tests/test-utils.ts';
+import { makeBaseClient } from '../src/bases/base-client.ts';
 import realSchema from '../src/tests/test-base-schema.generated.ts';
+
+const baseClient = makeBaseClient({ baseSchema: realSchema });
+const { resetBaseData } = prepTestBaseClient(baseClient);
 
 const {
   AIRTABLE_KIT_TEST_API_KEY: apiKey,
@@ -60,11 +64,18 @@ function scrubIds(s: string): string {
   });
 }
 
+function scrubTimestamps(s: string): string {
+  return s.replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g, 'TIMESTAMP');
+}
+
 function scrubAllCalls(calls: any[][]): any[][] {
   return calls.map((callArgs) =>
-    callArgs.map((arg) =>
-      typeof arg === 'string' ? scrubIds(arg) : arg
-    )
+    callArgs.map((arg) => {
+      if (typeof arg === 'string') {
+        return scrubTimestamps(scrubIds(arg));
+      }
+      return arg;
+    })
   );
 }
 
@@ -1668,6 +1679,7 @@ describe('CLI', () => {
 
   describe('record command', () => {
     beforeEach(async (ctx) => {
+      await resetBaseData();
       const tmpDir = inTmpDir(ctx);
       await cliWithApiKey(["base", "use", baseId]);
     });
@@ -1697,7 +1709,7 @@ describe('CLI', () => {
 
     it('should list records as json', async () => {
       const tableId = realSchema.tables[0].id;
-      await cliWithApiKey(["record", "list", "--base", baseId, "--table", tableId, "--output", "json", "--max", "5"]);
+      await cliWithApiKey(["record", "list", "--base", baseId, "--table", tableId, "--output", "json", "--max", "5", "--sort", "name:asc"]);
       expect(scrubAllCalls(mockConsoleLog.mock.calls)).toMatchInlineSnapshot(`
         [
           [
@@ -1707,7 +1719,7 @@ describe('CLI', () => {
             "[
           {
             "id": "rec0",
-            "createdTime": "2026-03-03T16:46:44.000Z",
+            "createdTime": "TIMESTAMP",
             "fields": {
               "name": "Item A",
               "numberValue": 10,
@@ -1717,27 +1729,7 @@ describe('CLI', () => {
           },
           {
             "id": "rec1",
-            "createdTime": "2026-03-03T16:46:44.000Z",
-            "fields": {
-              "name": "Item C",
-              "numberValue": 30,
-              "singleLineTextValue": "30"
-            },
-            "commentCount": 0
-          },
-          {
-            "id": "rec2",
-            "createdTime": "2026-03-03T16:46:44.000Z",
-            "fields": {
-              "name": "Item D",
-              "numberValue": 40,
-              "singleLineTextValue": "40"
-            },
-            "commentCount": 0
-          },
-          {
-            "id": "rec3",
-            "createdTime": "2026-03-03T16:46:44.000Z",
+            "createdTime": "TIMESTAMP",
             "fields": {
               "name": "Item B",
               "numberValue": 20,
@@ -1746,8 +1738,28 @@ describe('CLI', () => {
             "commentCount": 0
           },
           {
+            "id": "rec2",
+            "createdTime": "TIMESTAMP",
+            "fields": {
+              "name": "Item C",
+              "numberValue": 30,
+              "singleLineTextValue": "30"
+            },
+            "commentCount": 0
+          },
+          {
+            "id": "rec3",
+            "createdTime": "TIMESTAMP",
+            "fields": {
+              "name": "Item D",
+              "numberValue": 40,
+              "singleLineTextValue": "40"
+            },
+            "commentCount": 0
+          },
+          {
             "id": "rec4",
-            "createdTime": "2026-03-03T16:46:44.000Z",
+            "createdTime": "TIMESTAMP",
             "fields": {
               "name": "Item E",
               "numberValue": 50,
