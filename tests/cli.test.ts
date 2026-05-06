@@ -144,7 +144,7 @@ describe('CLI', { timeout: 10_000 }, () => {
     });
 
     it('should list bases as json', async () => {
-      await cliWithApiKey(["base", "list", "--output", "json"]);
+      await cliWithApiKey(["base", "list", "--format", "json"]);
       expect(scrubAllCalls(mockConsoleLog.mock.calls)).toMatchInlineSnapshot(`
         [
           [
@@ -575,7 +575,7 @@ describe('CLI', { timeout: 10_000 }, () => {
     });
 
     it('should get base details as json', async () => {
-      await cliWithApiKey(["base", "get", baseId, "--output", "json"]);
+      await cliWithApiKey(["base", "get", baseId, "--format", "json"]);
       expect(scrubAllCalls(mockConsoleLog.mock.calls)).toMatchInlineSnapshot(`
         [
           [
@@ -1026,7 +1026,7 @@ describe('CLI', { timeout: 10_000 }, () => {
     });
 
     it('should list tables as json', async () => {
-      await cliWithApiKey(["table", "list", "--base", baseId, "--output", "json"]);
+      await cliWithApiKey(["table", "list", "--base", baseId, "--format", "json"]);
       expect(scrubAllCalls(mockConsoleLog.mock.calls)).toMatchInlineSnapshot(`
         [
           [
@@ -1491,7 +1491,7 @@ describe('CLI', { timeout: 10_000 }, () => {
 
     it('should get table details as json', async () => {
       const tableId = realSchema.tables[0].id;
-      await cliWithApiKey(["table", "get", tableId, "--base", baseId, "--output", "json"]);
+      await cliWithApiKey(["table", "get", tableId, "--base", baseId, "--format", "json"]);
       expect(scrubAllCalls(mockConsoleLog.mock.calls)).toMatchInlineSnapshot(`
         [
           [
@@ -1578,7 +1578,7 @@ describe('CLI', { timeout: 10_000 }, () => {
 
     it('should list fields as json', async () => {
       const tableId = realSchema.tables[0].id;
-      await cliWithApiKey(["field", "list", "--base", baseId, "--table", tableId, "--output", "json"]);
+      await cliWithApiKey(["field", "list", "--base", baseId, "--table", tableId, "--format", "json"]);
       expect(scrubAllCalls(mockConsoleLog.mock.calls)).toMatchInlineSnapshot(`
         [
           [
@@ -1658,7 +1658,7 @@ describe('CLI', { timeout: 10_000 }, () => {
     it('should get field details as json', async () => {
       const tableId = realSchema.tables[0].id;
       const fieldId = realSchema.tables[0].fields[2].id;
-      await cliWithApiKey(["field", "get", fieldId, "--base", baseId, "--table", tableId, "--output", "json"]);
+      await cliWithApiKey(["field", "get", fieldId, "--base", baseId, "--table", tableId, "--format", "json"]);
       expect(scrubAllCalls(mockConsoleLog.mock.calls)).toMatchInlineSnapshot(`
         [
           [
@@ -1709,7 +1709,7 @@ describe('CLI', { timeout: 10_000 }, () => {
 
     it('should list records as json', async () => {
       const tableId = realSchema.tables[0].id;
-      await cliWithApiKey(["record", "list", "--base", baseId, "--table", tableId, "--output", "json", "--max", "5", "--sort", "name:asc"]);
+      await cliWithApiKey(["record", "list", "--base", baseId, "--table", tableId, "--format", "json", "--max", "5", "--sort", "name:asc"]);
       expect(scrubAllCalls(mockConsoleLog.mock.calls)).toMatchInlineSnapshot(`
         [
           [

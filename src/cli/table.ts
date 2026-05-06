@@ -16,7 +16,7 @@ export function createTableCommand(resolveFetcher: () => IntoFetcher): Command {
     .command("list")
     .description("List tables in a base")
     .option("--base <id>", "Base ID or name (uses context if not provided)")
-    .option("--output <format>", "Output format (json or markdown)", "markdown")
+    .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (options: any) => {
       const fetcher = resolveFetcher();
       const config = ConfigManager.getDefault();
@@ -26,7 +26,7 @@ export function createTableCommand(resolveFetcher: () => IntoFetcher): Command {
       const baseResolved = resolveBase(baseId || null, allSchemas);
       const base = ensureOneMatch(baseResolved, "base", baseId || "(no context)");
 
-      if (options.output === "json") {
+      if (options.format === "json") {
         console.log(JSON.stringify(base.tables, null, 2));
       } else {
         console.log(formatTableList(base));
@@ -37,7 +37,7 @@ export function createTableCommand(resolveFetcher: () => IntoFetcher): Command {
     .command("get <identifier>")
     .description("Get table details")
     .option("--base <id>", "Base ID or name (uses context if not provided)")
-    .option("--output <format>", "Output format (json or markdown)", "markdown")
+    .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (identifier: string, options: any) => {
       const fetcher = resolveFetcher();
       const config = ConfigManager.getDefault();
@@ -47,7 +47,7 @@ export function createTableCommand(resolveFetcher: () => IntoFetcher): Command {
       const tableResolved = resolveTable(baseId || null, identifier, allSchemas);
       const { table } = ensureOneMatch(tableResolved, "table", identifier, baseId ? `in base ${baseId}` : undefined);
 
-      if (options.output === "json") {
+      if (options.format === "json") {
         console.log(JSON.stringify(table, null, 2));
       } else {
         console.log(formatTable(table));

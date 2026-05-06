@@ -18,7 +18,7 @@ export function createFieldCommand(resolveFetcher: () => IntoFetcher): Command {
     .description("List fields in a table")
     .option("--base <id>", "Base ID or name (uses context if not provided)")
     .option("--table <id>", "Table ID or name (uses context if not provided)")
-    .option("--output <format>", "Output format (json or markdown)", "markdown")
+    .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (options: any) => {
       const fetcher = resolveFetcher();
       const config = ConfigManager.getDefault();
@@ -30,7 +30,7 @@ export function createFieldCommand(resolveFetcher: () => IntoFetcher): Command {
       const tableResolved = resolveTable(baseId || null, tableId || null, allSchemas);
       const { table } = ensureOneMatch(tableResolved, "table", tableId || "(no context)", baseId ? `in base ${baseId}` : undefined);
 
-      if (options.output === "json") {
+      if (options.format === "json") {
         console.log(JSON.stringify(table.fields, null, 2));
       } else {
         console.log(formatFieldList(table));
@@ -42,7 +42,7 @@ export function createFieldCommand(resolveFetcher: () => IntoFetcher): Command {
     .description("Get field details")
     .option("--base <id>", "Base ID or name (uses context if not provided)")
     .option("--table <id>", "Table ID or name (uses context if not provided)")
-    .option("--output <format>", "Output format (json or markdown)", "markdown")
+    .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (identifier: string, options: any) => {
       const fetcher = resolveFetcher();
       const config = ConfigManager.getDefault();
@@ -54,7 +54,7 @@ export function createFieldCommand(resolveFetcher: () => IntoFetcher): Command {
       const fieldResolved = resolveField(baseId || null, tableId || null, identifier, allSchemas);
       const { field } = ensureOneMatch(fieldResolved, "field", identifier, tableId ? `in table ${tableId}` : undefined);
 
-      if (options.output === "json") {
+      if (options.format === "json") {
         console.log(JSON.stringify(field, null, 2));
       } else {
         console.log(formatField(field));

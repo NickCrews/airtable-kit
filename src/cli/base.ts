@@ -16,11 +16,11 @@ export function createBaseCommand(resolveFetcher: () => IntoFetcher): Command {
   cmd
     .command("list")
     .description("List all accessible bases")
-    .option("--output <format>", "Output format (json or markdown)", "markdown")
+    .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (options: any) => {
       const fetcher = resolveFetcher();
       const schemas = await fetchAllSchemas({ fetcher });
-      if (options.output === "json") {
+      if (options.format === "json") {
         console.log(JSON.stringify(schemas, null, 2));
         return;
       } else {
@@ -31,7 +31,7 @@ export function createBaseCommand(resolveFetcher: () => IntoFetcher): Command {
   cmd
     .command("get [baseId]")
     .description("Get base details")
-    .option("--output <format>", "Output format (json or markdown)", "markdown")
+    .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (baseId: string | undefined, options: any) => {
       const fetcher = resolveFetcher();
       const config = ConfigManager.getDefault();
@@ -40,7 +40,7 @@ export function createBaseCommand(resolveFetcher: () => IntoFetcher): Command {
       const resolvedId = baseId || config.getBaseId();
       const resolved = resolveBase(resolvedId || null, schemas);
       const base = ensureOneMatch(resolved, "base", resolvedId || "(no context)");
-      if (options.output === "json") {
+      if (options.format === "json") {
         console.log(JSON.stringify(base, null, 2));
         return;
       } else {

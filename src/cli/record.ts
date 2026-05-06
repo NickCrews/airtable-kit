@@ -21,7 +21,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
     .option("--sort <field:direction>", "Sort by field (e.g., 'Name:asc')")
     .option("--max <n>", "Maximum number of records")
     .option("--fields <list>", "Comma-separated field names to include")
-    .option("--output <format>", "Output format (json or markdown)", "markdown")
+    .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (options: any) => {
       const fetcher = resolveFetcher();
       const config = ConfigManager.getDefault();
@@ -58,7 +58,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
 
       const records = await client.listRecords(listOptions);
 
-      if (options.output === "json") {
+      if (options.format === "json") {
         console.log(JSON.stringify(records, null, 2));
       } else {
         console.log(formatRecordList(records, table.fields));
@@ -70,7 +70,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
     .description("Get a record by ID")
     .option("--base <id>", "Base ID or name (uses context if not provided)")
     .option("--table <id>", "Table ID or name (uses context if not provided)")
-    .option("--output <format>", "Output format (json or markdown)", "markdown")
+    .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (recordId: string, options: any) => {
       const fetcher = resolveFetcher();
       const config = ConfigManager.getDefault();
@@ -89,7 +89,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
       });
 
       const record = await client.getRecord(recordId as any);
-      if (options.output === "json") {
+      if (options.format === "json") {
         console.log(JSON.stringify(record, null, 2));
       } else {
         console.log(formatRecord(record, table.fields));
@@ -103,7 +103,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
     .option("--table <id>", "Table ID or name (uses context if not provided)")
     .option("--data <json>", "Record data as JSON")
     .option("--file <path>", "JSON file with record data")
-    .option("--output <format>", "Output format (json or markdown)", "markdown")
+    .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (options: any) => {
       const fetcher = resolveFetcher();
       const config = ConfigManager.getDefault();
@@ -130,7 +130,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
       });
 
       const results = await client.createRecords(records);
-      if (options.output === "json") {
+      if (options.format === "json") {
         console.log(JSON.stringify(results, null, 2));
       } else {
         console.log(formatRecordList(results, table.fields));
@@ -147,7 +147,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
     .option("--file <path>", "JSON file with record data")
     .option("--destructive", "Clear fields not included in update")
     .option("--typecast", "Enable typecasting for string values")
-    .option("--output <format>", "Output format (json or markdown)", "markdown")
+    .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (recordId: string, options: any) => {
       const fetcher = resolveFetcher();
       const config = ConfigManager.getDefault();
@@ -179,7 +179,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
       );
 
       const updated = result.records[0];
-      if (options.output === "json") {
+      if (options.format === "json") {
         console.log(JSON.stringify(updated, null, 2));
       } else {
         console.log(formatRecord(updated, table.fields));
@@ -221,7 +221,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
     .option("--merge-on <fields>", "Comma-separated field names for matching (1-3 fields)")
     .option("--data <json>", "Record data as JSON")
     .option("--file <path>", "JSON file with record data")
-    .option("--output <format>", "Output format (json or markdown)", "markdown")
+    .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (options: any) => {
       const fetcher = resolveFetcher();
       const config = ConfigManager.getDefault();
@@ -256,7 +256,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
         performUpsert: { fieldsToMergeOn: fieldsToMergeOn as any },
       });
 
-      if (options.output === "json") {
+      if (options.format === "json") {
         console.log(JSON.stringify(results, null, 2));
       } else {
         console.log(formatRecordList(results.records, table.fields));
