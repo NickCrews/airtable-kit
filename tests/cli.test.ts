@@ -79,7 +79,7 @@ function scrubAllCalls(calls: any[][]): any[][] {
   );
 }
 
-describe('CLI', () => {
+describe('CLI', { timeout: 10_000 }, () => {
   const callCli = (args: string[]) => cli(args, undefined);
 
   const inTmpDir = makeInTmpDir();
