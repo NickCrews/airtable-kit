@@ -854,9 +854,8 @@ export function convertValueFromRead<F extends FieldSchemaForConvert>(
     }
 }
 
-export type IsFieldWritable<F extends FieldType> = F extends keyof typeof CONVERTERS
-    ? (typeof CONVERTERS)[F]["makeTo"] extends null ? false : true
-    : never;
+// export type IsFieldWritable<F extends FieldType> = F extends keyof typeof CONVERTERS
+export type IsFieldWritable<F extends FieldType> = (typeof CONVERTERS)[F]["makeTo"] extends null ? false : true;
 /**
  * Whether a field can be written to via the API.
  */
