@@ -1,0 +1,410 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`fieldToOpenApiSchema > maps aiText 1`] = `
+{
+  "properties": {
+    "errorType": {
+      "description": "Present only when state is 'error'",
+      "type": "string",
+    },
+    "isStale": {
+      "type": "boolean",
+    },
+    "state": {
+      "enum": [
+        "empty",
+        "loading",
+        "generated",
+        "error",
+      ],
+      "type": "string",
+    },
+    "value": {
+      "type": "string",
+    },
+  },
+  "type": "object",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps autoNumber 1`] = `
+{
+  "type": "integer",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps barcode 1`] = `
+{
+  "properties": {
+    "text": {
+      "type": "string",
+    },
+    "type": {
+      "type": "string",
+    },
+  },
+  "type": "object",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps button 1`] = `
+{
+  "properties": {
+    "label": {
+      "type": "string",
+    },
+    "url": {
+      "format": "uri",
+      "type": "string",
+    },
+  },
+  "type": "object",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps checkbox 1`] = `
+{
+  "type": "boolean",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps count 1`] = `
+{
+  "type": "integer",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps createdBy 1`] = `
+{
+  "properties": {
+    "email": {
+      "description": "User's email address",
+      "format": "email",
+      "type": "string",
+    },
+    "id": {
+      "description": "Unique user or group ID",
+      "type": "string",
+    },
+    "name": {
+      "description": "User's display name (may be absent)",
+      "type": "string",
+    },
+  },
+  "type": "object",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps createdTime 1`] = `
+{
+  "format": "date-time",
+  "type": "string",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps currency 1`] = `
+{
+  "type": "number",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps date 1`] = `
+{
+  "format": "date",
+  "type": "string",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps dateTime 1`] = `
+{
+  "format": "date-time",
+  "type": "string",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps duration 1`] = `
+{
+  "description": "Duration in seconds",
+  "minimum": 0,
+  "type": "number",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps email 1`] = `
+{
+  "format": "email",
+  "type": "string",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps externalSyncSource 1`] = `
+{
+  "type": "string",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps formula 1`] = `
+{
+  "type": "number",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps lastModifiedBy 1`] = `
+{
+  "properties": {
+    "email": {
+      "description": "User's email address",
+      "format": "email",
+      "type": "string",
+    },
+    "id": {
+      "description": "Unique user or group ID",
+      "type": "string",
+    },
+    "name": {
+      "description": "User's display name (may be absent)",
+      "type": "string",
+    },
+  },
+  "type": "object",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps lastModifiedTime 1`] = `
+{
+  "format": "date-time",
+  "type": "string",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps multilineText 1`] = `
+{
+  "type": "string",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps multipleAttachments 1`] = `
+{
+  "items": {
+    "properties": {
+      "filename": {
+        "type": "string",
+      },
+      "height": {
+        "description": "Image height in pixels (images only)",
+        "type": "integer",
+      },
+      "id": {
+        "type": "string",
+      },
+      "size": {
+        "description": "File size in bytes",
+        "type": "integer",
+      },
+      "thumbnails": {
+        "properties": {
+          "full": {
+            "properties": {
+              "height": {
+                "type": "integer",
+              },
+              "url": {
+                "format": "uri",
+                "type": "string",
+              },
+              "width": {
+                "type": "integer",
+              },
+            },
+            "type": "object",
+          },
+          "large": {
+            "properties": {
+              "height": {
+                "type": "integer",
+              },
+              "url": {
+                "format": "uri",
+                "type": "string",
+              },
+              "width": {
+                "type": "integer",
+              },
+            },
+            "type": "object",
+          },
+          "small": {
+            "properties": {
+              "height": {
+                "type": "integer",
+              },
+              "url": {
+                "format": "uri",
+                "type": "string",
+              },
+              "width": {
+                "type": "integer",
+              },
+            },
+            "type": "object",
+          },
+        },
+        "type": "object",
+      },
+      "type": {
+        "description": "MIME type, e.g. image/png",
+        "type": "string",
+      },
+      "url": {
+        "format": "uri",
+        "type": "string",
+      },
+      "width": {
+        "description": "Image width in pixels (images only)",
+        "type": "integer",
+      },
+    },
+    "type": "object",
+  },
+  "type": "array",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps multipleCollaborators 1`] = `
+{
+  "items": {
+    "properties": {
+      "email": {
+        "description": "User's email address",
+        "format": "email",
+        "type": "string",
+      },
+      "id": {
+        "description": "Unique user or group ID",
+        "type": "string",
+      },
+      "name": {
+        "description": "User's display name (may be absent)",
+        "type": "string",
+      },
+    },
+    "type": "object",
+  },
+  "type": "array",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps multipleLookupValues 1`] = `
+{
+  "items": {
+    "type": "string",
+  },
+  "type": "array",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps multipleRecordLinks 1`] = `
+{
+  "items": {
+    "description": "Linked record ID",
+    "type": "string",
+  },
+  "type": "array",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps multipleSelects 1`] = `
+{
+  "items": {
+    "enum": [
+      "A",
+      "B",
+    ],
+    "type": "string",
+  },
+  "type": "array",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps number 1`] = `
+{
+  "type": "number",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps percent 1`] = `
+{
+  "type": "number",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps phoneNumber 1`] = `
+{
+  "type": "string",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps rating 1`] = `
+{
+  "maximum": 5,
+  "minimum": 1,
+  "type": "integer",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps richText 1`] = `
+{
+  "type": "string",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps rollup 1`] = `
+{
+  "type": "number",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps singleCollaborator 1`] = `
+{
+  "properties": {
+    "email": {
+      "description": "User's email address",
+      "format": "email",
+      "type": "string",
+    },
+    "id": {
+      "description": "Unique user or group ID",
+      "type": "string",
+    },
+    "name": {
+      "description": "User's display name (may be absent)",
+      "type": "string",
+    },
+  },
+  "type": "object",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps singleLineText 1`] = `
+{
+  "description": "The title",
+  "type": "string",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps singleSelect 1`] = `
+{
+  "enum": [
+    "Todo",
+    "Done",
+  ],
+  "type": "string",
+}
+`;
+
+exports[`fieldToOpenApiSchema > maps url 1`] = `
+{
+  "format": "uri",
+  "type": "string",
+}
+`;

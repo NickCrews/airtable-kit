@@ -55,7 +55,33 @@ Commands:
   table              Manage Airtable tables
   field              Manage Airtable fields
   record             Manage Airtable records
+  openapi [options]  Generate an OpenAPI 3 spec for a base.
   codegen [options]  Generate ts/js schema files for all bases. Shortcut for running "base codegen <baseId>" command with all bases sequentially.
+```
+
+### Generate an OpenAPI spec
+
+Generate an [OpenAPI 3](https://www.openapis.org/) document describing the
+Airtable REST API for one of your bases (record CRUD, comments, attachments,
+webhooks, and base/table metadata):
+
+```bash
+AIRTABLE_API_KEY=... npx airtable-kit openapi <baseId>   # prints JSON to stdout
+npx airtable-kit openapi <baseId> --out airtable.json    # or write to a file
+```
+
+Or programmatically, for full control over which surfaces are included:
+
+```typescript
+import { baseToOpenApi } from 'airtable-kit/openapi';
+import { getBaseSchema } from 'airtable-kit/bases';
+
+const base = await getBaseSchema({ baseId: 'appXXXXXXXXXXXXXX' });
+const spec = baseToOpenApi(base, {
+  title: 'My API',
+  include: { records: true, webhooks: false }, // every surface defaults to true
+});
+console.log(JSON.stringify(spec, null, 2));
 ```
 
 ## Installation

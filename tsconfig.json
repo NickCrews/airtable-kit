@@ -25,6 +25,7 @@
       "airtable-kit/records": ["./src/records/index.ts"],
       "airtable-kit/mcp": ["./src/mcp/index.ts"],
       "airtable-kit/codegen": ["./src/codegen/index.ts"],
+      "airtable-kit/openapi": ["./src/openapi/index.ts"],
       "airtable-kit/formula": ["./src/formula/index.ts"],
       "airtable-kit/exceptions": ["./src/exceptions.ts"],
       "airtable-kit/validators": ["./src/validators/index.ts"]
