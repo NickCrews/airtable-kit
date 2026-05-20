@@ -54,6 +54,11 @@
       "import": "./dist/src/codegen/index.js",
       "require": "./dist/src/codegen/index.cjs"
     },
+    "./openapi": {
+      "types": "./dist/src/openapi/index.d.cts",
+      "import": "./dist/src/openapi/index.js",
+      "require": "./dist/src/openapi/index.cjs"
+    },
     "./formula": {
       "types": "./dist/src/formula/index.d.cts",
       "import": "./dist/src/formula/index.js",
@@ -109,6 +114,7 @@
       "./records": "./src/records/index.ts",
       "./mcp": "./src/mcp/index.ts",
       "./codegen": "./src/codegen/index.ts",
+      "./openapi": "./src/openapi/index.ts",
       "./formula": "./src/formula/index.ts",
       "./exceptions": "./src/exceptions.ts",
       "./validators": "./src/validators/index.ts"

@@ -8,10 +8,13 @@ import { generateCode } from "../codegen/index.ts";
 import path from "node:path";
 import { toIdentifier } from "../codegen/identifiers.ts";
 import { BaseSchema } from "../bases/types.ts";
+import { makeOpenApiCommand } from "./openapi.ts";
 
 export function createBaseCommand(resolveFetcher: () => IntoFetcher): Command {
   const cmd = new Command("base")
     .description("Manage Airtable bases");
+
+  cmd.addCommand(makeOpenApiCommand(resolveFetcher));
 
   cmd
     .command("list")

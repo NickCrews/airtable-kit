@@ -1,0 +1,3007 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "_testing_event_tracker API",
+    "description": "Airtable REST API for base \"_testing_event_tracker\" (appHkD4ZjzcqpbJ4y).",
+    "version": "v0"
+  },
+  "servers": [
+    {
+      "url": "https://api.airtable.com/v0"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "DeletedRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "deleted"
+        ]
+      },
+      "DeletedRecordList": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeletedRecord"
+            }
+          }
+        }
+      },
+      "EventsFieldsRead": {
+        "type": "object",
+        "properties": {
+          "Event Title": {
+            "type": "string",
+            "description": "eg \"Holland - Girdwood FR\" or \"Eischeid - Potluck FR\""
+          },
+          "Tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "With Digital",
+                "Cohost Recruitment",
+                "Hannah Action Required",
+                "Waiting on Creative",
+                "Kim Action Required",
+                "Waiting on Client",
+                "On Track",
+                "Complete",
+                "Cancelled"
+              ]
+            }
+          },
+          "Client(s)": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            }
+          },
+          "Address": {
+            "type": "string",
+            "description": "Full \"Street, City\" format, as this is used in the SCG google calendar for the location."
+          },
+          "Primary Host(s)": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            }
+          },
+          "Co-Hosts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            }
+          },
+          "Event Type": {
+            "type": "string",
+            "enum": [
+              "Fundraiser",
+              "Meet & Greet"
+            ]
+          },
+          "Guest Start Time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "This is when the GUESTS should arrive. Only put CONFIRMED dates here; put tentative dates in the event description."
+          },
+          "Date Confirmed?": {
+            "type": "boolean",
+            "description": "The date is no longer tentative, it is locked in."
+          },
+          "Setup Duration (minutes)": {
+            "type": "number",
+            "description": "How much earlier than guests should staff show up to the event?"
+          },
+          "Setup Time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Calculates the start time for hosts and SCG staff, which is {Setup Time (in minutes)} minutes before the guest start time."
+          },
+          "Duration (minutes)": {
+            "type": "number",
+            "description": "How long should the main event last (when guests are there)"
+          },
+          "End Time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Calculates the end time as 3 hours after the guest start time."
+          },
+          "Notes": {
+            "type": "string",
+            "description": "This is a logbook of operations and general communication.\n\nWith new additions, please add: \n\n1. Date\n2. Your name or initial with the new addition and names of anyone involved\n3. Additional to-do items with the note.\n\nExample:\n\n11/11/25\n1. Meeting with SCG personnel and candidate Last Name\n     -fill out survey by 11/13/25\n     -connect with host about food operations, H. will make contact by 11/12/25"
+          },
+          "Theme/Goal": {
+            "type": "string",
+            "description": "Themes, slogans, or specific goals. Keep it brief, the rest goes in notes"
+          },
+          "Co-Host Expectations": {
+            "type": "string",
+            "description": "Occasionally specific co-hosts will take on more responsibilities than others, eg donate, put name on event, invite their network\n\nIf necessary, include name, contact info, what they are providing."
+          },
+          "Co-Hosts Done?": {
+            "type": "boolean",
+            "description": "Have we found all the co-hosts that we intend to?"
+          },
+          "Fairbanks Google Cal": {
+            "type": "boolean"
+          },
+          "ADP Calendar Status": {
+            "type": "string",
+            "enum": [
+              "Need to Request",
+              "Requested",
+              "Verified On Calendar",
+              "Not Pursuing"
+            ],
+            "description": "The AK Dem Party has a calendar of campaign events they maintain. We can get our event on their calendar. Request here: https://docs.google.com/forms/d/e/1FAIpQLSd1zFcJNRQGwETz_HKHIANCoLaCPHQ4xxTxQ9MVqpCQNOYYcA/viewform?usp=send_form\nCheck that it is on their calendar here: https://alaskademocrats.org/events "
+          },
+          "Creative Brief Link": {
+            "type": "string",
+            "format": "uri",
+            "description": "A link to the wrike task for the creative team to make an invite."
+          },
+          "Creative Done?": {
+            "type": "boolean",
+            "description": "The creative for the event invite is finalized and approved."
+          },
+          "Anedot Page Link": {
+            "type": "string",
+            "format": "uri"
+          },
+          "FB Event Link": {
+            "type": "string",
+            "format": "uri"
+          },
+          "Client FB Page": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "Co-Host Tracker Link": {
+            "type": "string",
+            "format": "uri",
+            "description": "something like https://docs.google.com/spreadsheets/d/1NmajJNHaGueacccrNYghGGQPb-Cfhr7nvZGj4TonSy8/edit?gid=0#gid=0"
+          },
+          "Guests": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            },
+            "description": "Gdrive folder of sign-in sheet scans: https://drive.google.com/drive/folders/1-ExZW07UWKucF1zG0_6hmdwpaAmYhNGp?usp=share_link"
+          },
+          "Invitation Email Sent?": {
+            "type": "boolean"
+          },
+          "Second Email Sent?": {
+            "type": "boolean"
+          },
+          "Reminder Email Sent?": {
+            "type": "boolean",
+            "description": "We need to send a reminder email to all guests the day before/day of"
+          },
+          "Todos": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Creative",
+                "Co-hosts",
+                "Agenda",
+                "ADP Calendar",
+                "Anedot Page",
+                "FB Event",
+                "Email: invite",
+                "Email: second",
+                "Email: reminder",
+                "Finalize"
+              ]
+            },
+            "description": "This is calculated automatically from other fields, any edits you make will be overwritten. Please don't add extra options."
+          },
+          "Agenda Done?": {
+            "type": "boolean"
+          },
+          "Expenses Reimbursed": {
+            "type": "string",
+            "description": "Contact hosts, co-hosts, and SCG personnel if applicable for reimbursement.\n\nThe process of getting reimbursed is: \n\nEmail compliance\nTitle: Date of event, First and Last Name, Reimbursement\nDescription/Body: Employer of person getting reimbursed and their title at work. \nAttach screenshot of receipts \nWhen does someone get reimbursed?\n\nSCG: Typically will go towards your payment for the month.\nHosts/Co-hosts: Can take up to 3 weeks."
+          },
+          "Expenses In-Kinded": {
+            "type": "string",
+            "description": "Contact hosts, co-hosts, and SCG personnel if applicable for in-kind.\n\nIn-kind means that an individual has essentially made a personal donation to the campaign through food, activity, ect.\n\nThe process of getting in-kind is: \n\nEmail compliance\nTitle: Date of event, First and Last Name, In-Kind\nDescription/Body: Employer of person getting reimbursed and their title at work. \nAttach screenshot of receipts \n"
+          },
+          "_needs_formula": {
+            "type": "string",
+            "description": "Automatically generated list of tasks that need to be completed for the event."
+          },
+          "Client's Team": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "description": "Linked record ID"
+              }
+            }
+          },
+          "Event Staffing": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            },
+            "description": "These are the people who will be included in the two gcal events: The setup event 30 minutes prior, and the event itself.\n\nThis will in general be at least\n- the client's personal email (and spouses)\n- the client's team email, eg team@simplerforstatehouse.com\n- some SCG lead (often Hannah)\n- someone to staff the donation table\n\nWhenever both 1. the client is set; and 2. this field is empty; then an automation pre-populates this with the Client's Team, but besides that, this list is hand-editable."
+          },
+          "_client_team_email": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "email"
+            }
+          },
+          "_event_staffing_emails": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "email"
+            }
+          },
+          "Setup GCal Attendees": {
+            "type": "string",
+            "description": "- The emails of the people in the \"Event Staffing\" field.\n- The client's \"Team Email\" field.\n- campaigns@shipcreekgroup.com (for visibility)"
+          },
+          "GCal Event Title": {
+            "type": "string",
+            "description": "The pretty, public facing name of the event that appears on the gcal event that co-hosts are invited to.\n\nIf this is empty, then automation won't run, so you can use this as a psuedo on/off switch for the automation."
+          },
+          "Setup GCal Description": {
+            "type": "string"
+          },
+          "Main GCal Attendees": {
+            "type": "string",
+            "description": "- Everyone in the \"Setup GCal Attendees\" field.\n- The emails of everyone in the \"CoHosts\" field.\n- The frevents@shipcreekgroup.com google group"
+          },
+          "Main GCal Description": {
+            "type": "string"
+          },
+          "Wrike Job #": {
+            "type": "number"
+          },
+          "Main GCal Link": {
+            "type": "string",
+            "format": "uri",
+            "description": "This is auto created by an automation. Do not edit by hand, message Nick if you need something."
+          },
+          "Setup GCal Link": {
+            "type": "string",
+            "format": "uri",
+            "description": "This is auto created by an automation. Do not edit by hand, message Nick if you need something."
+          },
+          "Raise Goal": {
+            "type": "number",
+            "description": "Leave blank if unsure"
+          },
+          "Amount Raised": {
+            "type": "number",
+            "description": "Found from the FR Summary tab of the relevant financials sheet"
+          },
+          "_last_modified_at_least_5_min_ago": {
+            "type": "number"
+          },
+          "_cohost_emails": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "email"
+            }
+          },
+          "GCal Automation Status": {
+            "type": "string",
+            "enum": [
+              "Ready to Sync",
+              "Needs Attention to Sync",
+              "Won't Sync - Old or Cancelled Event"
+            ],
+            "description": "The automation that keeps gcal in sync in airtable can be in one of 3 states:\n- The event already happened or was cancelled. We don't update these gcal events.\n- The event is ready to sync\n- The event needs some attention, eg the GCal Event Title or the Guest Start Time are unset, or the date is unconfirmed."
+          }
+        }
+      },
+      "EventsFieldsWrite": {
+        "type": "object",
+        "properties": {
+          "Event Title": {
+            "type": "string",
+            "description": "eg \"Holland - Girdwood FR\" or \"Eischeid - Potluck FR\""
+          },
+          "Tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "With Digital",
+                "Cohost Recruitment",
+                "Hannah Action Required",
+                "Waiting on Creative",
+                "Kim Action Required",
+                "Waiting on Client",
+                "On Track",
+                "Complete",
+                "Cancelled"
+              ]
+            }
+          },
+          "Client(s)": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            }
+          },
+          "Address": {
+            "type": "string",
+            "description": "Full \"Street, City\" format, as this is used in the SCG google calendar for the location."
+          },
+          "Primary Host(s)": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            }
+          },
+          "Co-Hosts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            }
+          },
+          "Event Type": {
+            "type": "string",
+            "enum": [
+              "Fundraiser",
+              "Meet & Greet"
+            ]
+          },
+          "Guest Start Time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "This is when the GUESTS should arrive. Only put CONFIRMED dates here; put tentative dates in the event description."
+          },
+          "Date Confirmed?": {
+            "type": "boolean",
+            "description": "The date is no longer tentative, it is locked in."
+          },
+          "Setup Duration (minutes)": {
+            "type": "number",
+            "description": "How much earlier than guests should staff show up to the event?"
+          },
+          "Duration (minutes)": {
+            "type": "number",
+            "description": "How long should the main event last (when guests are there)"
+          },
+          "Notes": {
+            "type": "string",
+            "description": "This is a logbook of operations and general communication.\n\nWith new additions, please add: \n\n1. Date\n2. Your name or initial with the new addition and names of anyone involved\n3. Additional to-do items with the note.\n\nExample:\n\n11/11/25\n1. Meeting with SCG personnel and candidate Last Name\n     -fill out survey by 11/13/25\n     -connect with host about food operations, H. will make contact by 11/12/25"
+          },
+          "Theme/Goal": {
+            "type": "string",
+            "description": "Themes, slogans, or specific goals. Keep it brief, the rest goes in notes"
+          },
+          "Co-Host Expectations": {
+            "type": "string",
+            "description": "Occasionally specific co-hosts will take on more responsibilities than others, eg donate, put name on event, invite their network\n\nIf necessary, include name, contact info, what they are providing."
+          },
+          "Co-Hosts Done?": {
+            "type": "boolean",
+            "description": "Have we found all the co-hosts that we intend to?"
+          },
+          "Fairbanks Google Cal": {
+            "type": "boolean"
+          },
+          "ADP Calendar Status": {
+            "type": "string",
+            "enum": [
+              "Need to Request",
+              "Requested",
+              "Verified On Calendar",
+              "Not Pursuing"
+            ],
+            "description": "The AK Dem Party has a calendar of campaign events they maintain. We can get our event on their calendar. Request here: https://docs.google.com/forms/d/e/1FAIpQLSd1zFcJNRQGwETz_HKHIANCoLaCPHQ4xxTxQ9MVqpCQNOYYcA/viewform?usp=send_form\nCheck that it is on their calendar here: https://alaskademocrats.org/events "
+          },
+          "Creative Brief Link": {
+            "type": "string",
+            "format": "uri",
+            "description": "A link to the wrike task for the creative team to make an invite."
+          },
+          "Creative Done?": {
+            "type": "boolean",
+            "description": "The creative for the event invite is finalized and approved."
+          },
+          "Anedot Page Link": {
+            "type": "string",
+            "format": "uri"
+          },
+          "FB Event Link": {
+            "type": "string",
+            "format": "uri"
+          },
+          "Co-Host Tracker Link": {
+            "type": "string",
+            "format": "uri",
+            "description": "something like https://docs.google.com/spreadsheets/d/1NmajJNHaGueacccrNYghGGQPb-Cfhr7nvZGj4TonSy8/edit?gid=0#gid=0"
+          },
+          "Guests": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            },
+            "description": "Gdrive folder of sign-in sheet scans: https://drive.google.com/drive/folders/1-ExZW07UWKucF1zG0_6hmdwpaAmYhNGp?usp=share_link"
+          },
+          "Invitation Email Sent?": {
+            "type": "boolean"
+          },
+          "Second Email Sent?": {
+            "type": "boolean"
+          },
+          "Reminder Email Sent?": {
+            "type": "boolean",
+            "description": "We need to send a reminder email to all guests the day before/day of"
+          },
+          "Todos": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Creative",
+                "Co-hosts",
+                "Agenda",
+                "ADP Calendar",
+                "Anedot Page",
+                "FB Event",
+                "Email: invite",
+                "Email: second",
+                "Email: reminder",
+                "Finalize"
+              ]
+            },
+            "description": "This is calculated automatically from other fields, any edits you make will be overwritten. Please don't add extra options."
+          },
+          "Agenda Done?": {
+            "type": "boolean"
+          },
+          "Expenses Reimbursed": {
+            "type": "string",
+            "description": "Contact hosts, co-hosts, and SCG personnel if applicable for reimbursement.\n\nThe process of getting reimbursed is: \n\nEmail compliance\nTitle: Date of event, First and Last Name, Reimbursement\nDescription/Body: Employer of person getting reimbursed and their title at work. \nAttach screenshot of receipts \nWhen does someone get reimbursed?\n\nSCG: Typically will go towards your payment for the month.\nHosts/Co-hosts: Can take up to 3 weeks."
+          },
+          "Expenses In-Kinded": {
+            "type": "string",
+            "description": "Contact hosts, co-hosts, and SCG personnel if applicable for in-kind.\n\nIn-kind means that an individual has essentially made a personal donation to the campaign through food, activity, ect.\n\nThe process of getting in-kind is: \n\nEmail compliance\nTitle: Date of event, First and Last Name, In-Kind\nDescription/Body: Employer of person getting reimbursed and their title at work. \nAttach screenshot of receipts \n"
+          },
+          "Event Staffing": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            },
+            "description": "These are the people who will be included in the two gcal events: The setup event 30 minutes prior, and the event itself.\n\nThis will in general be at least\n- the client's personal email (and spouses)\n- the client's team email, eg team@simplerforstatehouse.com\n- some SCG lead (often Hannah)\n- someone to staff the donation table\n\nWhenever both 1. the client is set; and 2. this field is empty; then an automation pre-populates this with the Client's Team, but besides that, this list is hand-editable."
+          },
+          "GCal Event Title": {
+            "type": "string",
+            "description": "The pretty, public facing name of the event that appears on the gcal event that co-hosts are invited to.\n\nIf this is empty, then automation won't run, so you can use this as a psuedo on/off switch for the automation."
+          },
+          "Wrike Job #": {
+            "type": "number"
+          },
+          "Main GCal Link": {
+            "type": "string",
+            "format": "uri",
+            "description": "This is auto created by an automation. Do not edit by hand, message Nick if you need something."
+          },
+          "Setup GCal Link": {
+            "type": "string",
+            "format": "uri",
+            "description": "This is auto created by an automation. Do not edit by hand, message Nick if you need something."
+          },
+          "Raise Goal": {
+            "type": "number",
+            "description": "Leave blank if unsure"
+          },
+          "Amount Raised": {
+            "type": "number",
+            "description": "Found from the FR Summary tab of the relevant financials sheet"
+          },
+          "GCal Automation Status": {
+            "type": "string",
+            "enum": [
+              "Ready to Sync",
+              "Needs Attention to Sync",
+              "Won't Sync - Old or Cancelled Event"
+            ],
+            "description": "The automation that keeps gcal in sync in airtable can be in one of 3 states:\n- The event already happened or was cancelled. We don't update these gcal events.\n- The event is ready to sync\n- The event needs some attention, eg the GCal Event Title or the Guest Start Time are unset, or the date is unconfirmed."
+          }
+        }
+      },
+      "EventsRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "createdTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fields": {
+            "$ref": "#/components/schemas/EventsFieldsRead"
+          }
+        }
+      },
+      "EventsRecordList": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventsRecord"
+            }
+          },
+          "offset": {
+            "type": "string",
+            "description": "Pass back to fetch the next page."
+          }
+        }
+      },
+      "PeopleFieldsRead": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string"
+          },
+          "Email": {
+            "type": "string",
+            "format": "email"
+          },
+          "Phone": {
+            "type": "string"
+          },
+          "Facebook Page": {
+            "type": "string",
+            "format": "uri"
+          },
+          "Is Client?": {
+            "type": "boolean",
+            "description": "Is this person a client of SCG?"
+          },
+          "First Name": {
+            "type": "string"
+          },
+          "Last Name": {
+            "type": "string"
+          },
+          "Notes": {
+            "type": "string",
+            "description": "For guests, whatever you see fit.\n\nFor clients:\n- How many FR we have committed to in the contract.\n- Preferences, eg Cliff Groh doesn’t like non-cohost fundraisers."
+          },
+          "Could Host For": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            },
+            "description": "The campaign(s) this person might host"
+          },
+          "Events Hosted": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            },
+            "description": "All the events this person is hosting/has hosted"
+          },
+          "Events Co-Hosted": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            }
+          },
+          "Events Funded By": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            },
+            "description": "If this person is a candidate, all the events that are for them"
+          },
+          "Is Archived Client?": {
+            "type": "boolean",
+            "description": "This person USED to be an active client, but no longer."
+          },
+          "Finance Sheet URL": {
+            "type": "string",
+            "format": "uri",
+            "description": "If this is a client, the GSheet URL of their financial sheet"
+          },
+          "Events Attended as Guest": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            }
+          },
+          "Ascension ID": {
+            "type": "number",
+            "description": "The numeric ID assigned by the AK Dept of Elections to each registered voter. This is stable throughout someones registration. If someone de-registers, and registers again, they MAY end up with the same ID, or they may get a new one. You can use this to look up someone in VAN"
+          },
+          "Tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "can close",
+                "can open"
+              ]
+            }
+          },
+          "Client Team Email": {
+            "type": "string",
+            "format": "email",
+            "description": "eg team@blakesleeforschoolboard.com"
+          },
+          "Client's Team": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            },
+            "description": "If this is a client, the people who normally staff the events.\n\nThese people will be included as guests on the GCal invites, etc"
+          },
+          "Clients working for": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            },
+            "description": "The Clients this person is on the team of."
+          },
+          "Events": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            }
+          },
+          "Clients Co-Hosted For": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "description": "Linked record ID"
+              }
+            }
+          }
+        }
+      },
+      "PeopleFieldsWrite": {
+        "type": "object",
+        "properties": {
+          "Email": {
+            "type": "string",
+            "format": "email"
+          },
+          "Phone": {
+            "type": "string"
+          },
+          "Facebook Page": {
+            "type": "string",
+            "format": "uri"
+          },
+          "Is Client?": {
+            "type": "boolean",
+            "description": "Is this person a client of SCG?"
+          },
+          "First Name": {
+            "type": "string"
+          },
+          "Last Name": {
+            "type": "string"
+          },
+          "Notes": {
+            "type": "string",
+            "description": "For guests, whatever you see fit.\n\nFor clients:\n- How many FR we have committed to in the contract.\n- Preferences, eg Cliff Groh doesn’t like non-cohost fundraisers."
+          },
+          "Could Host For": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            },
+            "description": "The campaign(s) this person might host"
+          },
+          "Events Hosted": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            },
+            "description": "All the events this person is hosting/has hosted"
+          },
+          "Events Co-Hosted": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            }
+          },
+          "Events Funded By": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            },
+            "description": "If this person is a candidate, all the events that are for them"
+          },
+          "Is Archived Client?": {
+            "type": "boolean",
+            "description": "This person USED to be an active client, but no longer."
+          },
+          "Finance Sheet URL": {
+            "type": "string",
+            "format": "uri",
+            "description": "If this is a client, the GSheet URL of their financial sheet"
+          },
+          "Events Attended as Guest": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            }
+          },
+          "Ascension ID": {
+            "type": "number",
+            "description": "The numeric ID assigned by the AK Dept of Elections to each registered voter. This is stable throughout someones registration. If someone de-registers, and registers again, they MAY end up with the same ID, or they may get a new one. You can use this to look up someone in VAN"
+          },
+          "Tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "can close",
+                "can open"
+              ]
+            }
+          },
+          "Client Team Email": {
+            "type": "string",
+            "format": "email",
+            "description": "eg team@blakesleeforschoolboard.com"
+          },
+          "Client's Team": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            },
+            "description": "If this is a client, the people who normally staff the events.\n\nThese people will be included as guests on the GCal invites, etc"
+          },
+          "Clients working for": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            },
+            "description": "The Clients this person is on the team of."
+          },
+          "Events": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Linked record ID"
+            }
+          }
+        }
+      },
+      "PeopleRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "createdTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fields": {
+            "$ref": "#/components/schemas/PeopleFieldsRead"
+          }
+        }
+      },
+      "PeopleRecordList": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PeopleRecord"
+            }
+          },
+          "offset": {
+            "type": "string",
+            "description": "Pass back to fetch the next page."
+          }
+        }
+      },
+      "Comment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "createdTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastUpdatedTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "author": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string",
+                "format": "email"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "CommentList": {
+        "type": "object",
+        "properties": {
+          "comments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Comment"
+            }
+          },
+          "offset": {
+            "type": "string",
+            "description": "Pass back to fetch the next page."
+          }
+        }
+      },
+      "Webhook": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "notificationUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "isHookEnabled": {
+            "type": "boolean"
+          },
+          "areNotificationsEnabled": {
+            "type": "boolean"
+          },
+          "cursorForNextPayload": {
+            "type": "integer"
+          },
+          "lastNotificationResult": {
+            "type": "object"
+          },
+          "expirationTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "specification": {
+            "type": "object"
+          }
+        }
+      },
+      "MetaField": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "options": {
+            "type": "object"
+          }
+        }
+      },
+      "MetaTable": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "primaryFieldId": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MetaField"
+            }
+          },
+          "views": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/appHkD4ZjzcqpbJ4y/tblXxZtsavNuPBVKl": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "List Events records",
+        "parameters": [
+          {
+            "name": "fields[]",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "Only return these field names or IDs."
+          },
+          {
+            "name": "filterByFormula",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "maxRecords",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string"
+                  },
+                  "direction": {
+                    "type": "string",
+                    "enum": [
+                      "asc",
+                      "desc"
+                    ],
+                    "default": "asc"
+                  }
+                },
+                "required": [
+                  "field"
+                ]
+              }
+            }
+          },
+          {
+            "name": "view",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cellFormat",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "string"
+              ],
+              "default": "json"
+            }
+          },
+          {
+            "name": "timeZone",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userLocale",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "returnFieldsByFieldId",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "description": "Key returned record fields by field ID instead of field name."
+            }
+          },
+          {
+            "name": "recordMetadata[]",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "commentCount"
+                ]
+              }
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventsRecordList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "Create Events records",
+        "description": "Create up to 10 records at a time.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "fields": {
+                          "$ref": "#/components/schemas/EventsFieldsWrite"
+                        }
+                      }
+                    }
+                  },
+                  "typecast": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Convert string values to the appropriate cell value."
+                  },
+                  "returnFieldsByFieldId": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Key returned record fields by field ID instead of field name."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventsRecordList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "Update Events records",
+        "description": "Partial update: fields omitted from the request are left unchanged.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "fields": {
+                          "$ref": "#/components/schemas/EventsFieldsWrite"
+                        }
+                      }
+                    }
+                  },
+                  "typecast": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Convert string values to the appropriate cell value."
+                  },
+                  "returnFieldsByFieldId": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Key returned record fields by field ID instead of field name."
+                  },
+                  "performUpsert": {
+                    "type": "object",
+                    "description": "Match on the given fields to update existing records or create new ones.",
+                    "properties": {
+                      "fieldsToMergeOn": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "1-3 field names or IDs used as an external key for matching."
+                      }
+                    },
+                    "required": [
+                      "fieldsToMergeOn"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventsRecordList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "Replace Events records",
+        "description": "Destructive update: fields omitted from the request are cleared.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "fields": {
+                          "$ref": "#/components/schemas/EventsFieldsWrite"
+                        }
+                      }
+                    }
+                  },
+                  "typecast": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Convert string values to the appropriate cell value."
+                  },
+                  "returnFieldsByFieldId": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Key returned record fields by field ID instead of field name."
+                  },
+                  "performUpsert": {
+                    "type": "object",
+                    "description": "Match on the given fields to update existing records or create new ones.",
+                    "properties": {
+                      "fieldsToMergeOn": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "1-3 field names or IDs used as an external key for matching."
+                      }
+                    },
+                    "required": [
+                      "fieldsToMergeOn"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventsRecordList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "Delete Events records",
+        "parameters": [
+          {
+            "name": "records[]",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "required": true,
+            "description": "Record IDs to delete (up to 10)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedRecordList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/appHkD4ZjzcqpbJ4y/tblXxZtsavNuPBVKl/{recordId}": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "Get a Events record",
+        "parameters": [
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cellFormat",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "string"
+              ],
+              "default": "json"
+            }
+          },
+          {
+            "name": "returnFieldsByFieldId",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "description": "Key returned record fields by field ID instead of field name."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventsRecord"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "Update a Events record",
+        "description": "Partial update: fields omitted from the request are left unchanged.",
+        "parameters": [
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fields": {
+                    "$ref": "#/components/schemas/EventsFieldsWrite"
+                  },
+                  "typecast": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Convert string values to the appropriate cell value."
+                  },
+                  "returnFieldsByFieldId": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Key returned record fields by field ID instead of field name."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventsRecord"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "Replace a Events record",
+        "description": "Destructive update: fields omitted from the request are cleared.",
+        "parameters": [
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fields": {
+                    "$ref": "#/components/schemas/EventsFieldsWrite"
+                  },
+                  "typecast": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Convert string values to the appropriate cell value."
+                  },
+                  "returnFieldsByFieldId": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Key returned record fields by field ID instead of field name."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventsRecord"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "Delete a Events record",
+        "parameters": [
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedRecord"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/appHkD4ZjzcqpbJ4y/tbl0aosXVRd88cW9z": {
+      "get": {
+        "tags": [
+          "People"
+        ],
+        "summary": "List People records",
+        "parameters": [
+          {
+            "name": "fields[]",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "Only return these field names or IDs."
+          },
+          {
+            "name": "filterByFormula",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "maxRecords",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string"
+                  },
+                  "direction": {
+                    "type": "string",
+                    "enum": [
+                      "asc",
+                      "desc"
+                    ],
+                    "default": "asc"
+                  }
+                },
+                "required": [
+                  "field"
+                ]
+              }
+            }
+          },
+          {
+            "name": "view",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cellFormat",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "string"
+              ],
+              "default": "json"
+            }
+          },
+          {
+            "name": "timeZone",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userLocale",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "returnFieldsByFieldId",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "description": "Key returned record fields by field ID instead of field name."
+            }
+          },
+          {
+            "name": "recordMetadata[]",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "commentCount"
+                ]
+              }
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeopleRecordList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Create People records",
+        "description": "Create up to 10 records at a time.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "fields": {
+                          "$ref": "#/components/schemas/PeopleFieldsWrite"
+                        }
+                      }
+                    }
+                  },
+                  "typecast": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Convert string values to the appropriate cell value."
+                  },
+                  "returnFieldsByFieldId": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Key returned record fields by field ID instead of field name."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeopleRecordList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Update People records",
+        "description": "Partial update: fields omitted from the request are left unchanged.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "fields": {
+                          "$ref": "#/components/schemas/PeopleFieldsWrite"
+                        }
+                      }
+                    }
+                  },
+                  "typecast": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Convert string values to the appropriate cell value."
+                  },
+                  "returnFieldsByFieldId": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Key returned record fields by field ID instead of field name."
+                  },
+                  "performUpsert": {
+                    "type": "object",
+                    "description": "Match on the given fields to update existing records or create new ones.",
+                    "properties": {
+                      "fieldsToMergeOn": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "1-3 field names or IDs used as an external key for matching."
+                      }
+                    },
+                    "required": [
+                      "fieldsToMergeOn"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeopleRecordList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Replace People records",
+        "description": "Destructive update: fields omitted from the request are cleared.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "records": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "fields": {
+                          "$ref": "#/components/schemas/PeopleFieldsWrite"
+                        }
+                      }
+                    }
+                  },
+                  "typecast": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Convert string values to the appropriate cell value."
+                  },
+                  "returnFieldsByFieldId": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Key returned record fields by field ID instead of field name."
+                  },
+                  "performUpsert": {
+                    "type": "object",
+                    "description": "Match on the given fields to update existing records or create new ones.",
+                    "properties": {
+                      "fieldsToMergeOn": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "1-3 field names or IDs used as an external key for matching."
+                      }
+                    },
+                    "required": [
+                      "fieldsToMergeOn"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeopleRecordList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Delete People records",
+        "parameters": [
+          {
+            "name": "records[]",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "required": true,
+            "description": "Record IDs to delete (up to 10)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedRecordList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/appHkD4ZjzcqpbJ4y/tbl0aosXVRd88cW9z/{recordId}": {
+      "get": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Get a People record",
+        "parameters": [
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cellFormat",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "string"
+              ],
+              "default": "json"
+            }
+          },
+          {
+            "name": "returnFieldsByFieldId",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "description": "Key returned record fields by field ID instead of field name."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeopleRecord"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Update a People record",
+        "description": "Partial update: fields omitted from the request are left unchanged.",
+        "parameters": [
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fields": {
+                    "$ref": "#/components/schemas/PeopleFieldsWrite"
+                  },
+                  "typecast": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Convert string values to the appropriate cell value."
+                  },
+                  "returnFieldsByFieldId": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Key returned record fields by field ID instead of field name."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeopleRecord"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Replace a People record",
+        "description": "Destructive update: fields omitted from the request are cleared.",
+        "parameters": [
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fields": {
+                    "$ref": "#/components/schemas/PeopleFieldsWrite"
+                  },
+                  "typecast": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Convert string values to the appropriate cell value."
+                  },
+                  "returnFieldsByFieldId": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Key returned record fields by field ID instead of field name."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeopleRecord"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "People"
+        ],
+        "summary": "Delete a People record",
+        "parameters": [
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedRecord"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/appHkD4ZjzcqpbJ4y/{tableIdOrName}/{recordId}/comments": {
+      "get": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "List comments on a record",
+        "parameters": [
+          {
+            "name": "tableIdOrName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "Create a comment on a record",
+        "parameters": [
+          {
+            "name": "tableIdOrName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comment"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/appHkD4ZjzcqpbJ4y/{tableIdOrName}/{recordId}/comments/{commentId}": {
+      "patch": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "Update a comment",
+        "parameters": [
+          {
+            "name": "tableIdOrName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "commentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comment"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "Delete a comment",
+        "parameters": [
+          {
+            "name": "tableIdOrName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "commentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "deleted": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/appHkD4ZjzcqpbJ4y/{recordId}/{attachmentFieldIdOrName}/uploadAttachment": {
+      "post": {
+        "tags": [
+          "Attachments"
+        ],
+        "summary": "Upload an attachment to a record's attachment field",
+        "servers": [
+          {
+            "url": "https://content.airtable.com/v0"
+          }
+        ],
+        "parameters": [
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "attachmentFieldIdOrName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Attachment field ID or name"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contentType": {
+                    "type": "string",
+                    "description": "MIME type, e.g. image/jpeg"
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Base64-encoded file contents"
+                  },
+                  "filename": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "contentType",
+                  "file",
+                  "filename"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "The updated record.",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "createdTime": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "fields": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bases/appHkD4ZjzcqpbJ4y/webhooks": {
+      "get": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "List webhooks for the base",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "webhooks": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Webhook"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Create a webhook",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "notificationUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "specification": {
+                    "type": "object",
+                    "description": "Webhook specification (options.filters, etc.)."
+                  }
+                },
+                "required": [
+                  "specification"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "expirationTime": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "macSecretBase64": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bases/appHkD4ZjzcqpbJ4y/webhooks/{webhookId}": {
+      "delete": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Delete a webhook",
+        "parameters": [
+          {
+            "name": "webhookId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/bases/appHkD4ZjzcqpbJ4y/webhooks/{webhookId}/enableNotifications": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Enable or disable webhook notifications",
+        "parameters": [
+          {
+            "name": "webhookId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "enable": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "enable"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/bases/appHkD4ZjzcqpbJ4y/webhooks/{webhookId}/refresh": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Refresh a webhook's expiration time",
+        "parameters": [
+          {
+            "name": "webhookId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "expirationTime": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bases/appHkD4ZjzcqpbJ4y/webhooks/{webhookId}/payloads": {
+      "get": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "List webhook payloads",
+        "parameters": [
+          {
+            "name": "webhookId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "payloads": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "cursor": {
+                      "type": "integer"
+                    },
+                    "mightHaveMore": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meta/bases/appHkD4ZjzcqpbJ4y/tables": {
+      "post": {
+        "tags": [
+          "Metadata"
+        ],
+        "summary": "Create a table",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "fields": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "fields"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetaTable"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Metadata"
+        ],
+        "summary": "Get a base's schema",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tables": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MetaTable"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meta/bases/appHkD4ZjzcqpbJ4y/tables/{tableId}": {
+      "patch": {
+        "tags": [
+          "Metadata"
+        ],
+        "summary": "Update a table's name or description",
+        "parameters": [
+          {
+            "name": "tableId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetaTable"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meta/bases/appHkD4ZjzcqpbJ4y/tables/{tableId}/fields": {
+      "post": {
+        "tags": [
+          "Metadata"
+        ],
+        "summary": "Create a field",
+        "parameters": [
+          {
+            "name": "tableId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "options": {
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "name",
+                  "type"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetaField"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meta/bases/appHkD4ZjzcqpbJ4y/tables/{tableId}/fields/{fieldId}": {
+      "patch": {
+        "tags": [
+          "Metadata"
+        ],
+        "summary": "Update a field's name or description",
+        "parameters": [
+          {
+            "name": "tableId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fieldId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetaField"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/meta/bases": {
+      "get": {
+        "tags": [
+          "Metadata"
+        ],
+        "summary": "List accessible bases",
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "bases": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "permissionLevel": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "offset": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Metadata"
+        ],
+        "summary": "Create a base",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "workspaceId": {
+                    "type": "string"
+                  },
+                  "tables": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "workspaceId",
+                  "tables"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "tables": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MetaTable"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -12,6 +12,7 @@ import { createBaseCommand } from "./base.ts";
 import { createTableCommand } from "./table.ts";
 import { createFieldCommand } from "./field.ts";
 import { createRecordCommand } from "./record.ts";
+import { makeOpenApiCommand } from "./openapi.ts";
 
 import * as packageJson from '../../package.json';
 
@@ -37,6 +38,7 @@ export async function cli(args: string[], fetcher?: IntoFetcher): Promise<void> 
   program.addCommand(createTableCommand(resolveFetcher));
   program.addCommand(createFieldCommand(resolveFetcher));
   program.addCommand(createRecordCommand(resolveFetcher));
+  program.addCommand(makeOpenApiCommand(resolveFetcher));
 
   program
     .command('codegen')
