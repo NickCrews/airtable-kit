@@ -34,7 +34,7 @@ export function addAttachments(doc: OpenApiDocument, base: BaseSchema, ctx: Surf
         type: "object",
         properties: {
           contentType: { type: "string", description: "MIME type, e.g. image/jpeg" },
-          file: { type: "string", description: "Base64-encoded file contents" },
+          file: { type: "string", format: "byte", description: "Base64-encoded file contents" },
           filename: { type: "string" },
         },
         required: ["contentType", "file", "filename"],
