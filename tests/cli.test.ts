@@ -1781,13 +1781,13 @@ describe('CLI', { timeout: 10_000 }, () => {
           [
             "** Total: 5 records **
 
-        | ID                | name   | numberValue | singleLineTextValue |
-        | ----------------- | ------ | ----------- | ------------------- |
-        | rec0 | Item A | (empty)     |                     |
-        | rec1 | Item B | (empty)     |                     |
-        | rec2 | Item C | (empty)     |                     |
-        | rec3 | Item D | (empty)     |                     |
-        | rec4 | Item E | (empty)     |                     |",
+        | ID                | name   |
+        | ----------------- | ------ |
+        | rec0 | Item A |
+        | rec1 | Item B |
+        | rec2 | Item C |
+        | rec3 | Item D |
+        | rec4 | Item E |",
           ],
         ]
       `);

@@ -61,7 +61,11 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
       if (options.format === "json") {
         console.log(JSON.stringify(records, null, 2));
       } else {
-        console.log(formatRecordList(records, table.fields));
+        // Only show columns for the requested fields, since the others aren't returned.
+        const shownFields = listOptions.fields
+          ? table.fields.filter((f: any) => listOptions.fields.includes(f.name) || listOptions.fields.includes(f.id))
+          : table.fields;
+        console.log(formatRecordList(records, shownFields));
       }
     });
 
