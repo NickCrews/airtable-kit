@@ -5,6 +5,7 @@ import { type FieldSchemaCreate, type FieldSchemaRead } from "../fields/types";
 import { createTable, updateTable } from "../tables/api";
 import { createBase, BaseSchemaCreate, getBaseSchema } from "../bases/api";
 import dotenv from "dotenv";
+import { fileURLToPath } from "node:url";
 import { BaseId, BaseSchema } from "../bases/types";
 import { WorkspaceId } from "../workspaces/types";
 
@@ -578,7 +579,8 @@ async function main() {
     );
 }
 
-if (import.meta.main) {
+// import.meta.main is unavailable before Node 22.18, so compare against argv instead.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
     main().catch(err => {
         console.error("Error ensuring test base is ready:", err);
         process.exit(1);
