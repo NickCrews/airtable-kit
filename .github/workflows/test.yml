@@ -9,6 +9,12 @@ on:
       - main
   workflow_dispatch:
 
+# Every run resets records in the same shared Airtable test base,
+# so runs from different branches/PRs must not overlap.
+concurrency:
+  group: airtable-test-base
+  cancel-in-progress: false
+
 jobs:
   lint:
     name: Lint Code
@@ -53,6 +59,8 @@ jobs:
       matrix:
         node-version: [20, 22, 24]
       fail-fast: false
+      # The matrix jobs share one Airtable test base, so run them one at a time.
+      max-parallel: 1
 
     steps:
       - name: Checkout code
