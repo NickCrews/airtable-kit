@@ -132,8 +132,7 @@ describe('CLI', { timeout: 10_000 }, () => {
     });
   });
   it('should handle invalid api key gracefully', async () => {
-    await callCli(["codegen", "--api-key", "invalid_key"]);
-    expect(mockConsoleError.mock.calls).toMatchInlineSnapshot(`[]`);
+    await expect(callCli(["codegen", "--api-key", "invalid_key"])).rejects.toThrow(/401 Unauthorized/);
   });
 
   describe('base command', () => {

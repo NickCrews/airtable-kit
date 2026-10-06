@@ -47,7 +47,7 @@ export async function cli(args: string[], fetcher?: IntoFetcher): Promise<void> 
     .option('--format <format>', 'Output format: ts or js')
     .option('--outdir <path>', 'Output directory', '.atk/bases')
     .action(async (options) => {
-      const finalFetcher = fetcher ?? getApiKey(options.apiKey);
+      const finalFetcher = resolveFetcher();
       const finalFormat = (options.format === 'ts' || options.format === 'js') ? options.format : 'ts';
       const outDir = options.outdir ?? '.atk/bases';
 
