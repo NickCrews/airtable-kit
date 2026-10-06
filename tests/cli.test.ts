@@ -1709,65 +1709,62 @@ describe('CLI', { timeout: 10_000 }, () => {
     it('should list records as json', async () => {
       const tableId = realSchema.tables[0].id;
       await cliWithApiKey(["record", "list", "--base", baseId, "--table", tableId, "--format", "json", "--max", "5", "--sort", "name:asc"]);
-      expect(scrubAllCalls(mockConsoleLog.mock.calls)).toMatchInlineSnapshot(`
+      const calls = scrubAllCalls(mockConsoleLog.mock.calls);
+      expect(calls[0]).toEqual(["✓ Set current base to: airtable-kit Test Base (app0)"]);
+      // Airtable doesn't return the keys in `fields` in a stable order, so compare
+      // the parsed records (whose keys the snapshot serializer sorts) instead of the raw text.
+      expect(JSON.parse(calls[1][0])).toMatchInlineSnapshot(`
         [
-          [
-            "✓ Set current base to: airtable-kit Test Base (app0)",
-          ],
-          [
-            "[
           {
-            "id": "rec0",
+            "commentCount": 0,
             "createdTime": "TIMESTAMP",
             "fields": {
               "name": "Item A",
               "numberValue": 10,
-              "singleLineTextValue": "10"
+              "singleLineTextValue": "10",
             },
-            "commentCount": 0
+            "id": "rec0",
           },
           {
-            "id": "rec1",
+            "commentCount": 0,
             "createdTime": "TIMESTAMP",
             "fields": {
               "name": "Item B",
               "numberValue": 20,
-              "singleLineTextValue": "20"
+              "singleLineTextValue": "20",
             },
-            "commentCount": 0
+            "id": "rec1",
           },
           {
-            "id": "rec2",
+            "commentCount": 0,
             "createdTime": "TIMESTAMP",
             "fields": {
               "name": "Item C",
               "numberValue": 30,
-              "singleLineTextValue": "30"
+              "singleLineTextValue": "30",
             },
-            "commentCount": 0
+            "id": "rec2",
           },
           {
-            "id": "rec3",
+            "commentCount": 0,
             "createdTime": "TIMESTAMP",
             "fields": {
               "name": "Item D",
               "numberValue": 40,
-              "singleLineTextValue": "40"
+              "singleLineTextValue": "40",
             },
-            "commentCount": 0
+            "id": "rec3",
           },
           {
-            "id": "rec4",
+            "commentCount": 0,
             "createdTime": "TIMESTAMP",
             "fields": {
               "name": "Item E",
               "numberValue": 50,
-              "singleLineTextValue": "50"
+              "singleLineTextValue": "50",
             },
-            "commentCount": 0
-          }
-        ]",
-          ],
+            "id": "rec4",
+          },
         ]
       `);
     });
