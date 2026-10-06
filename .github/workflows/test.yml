@@ -141,7 +141,7 @@ jobs:
           if [[
                 "${{ needs.test.result }}" == "success" && \
                 "${{ needs.validate-package.result }}" == "success" && \
-                "${{ needs.lint.result }}" == "success" && \
+                "${{ needs.lint.result }}" == "success"
               ]]; then
             echo "✅ All required checks passed!"
           else
