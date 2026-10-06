@@ -15,6 +15,7 @@ type FieldsByName<T extends Array<FieldSchemaRead> | ReadonlyArray<FieldSchemaRe
 type FieldType<T extends TableSchema> = T['fields'][number];
 
 type FieldIdInTable<T extends TableSchema> = T['fields'][number]['id'];
+type FieldNameOrIdInTable<T extends TableSchema> = FieldType<T>['name'] | FieldType<T>['id'];
 /**
  * A client to interact with a specific table within an Airtable base.
  * 
@@ -66,11 +67,19 @@ export interface TableClient<T extends TableSchema = TableSchema> {
      */
     createRecords(records: ReadonlyArray<r.ValuesForWrite<FieldType<T>>>): Promise<r.CreateRecordsResponse<FieldType<T>>>;
 
-    /** List records from the table with optional filtering. Pagination is handled automatically. */
-    listRecords(options?: r.ListRecordsOptions<FieldType<T>>): Promise<r.ListRecordsResponse<FieldType<T>>>;
+    /**
+     * List records from the table with optional filtering. Pagination is handled automatically.
+     *
+     * If `options.fields` is given, only those fields are returned, and the record type is narrowed to them.
+     */
+    listRecords<K extends FieldNameOrIdInTable<T> = FieldNameOrIdInTable<T>>(
+        options?: r.ListRecordsOptions<FieldType<T>, K>
+    ): Promise<r.ListRecordsResponse<r.SelectedFields<FieldType<T>, K>>>;
 
     /** List records, but you are responsible for pagination */
-    listRecordsRaw(options?: r.ListRecordsRawOptions<FieldType<T>>): Promise<r.ListRecordsRawResponse<FieldType<T>>>;
+    listRecordsRaw<K extends FieldNameOrIdInTable<T> = FieldNameOrIdInTable<T>>(
+        options?: r.ListRecordsRawOptions<FieldType<T>, K>
+    ): Promise<r.ListRecordsRawResponse<r.SelectedFields<FieldType<T>, K>>>;
 
     /** Get a single record by ID */
     getRecord(recordId: RecordId, options?: r.GetRecordOptions): Promise<r.GetRecordResponse<FieldType<T>>>;
@@ -203,8 +212,8 @@ export function makeTableClient<T extends TableSchema>(
             });
             return raw[0];
         },
-        listRecords(listOptions?: r.ListRecordsOptions<FieldType<T>>) {
-            return r.listRecords<FieldType<T>>({
+        listRecords<K extends FieldNameOrIdInTable<T> = FieldNameOrIdInTable<T>>(listOptions?: r.ListRecordsOptions<FieldType<T>, K>) {
+            return r.listRecords<FieldType<T>, K>({
                 options: listOptions,
                 baseId,
                 tableId: tableSchema.id,
@@ -213,8 +222,8 @@ export function makeTableClient<T extends TableSchema>(
                 onUnexpectedField: options?.onReadUnexpectedField,
             });
         },
-        async listRecordsRaw(listOptions?: r.ListRecordsRawOptions<FieldType<T>>) {
-            return await r.listRecordsRaw<FieldType<T>>({
+        async listRecordsRaw<K extends FieldNameOrIdInTable<T> = FieldNameOrIdInTable<T>>(listOptions?: r.ListRecordsRawOptions<FieldType<T>, K>) {
+            return await r.listRecordsRaw<FieldType<T>, K>({
                 options: listOptions,
                 baseId,
                 tableId: tableSchema.id,

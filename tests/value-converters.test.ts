@@ -266,6 +266,10 @@ describe("Value Converters", () => {
   });
   describe("lastModifiedBy", () => {
     const fieldSchema = { type: 'lastModifiedBy' } satisfies FieldSchemaForConvert<'lastModifiedBy'>;
+    it("lastModifiedBy should be null when empty", () => {
+      expect(convertValueFromRead(null, fieldSchema)).toBeNull();
+      expect(convertValueFromRead(undefined, fieldSchema)).toBeNull();
+    });
     it("lastModifiedBy should report not writable", () => {
       expect(isFieldWritable(fieldSchema.type)).toBe(false);
       expectTypeOf(isFieldWritable(fieldSchema.type)).toEqualTypeOf<false>();
@@ -281,6 +285,10 @@ describe("Value Converters", () => {
   });
   describe("lastModifiedTime", () => {
     const fieldSchema = { type: 'lastModifiedTime' } satisfies FieldSchemaForConvert<'lastModifiedTime'>;
+    it("lastModifiedTime should be null when empty", () => {
+      expect(convertValueFromRead(null, fieldSchema)).toBeNull();
+      expect(convertValueFromRead(undefined, fieldSchema)).toBeNull();
+    });
     it("lastModifiedTime should report not writable", () => {
       expect(isFieldWritable(fieldSchema.type)).toBe(false);
       expectTypeOf(isFieldWritable(fieldSchema.type)).toEqualTypeOf<false>();

@@ -361,16 +361,14 @@ const LastModifiedByConverters = {
     type: "lastModifiedBy",
     makeTo: null,
     makeFrom:
-        (fieldSchema: FieldForConvertOfType<"lastModifiedBy">) => (value: unknown): User => {
-            if (!value) {
-                const e = new Error(`a lastModifiedBy field must have a value, got: ${value}`);
-                throw new exceptions.ReadValueConversionError(value, fieldSchema as FieldSchemaRead, e);
-            }
-            return value as User;
+        // A lastModifiedBy field that watches specific fields is empty (and omitted
+        // by the API) until one of those fields is edited, so null is legitimate.
+        (_fieldSchema: FieldForConvertOfType<"lastModifiedBy">) => (value: unknown): User | null => {
+            return (value ?? null) as User | null;
         }
 } as const satisfies IConverters<
     never,
-    User,
+    User | null,
     FieldForConvertOfType<"lastModifiedBy">
 >;
 
@@ -378,17 +376,15 @@ const LastModifiedTimeConverters = {
     type: "lastModifiedTime",
     makeTo: null,
     makeFrom:
+        // A lastModifiedTime field that watches specific fields is empty (and omitted
+        // by the API) until one of those fields is edited, so null is legitimate.
         (_fieldSchema: FieldForConvertOfType<"lastModifiedTime">) =>
-            (value: UtcTimestamp): UtcTimestamp => {
-                if (value === null || value === undefined) {
-                    const e = new Error(`a lastModifiedTime field must have a value, got: ${value}`);
-                    throw new exceptions.ReadValueConversionError(value, _fieldSchema as FieldSchemaRead, e);
-                }
-                return value;
+            (value: UtcTimestamp | null): UtcTimestamp | null => {
+                return value ?? null;
             }
 } as const satisfies IConverters<
     never,
-    UtcTimestamp,
+    UtcTimestamp | null,
     FieldForConvertOfType<"lastModifiedTime">
 >;
 
@@ -735,7 +731,7 @@ export type ValueFromRead<F extends Omit<FieldSchemaForConvert, "id" | "name">> 
     : F extends FieldForConvertOfType<"externalSyncSource"> ? unknown
     : F extends FieldForConvertOfType<"formula"> ? FormulaReadType<F>
     : F extends FieldForConvertOfType<"lastModifiedBy"> ? User | null
-    : F extends FieldForConvertOfType<"lastModifiedTime"> ? UtcTimestamp
+    : F extends FieldForConvertOfType<"lastModifiedTime"> ? UtcTimestamp | null
     : F extends FieldForConvertOfType<"multilineText"> ? string
     : F extends FieldForConvertOfType<"multipleAttachments"> ? Array<MultipleAttachmentReadType>
     : F extends FieldForConvertOfType<"multipleCollaborators"> ? User[]

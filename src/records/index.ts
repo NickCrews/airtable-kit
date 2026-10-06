@@ -23,6 +23,7 @@ export {
     type ListRecordsRawOptions,
     type ListRecordsRawParams,
     type ListRecordsRawResponse,
+    type SelectedFields,
     listRecordsRaw,
     type UpdateRecordsOptions,
     type UpdateRecordsParams,
