@@ -12,6 +12,10 @@ import { RecordId } from "./types.ts";
 
 type FieldNameOrId<T extends FieldSchemaRead> = T['name'] | T['id'];
 
+/** The field schemas in `T` selected by the field names or IDs `K`. */
+export type SelectedFields<T extends FieldSchemaRead, K extends FieldNameOrId<T>> =
+    Extract<T, { name: K }> | Extract<T, { id: K }>;
+
 /** ISO 8601 format in UTC, eg `2024-01-01T12:00:00.000Z` */
 export type Timestamp = string;
 
@@ -131,7 +135,10 @@ export async function createRecordsRaw<T extends FieldSchemaRead>(
 /**
  * Options for listing records
  */
-export interface ListRecordsOptions<T extends FieldSchemaRead> {
+export interface ListRecordsOptions<
+    T extends FieldSchemaRead,
+    K extends FieldNameOrId<T> = FieldNameOrId<T>,
+> {
     /** Time zone for formatting dates when using cellFormat: "string" */
     timeZone?: Timezone;
     /** User locale for formatting dates when using cellFormat: "string" */
@@ -146,16 +153,22 @@ export interface ListRecordsOptions<T extends FieldSchemaRead> {
     filterByFormula?: string | Formula<T>;
     /** Cell value format: "json" (default) or "string" */
     cellFormat?: 'json' | 'string';
-    /** Fields to include (names or IDs) */
-    fields?: FieldNameOrId<T>[];
+    /**
+     * Fields to include (names or IDs).
+     * Only these fields are returned, and the returned record type is narrowed to them.
+     */
+    fields?: ReadonlyArray<K>;
     /** Include metadata like comment count */
     recordMetadata?: Array<'commentCount'>;
 }
-export interface ListRecordsParams<T extends FieldSchemaRead> {
+export interface ListRecordsParams<
+    T extends FieldSchemaRead,
+    K extends FieldNameOrId<T> = FieldNameOrId<T>,
+> {
     baseId: BaseId;
     tableId: TableId;
     fields: ReadonlyArray<T>;
-    options?: ListRecordsOptions<T>;
+    options?: ListRecordsOptions<T, K>;
     fetcher?: IntoFetcher;
     onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
 }
@@ -166,7 +179,10 @@ export type ListRecordsResponse<T extends FieldSchemaRead> = Array<{
     commentCount?: number;
 }>;
 
-export async function listRecords<T extends FieldSchemaRead>(
+export async function listRecords<
+    T extends FieldSchemaRead,
+    K extends FieldNameOrId<T> = FieldNameOrId<T>,
+>(
     {
         options,
         fields,
@@ -174,12 +190,12 @@ export async function listRecords<T extends FieldSchemaRead>(
         baseId,
         tableId,
         onUnexpectedField,
-    }: ListRecordsParams<T>,
-): Promise<ListRecordsResponse<T>> {
-    const allRecords: ListRecordsResponse<T> = [];
+    }: ListRecordsParams<T, K>,
+): Promise<ListRecordsResponse<SelectedFields<T, K>>> {
+    const allRecords: ListRecordsResponse<SelectedFields<T, K>> = [];
     let offset = undefined;
     do {
-        const response: ListRecordsRawResponse<T> = await listRecordsRaw({
+        const response: ListRecordsRawResponse<SelectedFields<T, K>> = await listRecordsRaw<T, K>({
             options: {
                 ...options,
                 offset,
@@ -196,15 +212,21 @@ export async function listRecords<T extends FieldSchemaRead>(
     return allRecords;
 }
 
-export type ListRecordsRawOptions<T extends FieldSchemaRead> = ListRecordsOptions<T> & {
+export type ListRecordsRawOptions<
+    T extends FieldSchemaRead,
+    K extends FieldNameOrId<T> = FieldNameOrId<T>,
+> = ListRecordsOptions<T, K> & {
     pageSize?: number;
     offset?: string;
 };
-export interface ListRecordsRawParams<T extends FieldSchemaRead> {
+export interface ListRecordsRawParams<
+    T extends FieldSchemaRead,
+    K extends FieldNameOrId<T> = FieldNameOrId<T>,
+> {
     baseId: BaseId;
     tableId: TableId;
     fields: ReadonlyArray<T>;
-    options?: ListRecordsRawOptions<T>;
+    options?: ListRecordsRawOptions<T, K>;
     fetcher?: IntoFetcher;
     onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
 }
@@ -217,7 +239,10 @@ export type ListRecordsRawResponse<T extends FieldSchemaRead> = {
     }>;
     offset?: RecordId;
 };
-export async function listRecordsRaw<T extends FieldSchemaRead>(
+export async function listRecordsRaw<
+    T extends FieldSchemaRead,
+    K extends FieldNameOrId<T> = FieldNameOrId<T>,
+>(
     {
         options,
         fields,
@@ -225,8 +250,8 @@ export async function listRecordsRaw<T extends FieldSchemaRead>(
         baseId,
         tableId,
         onUnexpectedField,
-    }: ListRecordsRawParams<T>,
-): Promise<ListRecordsRawResponse<T>> {
+    }: ListRecordsRawParams<T, K>,
+): Promise<ListRecordsRawResponse<SelectedFields<T, K>>> {
     const queryParams = new URLSearchParams();
     queryParams.append('returnFieldsByFieldId', 'true');
 
@@ -239,13 +264,14 @@ export async function listRecordsRaw<T extends FieldSchemaRead>(
     if (options?.filterByFormula) queryParams.append('filterByFormula', typeof options.filterByFormula === 'string' ? options.filterByFormula : formulaToString(fields, options.filterByFormula));
     if (options?.cellFormat) queryParams.append('cellFormat', options.cellFormat);
 
-    const toFieldId = (field: FieldNameOrId<T>) => {
+    const toFieldSchema = (field: FieldNameOrId<T>) => {
         const spec = fields.find(f => f.id === field || f.name === field);
         if (!spec) {
             throw new Error(`Field "${field}" not found in table schema.`);
         }
-        return spec.id;
+        return spec;
     }
+    const toFieldId = (field: FieldNameOrId<T>) => toFieldSchema(field).id;
 
     if (options?.sort) {
         // trying to build up something like
@@ -256,10 +282,17 @@ export async function listRecordsRaw<T extends FieldSchemaRead>(
         });
     }
 
+    // When a subset of fields is requested, Airtable only returns those fields,
+    // so only validate the returned values against those fields' schemas.
+    // Otherwise, fields that are always present (eg createdTime) would look like
+    // they had been deleted upstream.
+    let readFields: ReadonlyArray<SelectedFields<T, K>> = fields as ReadonlyArray<SelectedFields<T, K>>;
     if (options?.fields) {
-        options.fields.forEach(fieldNameOrId => {
-            queryParams.append('fields[]', toFieldId(fieldNameOrId));
+        const selected = [...new Set(options.fields.map(toFieldSchema))];
+        selected.forEach(spec => {
+            queryParams.append('fields[]', spec.id);
         });
+        readFields = selected as SelectedFields<T, K>[];
     }
 
     if (options?.recordMetadata) {
@@ -303,7 +336,7 @@ export async function listRecordsRaw<T extends FieldSchemaRead>(
             return {
                 id: record.id,
                 createdTime: record.createdTime,
-                fields: convertValuesFromRead(record.fields, fields, onUnexpectedField),
+                fields: convertValuesFromRead(record.fields, readFields, onUnexpectedField),
                 commentCount: record.commentCount ?? 0,
             };
         }),

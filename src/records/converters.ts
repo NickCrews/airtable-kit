@@ -98,6 +98,10 @@ export function convertValuesFromRead<
     // the airtable API always returns it in the values.
     // So if it's missing, we can be sure that the field was deleted upstream,
     // and we should throw an error to alert the user of this fact.
+    // This assumes `fieldSchemas` only contains the fields that were requested:
+    // if you only asked Airtable for a subset of fields, only pass those schemas.
+    // (lastModifiedTime and lastModifiedBy are NOT always present: if they watch
+    // specific fields, they are empty until one of those fields is edited.)
     for (const fieldSchema of fieldSchemas) {
         if (!(fieldSchema.id in rawValues)) {
             try {
