@@ -12,6 +12,7 @@ import dotenv from "dotenv";
 import { TableSchema } from "../tables/types.ts";
 import { BaseId, BaseSchema } from "../bases/types.ts";
 import { WorkspaceId } from "../workspaces/types.ts";
+import { RecordId } from "../records/types.ts";
 
 type TestBaseClient = BaseClient<typeof testBaseSchema>;
 export interface TestEnv {
@@ -324,7 +325,14 @@ async function populateSeedData(
  * This deletes all records from all tables and recreates the seed data.
  */
 export async function resetBaseData(baseClient: TestBaseClient): Promise<void> {
-    for (const tableClient of Object.values(baseClient.tables)) {
+    // listRecords() is generic, so it isn't callable on a union of table clients.
+    // We only need the record IDs, so view each client through this minimal shape.
+    type ResettableTableClient = {
+        listRecords(): Promise<Array<{ id: RecordId }>>;
+        deleteRecords(recordIds: ReadonlyArray<RecordId>): Promise<unknown>;
+    };
+    const tableClients: ResettableTableClient[] = Object.values(baseClient.tables);
+    for (const tableClient of tableClients) {
         const records = await tableClient.listRecords();
 
         if (records.length > 0) {
