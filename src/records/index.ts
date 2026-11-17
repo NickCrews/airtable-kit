@@ -1,6 +1,7 @@
 export {
     type ValuesFromRead,
     type ValuesForWrite,
+    type ConvertibleFieldSchema,
     convertValuesFromRead,
     convertValuesForWrite,
 } from "./converters.ts";

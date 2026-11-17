@@ -1,43 +1,51 @@
-import { FieldId, FieldSchemaRead } from "../fields/types.ts";
-import { convertValueFromRead, convertValueForWrite, ValueFromRead, ValueForWrite } from "../value-converters/index.ts";
+import type { FieldId, FieldSchemaRead } from "../fields/types.ts";
+import { convertValueFromRead, convertValueForWrite, ValueFromRead, ValueForWrite, type FieldSchemaForConvert } from "../value-converters/index.ts";
 import * as exceptions from "../exceptions.ts";
 
-export type WriteValuesById<T extends FieldSchemaRead> = {
+/**
+ * The parts of a field schema needed to convert its values: its ID, name, and type,
+ * plus `options` for the types whose values depend on them
+ * (the choices of select fields, and the result type of formula, rollup, and lookup fields).
+ * A full {@link FieldSchemaRead} also satisfies this.
+ */
+export type ConvertibleFieldSchema = FieldSchemaForConvert & { id: FieldId; name: string };
+
+export type WriteValuesById<T extends ConvertibleFieldSchema> = {
     [K in T["id"]]?: ValueForWrite<Extract<T, { id: K }>>;
 };
 
 /**
- * Given the {@link FieldSchemaRead}s for a table, return the format of the values a {@link TableClient} accepts for writing, eg for creating or updating records.
+ * Given the {@link ConvertibleFieldSchema}s for a table, return the format of the values a {@link TableClient} accepts for writing, eg for creating or updating records.
  * 
  * Each key can be either the field name or field ID, and the value is the appropriate type for writing to that field.
  */
-export type ValuesForWrite<T extends FieldSchemaRead> = {
+export type ValuesForWrite<T extends ConvertibleFieldSchema> = {
     [K in T["name"] | T["id"]]?: K extends T["name"]
     ? Extract<T, { name: K }> extends infer F
-    ? F extends FieldSchemaRead ? ValueForWrite<F>
+    ? F extends ConvertibleFieldSchema ? ValueForWrite<F>
     : never
     : never
     : K extends T["id"]
     ? Extract<T, { id: K }> extends infer F
-    ? F extends FieldSchemaRead ? ValueForWrite<F>
+    ? F extends ConvertibleFieldSchema ? ValueForWrite<F>
     : never
     : never
     : never;
 };
 
 /**
- * Given the {@link FieldSchemaRead}s for a table, return the format of the values a {@link TableClient} returns when reading records.
+ * Given the {@link ConvertibleFieldSchema}s for a table, return the format of the values a {@link TableClient} returns when reading records.
  * 
  * Each key is the field name, and the value is the appropriate type for reading from that field.
  */
-export type ValuesFromRead<T extends FieldSchemaRead> = {
+export type ValuesFromRead<T extends ConvertibleFieldSchema> = {
     [K in T["name"]]: ValueFromRead<Extract<T, { name: K }>>;
 };
 
 /**
  * Convert raw field values, freshly read from Airtable, into the appropriate TypeScript types, keyed by field names.
  * @param values The raw field values from Airtable, keyed by field IDs
- * @param fieldSchemas The array of {@link FieldSchemaRead} objects describing the fields in the table
+ * @param fieldSchemas The array of {@link ConvertibleFieldSchema} objects describing the fields in the table
  * @param onUnexpectedField Behavior when encountering a field in the values that is not described by the provided fieldSchemas.
  *                         This usually happens when someone adds a new field to a table after you've fetched the schema.
  *                         Defaults to { warn: true, keep: true }.
@@ -51,7 +59,7 @@ export type ValuesFromRead<T extends FieldSchemaRead> = {
  * which is null for most field types, but an empty array for some.
  */
 export function convertValuesFromRead<
-    F extends FieldSchemaRead,
+    F extends ConvertibleFieldSchema,
 >(
     rawValues: Readonly<Record<F['id'], unknown>>,
     fieldSchemas: ReadonlyArray<F>,
@@ -130,12 +138,12 @@ export function convertValuesFromRead<
 /**
  * Convert a user-provided field values into the appropriate format for writing to Airtable.
  * @param values The user-provided field values, keyed by either field names or IDs as keys and appropriate javascript types as values
- * @param fieldSchemas The array of {@link FieldSchemaRead} objects describing the fields in the table
+ * @param fieldSchemas The array of {@link ConvertibleFieldSchema} objects describing the fields in the table
  * @returns The converted values with field IDs as keys and Airtable-compatible values
  */
 export function convertValuesForWrite<
     V extends ValuesForWrite<F>,
-    F extends FieldSchemaRead,
+    F extends ConvertibleFieldSchema,
 >(
     values: V,
     fieldSchemas: ReadonlyArray<F>,
@@ -156,8 +164,8 @@ export function convertValuesForWrite<
     return result as Partial<WriteValuesById<F>>;
 }
 
-function makeFieldLookup(fieldSchemas: readonly FieldSchemaRead[]) {
-    const toField = new Map<string, FieldSchemaRead>();
+function makeFieldLookup(fieldSchemas: readonly ConvertibleFieldSchema[]) {
+    const toField = new Map<string, ConvertibleFieldSchema>();
     for (const fs of fieldSchemas) {
         // Set ID second so ID lookup takes precedence if there's a name/ID clash
         toField.set(fs.name, fs);
