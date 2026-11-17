@@ -24,19 +24,30 @@ export type SelectedFields<F extends FieldSchemaRead, K extends FieldNameOrId<F>
 /** Behavior when a record read from Airtable has a field that is not in the table schema. See {@link convertValuesFromRead}. */
 export type OnReadUnexpectedField = "throw" | { warn: boolean; keep: boolean; };
 
-/** A record with field values converted using the table schema, keyed by field name. See {@link raw.RawRecord} for the unconverted form. */
-export interface TypedRecord<F extends FieldSchemaRead> {
+/** Metadata that can be requested for each record with `recordMetadata` when listing records. */
+export type RecordMetadata = 'commentCount';
+
+/**
+ * A record with field values converted using the table schema, keyed by field name.
+ * See {@link raw.RawRecord} for the unconverted form.
+ *
+ * `M` is the {@link RecordMetadata} that was requested. Each requested kind adds its property,
+ * eg `commentCount` when `M` includes `"commentCount"`.
+ */
+export type TypedRecord<F extends FieldSchemaRead, M extends RecordMetadata = never> = {
     id: RecordId;
     createdTime: raw.Timestamp;
     fields: ValuesFromRead<F>;
-    /** Only present when `recordMetadata: ["commentCount"]` is requested */
-    commentCount?: number;
-}
+} & ('commentCount' extends M ? {
+    /** The number of comments on the record */
+    commentCount: number;
+} : {});
 
 /** Options for {@link TableClient.listRecords}. */
 export interface ListRecordsOptions<
     F extends FieldSchemaRead,
     K extends FieldNameOrId<F> = FieldNameOrId<F>,
+    M extends RecordMetadata = never,
 > {
     /** Time zone for formatting dates when using cellFormat: "string" */
     timeZone?: Timezone;
@@ -57,23 +68,27 @@ export interface ListRecordsOptions<
      * Only these fields are returned, and the returned record type is narrowed to them.
      */
     fields?: ReadonlyArray<K>;
-    /** Include metadata like comment count */
-    recordMetadata?: ReadonlyArray<'commentCount'>;
+    /**
+     * Metadata to include with each record.
+     * The returned record type includes a property for each kind requested.
+     */
+    recordMetadata?: ReadonlyArray<M>;
 }
-export type ListRecordsResponse<F extends FieldSchemaRead> = Array<TypedRecord<F>>;
+export type ListRecordsResponse<F extends FieldSchemaRead, M extends RecordMetadata = never> = Array<TypedRecord<F, M>>;
 
 /** Options for {@link TableClient.listRecordsPage}. */
 export type ListRecordsPageOptions<
     F extends FieldSchemaRead,
     K extends FieldNameOrId<F> = FieldNameOrId<F>,
-> = ListRecordsOptions<F, K> & {
+    M extends RecordMetadata = never,
+> = ListRecordsOptions<F, K, M> & {
     /** Number of records per page, at most 100 */
     pageSize?: number;
     /** The `offset` returned by the previous page */
     offset?: string;
 };
-export interface ListRecordsPageResponse<F extends FieldSchemaRead> {
-    records: Array<TypedRecord<F>>;
+export interface ListRecordsPageResponse<F extends FieldSchemaRead, M extends RecordMetadata = never> {
+    records: Array<TypedRecord<F, M>>;
     /** Pass to the next call to get the next page. Absent on the last page. */
     offset?: string;
 }
@@ -193,15 +208,22 @@ export interface TableClient<T extends TableSchema = TableSchema> {
      * List records from the table with optional filtering. Pagination is handled automatically.
      *
      * If `options.fields` is given, only those fields are returned, and the record type is narrowed to them.
+     * If `options.recordMetadata` is given, the record type includes the requested metadata, eg `commentCount`.
      */
-    listRecords<K extends FieldNameOrIdInTable<T> = FieldNameOrIdInTable<T>>(
-        options?: ListRecordsOptions<FieldType<T>, K>
-    ): Promise<ListRecordsResponse<SelectedFields<FieldType<T>, K>>>;
+    listRecords<
+        K extends FieldNameOrIdInTable<T> = FieldNameOrIdInTable<T>,
+        M extends RecordMetadata = never,
+    >(
+        options?: ListRecordsOptions<FieldType<T>, K, M>
+    ): Promise<ListRecordsResponse<SelectedFields<FieldType<T>, K>, M>>;
 
     /** List a single page of records. Pass the returned `offset` to get the next page. */
-    listRecordsPage<K extends FieldNameOrIdInTable<T> = FieldNameOrIdInTable<T>>(
-        options?: ListRecordsPageOptions<FieldType<T>, K>
-    ): Promise<ListRecordsPageResponse<SelectedFields<FieldType<T>, K>>>;
+    listRecordsPage<
+        K extends FieldNameOrIdInTable<T> = FieldNameOrIdInTable<T>,
+        M extends RecordMetadata = never,
+    >(
+        options?: ListRecordsPageOptions<FieldType<T>, K, M>
+    ): Promise<ListRecordsPageResponse<SelectedFields<FieldType<T>, K>, M>>;
 
     /** Get a single record by ID */
     getRecord(recordId: RecordId, options?: GetRecordOptions): Promise<TypedRecord<FieldType<T>>>;
@@ -278,18 +300,22 @@ export function createTableClient<T extends TableSchema>(
         }
         return spec;
     };
-    const fromRaw = <S extends FieldSchemaRead>(record: raw.RawRecord, readFields: ReadonlyArray<S>): TypedRecord<S> => {
-        const result: TypedRecord<S> = {
+    const fromRaw = <S extends FieldSchemaRead, M extends RecordMetadata = never>(
+        record: raw.RawRecord,
+        readFields: ReadonlyArray<S>,
+        metadata?: ReadonlyArray<M>,
+    ): TypedRecord<S, M> => {
+        const result: TypedRecord<S> & { commentCount?: number } = {
             id: record.id,
             createdTime: record.createdTime,
             fields: convertValuesFromRead(record.fields as Record<S['id'], unknown>, readFields, onUnexpectedField),
         };
-        if (record.commentCount !== undefined) {
-            result.commentCount = record.commentCount;
+        if (metadata?.includes("commentCount" as M)) {
+            result.commentCount = record.commentCount ?? 0;
         }
-        return result;
+        return result as TypedRecord<S, M>;
     };
-    const toRawListOptions = <K extends FieldNameOrId<F>>(listOptions: ListRecordsOptions<F, K> | undefined) => {
+    const toRawListOptions = <K extends FieldNameOrId<F>, M extends RecordMetadata>(listOptions: ListRecordsOptions<F, K, M> | undefined) => {
         const { sort, filterByFormula, fields: selected, ...rest } = listOptions ?? {};
         // When a subset of fields is requested, Airtable only returns those fields,
         // so only validate the returned values against those fields' schemas.
@@ -352,7 +378,7 @@ export function createTableClient<T extends TableSchema>(
         async listRecords(listOptions) {
             const { rawOptions, readFields } = toRawListOptions(listOptions);
             const records = await client.records.list({ baseId, tableId, ...rawOptions });
-            return records.map((record) => fromRaw(record, readFields));
+            return records.map((record) => fromRaw(record, readFields, listOptions?.recordMetadata));
         },
         async listRecordsPage(listOptions) {
             const { rawOptions, readFields } = toRawListOptions(listOptions);
@@ -364,7 +390,7 @@ export function createTableClient<T extends TableSchema>(
                 offset: listOptions?.offset,
             });
             return {
-                records: page.records.map((record) => fromRaw(record, readFields)),
+                records: page.records.map((record) => fromRaw(record, readFields, listOptions?.recordMetadata)),
                 offset: page.offset,
             };
         },
