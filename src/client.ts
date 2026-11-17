@@ -3,6 +3,7 @@ import { type BasesApi, makeBasesApi } from "./bases/api.ts";
 import { type TablesApi, makeTablesApi } from "./tables/api.ts";
 import { type FieldsApi, makeFieldsApi } from "./fields/api.ts";
 import { type RecordsApi, makeRecordsApi } from "./records/api.ts";
+import { makeDefaultFetcher } from "./fetcher.ts";
 
 /** Environment variable the API key is read from when none is given: "AIRTABLE_API_KEY" */
 export const DEFAULT_API_KEY_ENV_VAR = "AIRTABLE_API_KEY";
@@ -24,7 +25,11 @@ export interface AirtableOptions {
      * Defaults to `baseUrl` if that is given, otherwise https://content.airtable.com/v0
      */
     contentBaseUrl?: string;
-    /** The {@link Fetcher} used to send requests, defaults to `globalThis.fetch` */
+    /**
+     * The {@link Fetcher} used to send requests. Defaults to `globalThis.fetch`, throttled to
+     * 5 requests per second per base and retried on rate limits and transient errors (see `airtable-kit/fetcher`).
+     * A custom fetcher is used unchanged.
+     */
     fetch?: Fetcher;
 }
 
@@ -84,9 +89,7 @@ export function createAirtable(options: IntoAirtable = {}): Airtable {
     const request = makeRequester({
         getToken,
         baseUrl: options.baseUrl ?? DEFAULT_BASE_URL,
-        // Look up globalThis.fetch per call, so it is never called as a method of another object,
-        // and so replacing it (eg in tests) takes effect.
-        fetch: fetch ?? ((url, init) => globalThis.fetch(url, init)),
+        fetch: fetch ?? makeDefaultFetcher(),
     });
     const contentBaseUrl = options.contentBaseUrl ?? options.baseUrl ?? DEFAULT_CONTENT_BASE_URL;
     return {
