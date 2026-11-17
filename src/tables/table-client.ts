@@ -50,12 +50,16 @@ export interface TableClient<T extends TableSchema = TableSchema> {
     /** Create a record in the table
      * 
      * @param record - A record to create, keyed by either field name or field ID
-     * @returns A promise that resolves to the created record with its ID, createdTime, and field values
+     * @returns A promise that resolves to the created `record`, with its ID, createdTime, and field values,
+     *   and the `warnings` Airtable reported, if any.
      * 
      * Any values of `null` or `undefined` in the input record will not be passed
      * to Airtable, effectively leaving those fields blank on creation.
      */
-    createRecord(record: r.ValuesForWrite<FieldType<T>>): Promise<r.CreateRecordsResponse<FieldType<T>>["records"][number]>;
+    createRecord(record: r.ValuesForWrite<FieldType<T>>): Promise<{
+        record: r.CreateRecordsResponse<FieldType<T>>["records"][number];
+        warnings: r.WriteWarning[];
+    }>;
 
     /** Create multiple records into the table
      * 
@@ -210,7 +214,7 @@ export function makeTableClient<T extends TableSchema>(
                 fetcher,
                 onUnexpectedField: options?.onReadUnexpectedField,
             });
-            return raw.records[0];
+            return { record: raw.records[0], warnings: raw.warnings };
         },
         listRecords<K extends FieldNameOrIdInTable<T> = FieldNameOrIdInTable<T>>(listOptions?: r.ListRecordsOptions<FieldType<T>, K>) {
             return r.listRecords<FieldType<T>, K>({
