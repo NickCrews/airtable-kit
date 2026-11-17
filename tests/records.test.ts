@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, expectTypeOf, it } from "vitest";
 import { createTableClient } from "airtable-kit/typed";
 import testBaseSchema from "../src/tests/test-base-schema.generated.ts";
 import { getTestAirtable } from "../src/tests/test-utils.ts";
@@ -76,6 +76,26 @@ describe("Records API", () => {
                 name: "Test Task",
                 completed: false,
             });
+        });
+    });
+
+    describe("airtable.records.list", () => {
+        it("returns commentCount only when recordMetadata requests it", async () => {
+            await tasks.createRecords([{ name: "Task" }]);
+            const withCount = await airtable.records.list({
+                baseId: testBaseSchema.id,
+                tableId: tasksTable.id,
+                recordMetadata: ["commentCount"],
+            });
+            expect(withCount).toHaveLength(1);
+            expect(withCount[0].commentCount).toBe(0);
+
+            const withoutCount = await airtable.records.list({
+                baseId: testBaseSchema.id,
+                tableId: tasksTable.id,
+            });
+            expect(withoutCount).toHaveLength(1);
+            expect(withoutCount[0]).not.toHaveProperty("commentCount");
         });
     });
 
@@ -198,7 +218,7 @@ describe("Records API", () => {
             ).rejects.toThrow();
         });
 
-        it("omits commentCount unless requested", async () => {
+        it("omits commentCount from the records and their type unless requested", async () => {
             await tasks.createRecords([{ name: "Task" }]);
             const result = await tasks.listRecordsPage({
                 maxRecords: 1,
@@ -206,18 +226,23 @@ describe("Records API", () => {
 
             expect(result.records).toHaveLength(1);
             expect(result.records[0]).not.toHaveProperty("commentCount");
+            expectTypeOf(result.records[0]).not.toHaveProperty("commentCount");
+            // @ts-expect-error commentCount was not requested
+            result.records[0].commentCount;
         });
 
-        it("can include recordMetadata", async () => {
+        it("adds commentCount to the records and their type when requested", async () => {
+            await tasks.createRecords([{ name: "Task" }]);
             const result = await tasks.listRecordsPage({
                 recordMetadata: ["commentCount"],
+                fields: ["name"],
                 maxRecords: 1,
             });
 
-            expect(result.records).toBeDefined();
-            if (result.records && result.records.length > 0) {
-                expect(result.records[0]).toHaveProperty("commentCount");
-            }
+            expect(result.records).toHaveLength(1);
+            expect(result.records[0].commentCount).toBe(0);
+            expectTypeOf(result.records[0].commentCount).toEqualTypeOf<number>();
+            expectTypeOf(result.records[0].fields).toEqualTypeOf<{ name: string }>();
         });
 
         it("resolves field names to IDs", async () => {
