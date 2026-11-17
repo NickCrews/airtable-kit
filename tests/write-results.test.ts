@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { type FetchArgs, type Fetcher } from "airtable-kit/fetcher";
 import { createRecords, createRecordsRaw, updateRecords } from "airtable-kit/records";
+import { makeTableClient } from "airtable-kit/tables";
 import { NUMBER } from "./_example-fields.ts";
 
 const fields = [NUMBER] as const;
@@ -120,5 +121,22 @@ describe("createRecords results", () => {
         const result = await createRecords({ records: [], fields, baseId: "app1", tableId: "tbl1", fetcher });
         expect(result).toEqual({ records: [], warnings: [] });
         expect(calls).toHaveLength(0);
+    });
+});
+
+describe("TableClient.createRecord results", () => {
+    it("returns the created record and Airtable's warnings", async () => {
+        const { fetcher } = echoFetcher(() => ({
+            details: { message: "partialSuccess", reasons: ["attachmentsFailedUploading"] },
+        }));
+        const client = makeTableClient({
+            baseId: "app1",
+            tableSchema: { id: "tbl1", name: "Table", primaryFieldId: NUMBER.id, fields },
+            fetcher,
+        });
+        const result = await client.createRecord({ [NUMBER.name]: 1 });
+        expect(result.record).toMatchObject({ id: "recNew0x0", createdTime: CREATED_TIME });
+        expect(result.record.fields[NUMBER.name]).toBe(1);
+        expect(result.warnings).toEqual(["attachmentsFailedUploading"]);
     });
 });
