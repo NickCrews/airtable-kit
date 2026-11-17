@@ -50,6 +50,14 @@ describe("TableClient.listRecords with a fields subset", () => {
         }>();
     });
 
+    it("passes pageSize and offset to listRecordsPage", async () => {
+        const { fetch, client } = mockTable({ [SINGLE_LINE_TEXT.id]: "hello" });
+        await client.listRecordsPage({ fields: [SINGLE_LINE_TEXT.name], pageSize: 5, offset: "itr1" });
+        const { url } = fetch.getCallHistory()[0];
+        expect(url).toContain("pageSize=5");
+        expect(url).toContain("offset=itr1");
+    });
+
     it("still validates all fields when no subset is requested", async () => {
         const { client } = mockTable({ [SINGLE_LINE_TEXT.id]: "hello" });
         await expect(client.listRecords()).rejects.toThrow();
