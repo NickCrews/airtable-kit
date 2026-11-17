@@ -34,32 +34,6 @@ This has several advantages:
 - **Runtime Validation**: Optionally, dynamically generate Zod validators from the schema to validate all data sent to Airtable at runtime.
 - **MCP Tools**: Ready-to-use MCP tools for LLM integration.
 
-## CLI Usage
-
-We ship a CLI in the style of `gh`, for performing verbs such as `list`, `get`, `create`, and `update`
-on each of the airtable nouns of `base`, `table`, `field`, and `record`.
-
-Try it with no installation by `npx airtable-kit --help`, which gives:
-
-```
-Usage: airtable-kit [options] [command]
-
-A better TypeScript Airtable toolkit
-
-Options:
-  --version          output the version number
-  --api-key <key>    Airtable API key
-  -h, --help         display help for command
-
-Commands:
-  base               Manage Airtable bases
-  table              Manage Airtable tables
-  field              Manage Airtable fields
-  record             Manage Airtable records
-  openapi [options]  Generate an OpenAPI 3 spec for a base.
-  codegen [options]  Generate ts/js schema files for all bases. Shortcut for running "base codegen <baseId>" command with all bases sequentially.
-```
-
 ## Installation
 
 This is [available on npm](https://www.npmjs.com/package/airtable-kit):
@@ -281,7 +255,31 @@ const otherBase = createBaseClient(otherBaseSchema, airtable);
 otherBase.tables.someTable.createRecords([ ... ]);
 ```
 
-### Use Case 3: Dynamic Client for Unknown Bases, eg an MCP Tool
+### Use Case 3: The CLI
+
+We ship a CLI in the style of `gh`, for performing verbs such as `list`, `get`, `create`, and `update`
+on each of the Airtable nouns `base`, `table`, `field`, and `record`.
+Try it with no installation using `npx airtable-kit`:
+
+```bash
+# Reads the API key from AIRTABLE_API_KEY, or a .env file. Or pass --api-key.
+npx airtable-kit base list
+npx airtable-kit base use "Project Tracker"   # later commands default to this base
+npx airtable-kit table list
+npx airtable-kit table use tasks              # ...and to this table
+
+npx airtable-kit record list --filter '{status} = "To Do"' --sort dueDate:asc --max 10
+npx airtable-kit record list --fields name,status --format json > tasks.json
+npx airtable-kit record create --data '{"fields": {"name": "Write report", "status": "To Do"}}'
+npx airtable-kit record update recXXXXXXXXXXXXXX --data '{"fields": {"status": "Done"}}'
+
+npx airtable-kit field create notes --type multilineText --description "Anything else to know"
+npx airtable-kit codegen --outdir schemas     # write a schema file for every base
+```
+
+Run `npx airtable-kit <command> --help` for every command and option.
+
+### Use Case 4: Dynamic Client for Unknown Bases, eg an MCP Tool
 
 ```typescript
 import { createBaseClient } from 'airtable-kit/typed';
@@ -306,7 +304,7 @@ const agent = new ToolLoopAgent({
 });
 ```
 
-### Use Case 4: Generate an OpenAPI Spec
+### Use Case 5: Generate an OpenAPI Spec
 
 Generate an [OpenAPI 3](https://www.openapis.org/) document describing the
 Airtable REST API for one of your bases (record CRUD, comments, attachments,
