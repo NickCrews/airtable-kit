@@ -198,9 +198,9 @@ export interface RecordsApi {
     get(params: GetRecordParams): Promise<RawRecord>;
     /** Create records, sending them in batches of up to 25, the most Airtable accepts per request. */
     create(params: CreateRecordsParams): Promise<CreateRecordsResponse>;
-    /** Update or upsert records, sending them in batches of up to 10, the most Airtable accepts per request. */
+    /** Update or upsert records, sending them one batch at a time, in batches of up to 10, the most Airtable accepts per request. */
     update(params: UpdateRecordsParams): Promise<UpdateRecordsResponse>;
-    /** Delete records, sending them in batches of up to 10, the most Airtable accepts per request. */
+    /** Delete records, sending them one batch at a time, in batches of up to 10, the most Airtable accepts per request. */
     delete(params: DeleteRecordsParams): Promise<DeleteRecordsResponse>;
     /** Upload an attachment to a record's attachment field. */
     uploadAttachment(params: UploadAttachmentParams): Promise<UploadAttachmentResponse>;
@@ -288,15 +288,14 @@ export function makeRecordsApi(request: Requester): RecordsApi {
                 /** Only present when upserting. */
                 createdRecords?: RecordId[];
             };
-            const responses = await Promise.all(chunk(records, UPDATE_BATCH_SIZE).map((batch) =>
-                request<UpdateApiResponse>({
+            const result: UpdateRecordsResponse = { records: [], warnings: [] };
+            // Batches are sent one at a time, so an upsert can match records created by an earlier batch.
+            for (const batch of chunk(records, UPDATE_BATCH_SIZE)) {
+                const response = await request<UpdateApiResponse>({
                     path: `/${baseId}/${tableId}`,
                     method: destructive ? "PUT" : "PATCH",
                     data: { records: batch, performUpsert, typecast, returnFieldsByFieldId },
-                })
-            ));
-            const result: UpdateRecordsResponse = { records: [], warnings: [] };
-            for (const response of responses) {
+                });
                 const createdIds = new Set(response.createdRecords ?? []);
                 for (const record of response.records) {
                     result.records.push({ ...record, operation: createdIds.has(record.id) ? "created" : "updated" });
@@ -307,21 +306,23 @@ export function makeRecordsApi(request: Requester): RecordsApi {
         },
         // https://airtable.com/developers/web/api/delete-multiple-records
         async delete({ baseId, tableId, recordIds }) {
-            const responses = await Promise.all(chunk(recordIds, DELETE_BATCH_SIZE).map((batch) => {
+            const result: DeleteRecordsResponse = { records: [] };
+            for (const batch of chunk(recordIds, DELETE_BATCH_SIZE)) {
                 const queryParams = new URLSearchParams();
                 batch.forEach((id) => queryParams.append('records[]', id));
-                return request<DeleteRecordsResponse>({
+                const response = await request<DeleteRecordsResponse>({
                     path: `/${baseId}/${tableId}?${queryParams.toString()}`,
                     method: "DELETE",
                 });
-            }));
-            return { records: responses.flatMap((response) => response.records) };
+                result.records.push(...response.records);
+            }
+            return result;
         },
         // https://airtable.com/developers/web/api/upload-attachment
         uploadAttachment({ baseId, recordId, field, contentType, file, filename }) {
             return request<UploadAttachmentResponse>({
                 baseUrl: CONTENT_BASE_URL,
-                path: `/${baseId}/${recordId}/${field}/uploadAttachment`,
+                path: `/${baseId}/${recordId}/${encodeURIComponent(field)}/uploadAttachment`,
                 method: "POST",
                 data: { contentType, file, filename },
             });
