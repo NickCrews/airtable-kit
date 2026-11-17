@@ -32,8 +32,8 @@ describe("listRecords with a fields subset", () => {
         expect(records[0].fields).toEqual({ [SINGLE_LINE_TEXT.name]: "hello" });
         expectTypeOf(records[0].fields).toEqualTypeOf<{ "Single Line Text Field": string }>();
 
-        const path = (fetcher.getCallHistory()[0] as { path: string }).path;
-        expect(decodeURIComponent(path)).toContain(`fields[]=${SINGLE_LINE_TEXT.id}`);
+        const { url } = fetcher.getCallHistory()[0];
+        expect(decodeURIComponent(url)).toContain(`fields[]=${SINGLE_LINE_TEXT.id}`);
     });
 
     it("accepts a mix of names and IDs", async () => {

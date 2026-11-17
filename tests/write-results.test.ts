@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type FetchArgs, type Fetcher } from "airtable-kit/fetcher";
+import { type Fetcher } from "airtable-kit/fetcher";
 import { createRecords, createRecordsRaw, updateRecords } from "airtable-kit/records";
 import { makeTableClient } from "airtable-kit/tables";
 import { NUMBER } from "./_example-fields.ts";
@@ -14,23 +14,21 @@ type RequestRecord = { id?: string; fields: Record<string, unknown> };
  * and adds `extra(batchIndex, records)` to the response body.
  */
 function echoFetcher(extra: (batchIndex: number, records: Array<{ id: string; isNew: boolean }>) => object = () => ({})) {
-    const calls: FetchArgs[] = [];
-    const fetcher: Fetcher = {
-        fetch: async <T,>(args: FetchArgs) => {
-            const batchIndex = calls.length;
-            calls.push(args);
-            const body = args.data as { records: RequestRecord[] };
-            const records = body.records.map((r, j) => ({
-                id: r.id ?? `recNew${batchIndex}x${j}`,
-                isNew: !r.id,
-                createdTime: CREATED_TIME,
-                fields: r.fields,
-            }));
-            return {
-                records: records.map(({ isNew, ...r }) => r),
-                ...extra(batchIndex, records),
-            } as T;
-        },
+    const calls: RequestInit[] = [];
+    const fetcher: Fetcher = async (_url, init) => {
+        const batchIndex = calls.length;
+        calls.push(init);
+        const body = JSON.parse(init.body as string) as { records: RequestRecord[] };
+        const records = body.records.map((r, j) => ({
+            id: r.id ?? `recNew${batchIndex}x${j}`,
+            isNew: !r.id,
+            createdTime: CREATED_TIME,
+            fields: r.fields,
+        }));
+        return Response.json({
+            records: records.map(({ isNew, ...r }) => r),
+            ...extra(batchIndex, records),
+        });
     };
     return { fetcher, calls };
 }

@@ -1,5 +1,5 @@
 import { BaseId } from "../bases/types";
-import { IntoFetcher, makeFetcher } from "../fetcher";
+import { IntoFetcher, doFetch } from "../fetcher";
 import { FieldSchemaCreate } from "../fields";
 import { TableId, TableSchema } from "./types";
 
@@ -22,7 +22,7 @@ export interface CreateTableParams {
 export async function createTable({
     baseId,
     table,
-    fetcher: intoFetcher,
+    fetcher,
 }: CreateTableParams): Promise<TableSchema> {
     type ErrorResponse = {
         error: {
@@ -30,8 +30,8 @@ export async function createTable({
             message?: string
         }
     }
-    const fetcher = makeFetcher(intoFetcher);
-    const response = await fetcher.fetch<TableSchema | ErrorResponse>({
+    const response = await doFetch<TableSchema | ErrorResponse>({
+        fetcher,
         // https://airtable.com/developers/web/api/create-table
         path: `/meta/bases/${baseId}/tables`,
         method: "POST",
@@ -59,10 +59,10 @@ export interface UpdateTableParams {
 export async function updateTable({
     baseId,
     table,
-    fetcher: intoFetcher,
+    fetcher,
 }: UpdateTableParams): Promise<TableSchema> {
-    const fetcher = makeFetcher(intoFetcher);
-    const response = await fetcher.fetch<TableSchema>({
+    const response = await doFetch<TableSchema>({
+        fetcher,
         // https://airtable.com/developers/web/api/update-table
         path: `/meta/bases/${baseId}/tables/${table.id}`,
         method: "PATCH",
