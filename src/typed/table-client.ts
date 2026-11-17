@@ -327,6 +327,10 @@ export function createTableClient<T extends TableClientSchema>(
     };
     const toRawListOptions = <K extends FieldNameOrId<F>, M extends RecordMetadata>(listOptions: ListRecordsOptions<F, K, M> | undefined) => {
         const { sort, filterByFormula, fields: selected, ...rest } = listOptions ?? {};
+        if (selected && selected.length === 0) {
+            // Airtable returns every field when none are selected.
+            throw new Error("`fields` must list at least one field. Omit it to list all fields.");
+        }
         // When a subset of fields is requested, Airtable only returns those fields,
         // so only validate the returned values against those fields' schemas.
         // Otherwise, fields that are always present (eg createdTime) would look like
