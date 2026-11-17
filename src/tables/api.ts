@@ -16,6 +16,8 @@ export interface TableSchemaCreate {
 export interface CreateTableParams {
     baseId: BaseId;
     table: TableSchemaCreate;
+    /** Aborts the request. */
+    signal?: AbortSignal;
 }
 
 export interface UpdateTableSchema<T extends TableId = TableId> {
@@ -28,6 +30,8 @@ export interface UpdateTableSchema<T extends TableId = TableId> {
 export interface UpdateTableParams {
     baseId: BaseId;
     table: UpdateTableSchema;
+    /** Aborts the request. */
+    signal?: AbortSignal;
 }
 
 /** Methods for the Airtable tables API, available as `airtable.tables`. */
@@ -41,15 +45,16 @@ export interface TablesApi {
 export function makeTablesApi(request: Requester): TablesApi {
     return {
         // https://airtable.com/developers/web/api/create-table
-        create({ baseId, table }) {
+        create({ baseId, table, signal }) {
             return request<TableSchema>({
                 path: `/meta/bases/${baseId}/tables`,
                 method: "POST",
                 data: table,
+                signal,
             });
         },
         // https://airtable.com/developers/web/api/update-table
-        update({ baseId, table }) {
+        update({ baseId, table, signal }) {
             return request<TableSchema>({
                 path: `/meta/bases/${baseId}/tables/${table.id}`,
                 method: "PATCH",
@@ -58,6 +63,7 @@ export function makeTablesApi(request: Requester): TablesApi {
                     description: table.description || undefined,
                     dateDependencySettings: table.dateDependencySettings || undefined,
                 },
+                signal,
             });
         },
     };

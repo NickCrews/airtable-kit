@@ -17,6 +17,8 @@ export interface CreateBaseParams {
   workspaceId: WorkspaceId,
   /** The schema of the base to create */
   schema: BaseSchemaCreate,
+  /** Aborts the request(s) made by the call. */
+  signal?: AbortSignal,
 }
 
 export type PermissionLevel = "none" | "read" | "comment" | "edit" | "create";
@@ -31,7 +33,7 @@ export interface BaseSummary {
 /** Methods for the Airtable bases API, available as `airtable.bases`. */
 export interface BasesApi {
   /** List all bases the API key can access. Pagination is handled automatically. */
-  list(): Promise<BaseSummary[]>;
+  list(params?: { signal?: AbortSignal }): Promise<BaseSummary[]>;
   /**
    * Get the {@link BaseSchema} of a base, including all of its tables and fields.
    *
@@ -42,20 +44,20 @@ export interface BasesApi {
    * const schemas = await Promise.all((await airtable.bases.list()).map((base) => airtable.bases.get(base)));
    * ```
    */
-  get(base: BaseId | BaseSummary): Promise<BaseSchema>;
+  get(base: BaseId | BaseSummary, params?: { signal?: AbortSignal }): Promise<BaseSchema>;
   /** Create a new base, returning its schema with all table and field IDs. */
   create(params: CreateBaseParams): Promise<BaseSchema>;
 }
 
 export function makeBasesApi(request: Requester): BasesApi {
   // https://airtable.com/developers/web/api/get-base-schema
-  async function getTables(baseId: BaseId): Promise<TableSchema[]> {
-    const response = await request<{ tables: TableSchema[] }>({ path: `/meta/bases/${baseId}/tables` });
+  async function getTables(baseId: BaseId, signal?: AbortSignal): Promise<TableSchema[]> {
+    const response = await request<{ tables: TableSchema[] }>({ path: `/meta/bases/${baseId}/tables`, signal });
     return response.tables;
   }
 
   // https://airtable.com/developers/web/api/list-bases
-  async function* listPages(): AsyncGenerator<BaseSummary[]> {
+  async function* listPages(signal?: AbortSignal): AsyncGenerator<BaseSummary[]> {
     let offset: string | undefined = undefined;
     do {
       const queryParams = new URLSearchParams();
@@ -64,23 +66,24 @@ export function makeBasesApi(request: Requester): BasesApi {
       }
       const response: { bases: BaseSummary[]; offset?: string } = await request({
         path: `/meta/bases?${queryParams.toString()}`,
+        signal,
       });
       yield response.bases;
       offset = response.offset;
     } while (offset);
   }
 
-  async function list(): Promise<BaseSummary[]> {
+  async function list(params?: { signal?: AbortSignal }): Promise<BaseSummary[]> {
     const result: BaseSummary[] = [];
-    for await (const page of listPages()) {
+    for await (const page of listPages(params?.signal)) {
       result.push(...page);
     }
     return result;
   }
 
   /** Find a base's name by listing bases, stopping at the page that contains it. */
-  async function findName(baseId: BaseId): Promise<string> {
-    for await (const page of listPages()) {
+  async function findName(baseId: BaseId, signal?: AbortSignal): Promise<string> {
+    for await (const page of listPages(signal)) {
       const match = page.find((b) => b.id === baseId);
       if (match) {
         return match.name;
@@ -91,15 +94,16 @@ export function makeBasesApi(request: Requester): BasesApi {
 
   return {
     list,
-    async get(base) {
+    async get(base, params) {
+      const signal = params?.signal;
       if (typeof base === "object") {
-        return { id: base.id, name: base.name, tables: await getTables(base.id) };
+        return { id: base.id, name: base.name, tables: await getTables(base.id, signal) };
       }
-      const [tables, name] = await Promise.all([getTables(base), findName(base)]);
+      const [tables, name] = await Promise.all([getTables(base, signal), findName(base, signal)]);
       return { id: base, name, tables };
     },
     // https://airtable.com/developers/web/api/create-base
-    async create({ workspaceId, schema }) {
+    async create({ workspaceId, schema, signal }) {
       const response = await request<{ id: BaseId; tables: TableSchema[] }>({
         path: "/meta/bases",
         method: "POST",
@@ -108,6 +112,7 @@ export function makeBasesApi(request: Requester): BasesApi {
           name: schema.name,
           tables: schema.tables,
         },
+        signal,
       });
       return {
         id: response.id,

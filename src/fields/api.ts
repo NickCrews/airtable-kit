@@ -81,6 +81,8 @@ export interface CreateFieldParams {
     baseId: BaseId;
     tableId: TableId;
     field: FieldSchemaCreate;
+    /** Aborts the request. */
+    signal?: AbortSignal;
 }
 
 export interface UpdateFieldSchema {
@@ -93,6 +95,8 @@ export interface UpdateFieldParams {
     baseId: BaseId;
     tableId: TableId;
     field: UpdateFieldSchema;
+    /** Aborts the request. */
+    signal?: AbortSignal;
 }
 
 /** Methods for the Airtable fields API, available as `airtable.fields`. */
@@ -106,15 +110,16 @@ export interface FieldsApi {
 export function makeFieldsApi(request: Requester): FieldsApi {
     return {
         // https://airtable.com/developers/web/api/create-field
-        create({ baseId, tableId, field }) {
+        create({ baseId, tableId, field, signal }) {
             return request<FieldSchemaRead>({
                 path: `/meta/bases/${baseId}/tables/${tableId}/fields`,
                 method: "POST",
                 data: field,
+                signal,
             });
         },
         // https://airtable.com/developers/web/api/update-field
-        update({ baseId, tableId, field }) {
+        update({ baseId, tableId, field, signal }) {
             return request<FieldSchemaRead>({
                 path: `/meta/bases/${baseId}/tables/${tableId}/fields/${field.id}`,
                 method: "PATCH",
@@ -122,6 +127,7 @@ export function makeFieldsApi(request: Requester): FieldsApi {
                     name: field.name || undefined,
                     description: field.description || undefined,
                 },
+                signal,
             });
         },
     };

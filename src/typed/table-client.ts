@@ -1,4 +1,5 @@
 import { type Airtable, type IntoAirtable, createAirtable } from "../client.ts";
+import type { RequestOptions } from "../request.ts";
 import type * as raw from "../records/api.ts";
 import { Formula, formulaToString } from "../formula/formula.ts";
 import { FieldSchemaCreate, FieldSchemaRead, type FieldId } from "../fields/types.ts";
@@ -177,18 +178,21 @@ export interface TableClient<T extends TableClientSchema = TableSchema> {
      * @param field - A field schema to create
      * @returns A promise that resolves to the created field schema
      */
-    createField(field: FieldSchemaCreate): Promise<FieldSchemaRead>;
+    createField(field: FieldSchemaCreate, requestOptions?: RequestOptions): Promise<FieldSchemaRead>;
     /** Update a field in the table
      * 
      * @param field - A field schema to update
      * @returns A promise that resolves to the updated field schema
      */
-    updateField<F extends FieldIdInTable<T>>(field: { id: F; name?: string; description?: string }): Promise<FieldSchemaRead>;
+    updateField<F extends FieldIdInTable<T>>(
+        field: { id: F; name?: string; description?: string },
+        requestOptions?: RequestOptions,
+    ): Promise<FieldSchemaRead>;
 
     /**
      * Update the name and/or description of the table.
      */
-    updateTable(params: { name?: string; description?: string }): Promise<TableSchema>;
+    updateTable(params: { name?: string; description?: string }, requestOptions?: RequestOptions): Promise<TableSchema>;
 
     /** Create a record in the table
      * 
@@ -199,7 +203,7 @@ export interface TableClient<T extends TableClientSchema = TableSchema> {
      * Any values of `null` or `undefined` in the input record will not be passed
      * to Airtable, effectively leaving those fields blank on creation.
      */
-    createRecord(record: ValuesForWrite<FieldType<T>>): Promise<{
+    createRecord(record: ValuesForWrite<FieldType<T>>, requestOptions?: RequestOptions): Promise<{
         record: TypedRecord<FieldType<T>>;
         warnings: raw.WriteWarning[];
     }>;
@@ -212,7 +216,10 @@ export interface TableClient<T extends TableClientSchema = TableSchema> {
      * Any values of `null` or `undefined` in the input records will not be passed
      * to Airtable, effectively leaving those fields blank on creation.
      */
-    createRecords(records: ReadonlyArray<ValuesForWrite<FieldType<T>>>): Promise<CreateRecordsResponse<FieldType<T>>>;
+    createRecords(
+        records: ReadonlyArray<ValuesForWrite<FieldType<T>>>,
+        requestOptions?: RequestOptions,
+    ): Promise<CreateRecordsResponse<FieldType<T>>>;
 
     /**
      * List records from the table with optional filtering. Pagination is handled automatically.
@@ -224,7 +231,8 @@ export interface TableClient<T extends TableClientSchema = TableSchema> {
         K extends FieldNameOrIdInTable<T> = FieldNameOrIdInTable<T>,
         M extends RecordMetadata = never,
     >(
-        options?: ListRecordsOptions<FieldType<T>, K, M>
+        options?: ListRecordsOptions<FieldType<T>, K, M>,
+        requestOptions?: RequestOptions,
     ): Promise<ListRecordsResponse<SelectedFields<FieldType<T>, K>, M>>;
 
     /** List a single page of records. Pass the returned `offset` to get the next page. */
@@ -232,11 +240,12 @@ export interface TableClient<T extends TableClientSchema = TableSchema> {
         K extends FieldNameOrIdInTable<T> = FieldNameOrIdInTable<T>,
         M extends RecordMetadata = never,
     >(
-        options?: ListRecordsPageOptions<FieldType<T>, K, M>
+        options?: ListRecordsPageOptions<FieldType<T>, K, M>,
+        requestOptions?: RequestOptions,
     ): Promise<ListRecordsPageResponse<SelectedFields<FieldType<T>, K>, M>>;
 
     /** Get a single record by ID */
-    getRecord(recordId: RecordId, options?: GetRecordOptions): Promise<TypedRecord<FieldType<T>>>;
+    getRecord(recordId: RecordId, options?: GetRecordOptions, requestOptions?: RequestOptions): Promise<TypedRecord<FieldType<T>>>;
 
     /**
      * Update records in the table, sending them in batches of up to 10.
@@ -249,17 +258,19 @@ export interface TableClient<T extends TableClientSchema = TableSchema> {
      */
     updateRecords(
         records: ReadonlyArray<{ id?: string; fields: Partial<ValuesForWrite<FieldType<T>>> }>,
-        options?: UpdateRecordsOptions<FieldType<T>>
+        options?: UpdateRecordsOptions<FieldType<T>>,
+        requestOptions?: RequestOptions,
     ): Promise<UpdateRecordsResponse<FieldType<T>>>;
 
     /** Delete records by IDs */
-    deleteRecords(recordIds: ReadonlyArray<RecordId>): Promise<raw.DeleteRecordsResponse>;
+    deleteRecords(recordIds: ReadonlyArray<RecordId>, requestOptions?: RequestOptions): Promise<raw.DeleteRecordsResponse>;
 
     /** Upload an attachment to a record */
     uploadAttachment(
         recordId: RecordId,
         attachmentFieldIdOrName: FieldNameOrIdInTable<T>,
-        options: UploadAttachmentOptions
+        options: UploadAttachmentOptions,
+        requestOptions?: RequestOptions,
     ): Promise<raw.UploadAttachmentResponse>;
 
     /** Convert a {@link Formula} object for this table to a string */
@@ -352,10 +363,11 @@ export function createTableClient<T extends TableClientSchema>(
     const withoutUndefined = (values: object) =>
         Object.fromEntries(Object.entries(values).filter(([_, v]) => v !== undefined));
 
-    const createRecords: TableClient<T>["createRecords"] = async (records) => {
+    const createRecords: TableClient<T>["createRecords"] = async (records, requestOptions) => {
         const response = await client.records.create({
             baseId,
             tableId,
+            signal: requestOptions?.signal,
             records: records.map((record) => ({
                 fields: convertValuesForWrite(
                     Object.fromEntries(Object.entries(record).filter(([_, v]) => v !== undefined && v !== null)) as ValuesForWrite<F>,
@@ -375,48 +387,50 @@ export function createTableClient<T extends TableClientSchema>(
         tableSchema,
         fields: fieldsByName,
         airtable: client,
-        createField(field) {
-            return client.fields.create({ baseId, tableId, field });
+        createField(field, requestOptions) {
+            return client.fields.create({ baseId, tableId, field, signal: requestOptions?.signal });
         },
-        updateField(field: { id: FieldId; name?: string; description?: string }) {
-            return client.fields.update({ baseId, tableId, field });
+        updateField(field: { id: FieldId; name?: string; description?: string }, requestOptions) {
+            return client.fields.update({ baseId, tableId, field, signal: requestOptions?.signal });
         },
-        updateTable(params) {
-            return client.tables.update({ baseId, table: { id: tableId, ...params } });
+        updateTable(params, requestOptions) {
+            return client.tables.update({ baseId, table: { id: tableId, ...params }, signal: requestOptions?.signal });
         },
         createRecords,
-        async createRecord(record) {
-            const response = await createRecords([record]);
+        async createRecord(record, requestOptions) {
+            const response = await createRecords([record], requestOptions);
             return { record: response.records[0], warnings: response.warnings };
         },
-        async listRecords(listOptions) {
+        async listRecords(listOptions, requestOptions) {
             const { rawOptions, toRecord } = toRawListOptions(listOptions);
-            const records = await client.records.list({ baseId, tableId, ...rawOptions });
+            const records = await client.records.list({ baseId, tableId, ...rawOptions, signal: requestOptions?.signal });
             return records.map(toRecord);
         },
-        async listRecordsPage(listOptions) {
+        async listRecordsPage(listOptions, requestOptions) {
             const { rawOptions, toRecord } = toRawListOptions(listOptions);
             const page = await client.records.listPage({
                 baseId,
                 tableId,
                 ...rawOptions,
+                signal: requestOptions?.signal,
             });
             return {
                 records: page.records.map(toRecord),
                 offset: page.offset,
             };
         },
-        async getRecord(recordId, getRecordOptions) {
+        async getRecord(recordId, getRecordOptions, requestOptions) {
             const record = await client.records.get({
                 baseId,
                 tableId,
                 recordId,
                 cellFormat: getRecordOptions?.cellFormat,
                 returnFieldsByFieldId: true,
+                signal: requestOptions?.signal,
             });
             return fromRaw(record, fields);
         },
-        async updateRecords(records, updateOptions) {
+        async updateRecords(records, updateOptions, requestOptions) {
             const response = await client.records.update({
                 baseId,
                 tableId,
@@ -433,21 +447,23 @@ export function createTableClient<T extends TableClientSchema>(
                 performUpsert: updateOptions?.performUpsert,
                 typecast: updateOptions?.typecast,
                 returnFieldsByFieldId: true,
+                signal: requestOptions?.signal,
             });
             return {
                 records: response.records.map((record) => ({ ...fromRaw(record, fields), operation: record.operation })),
                 warnings: response.warnings,
             };
         },
-        deleteRecords(recordIds) {
-            return client.records.delete({ baseId, tableId, recordIds });
+        deleteRecords(recordIds, requestOptions) {
+            return client.records.delete({ baseId, tableId, recordIds, signal: requestOptions?.signal });
         },
-        uploadAttachment(recordId, attachmentFieldIdOrName, uploadOptions) {
+        uploadAttachment(recordId, attachmentFieldIdOrName, uploadOptions, requestOptions) {
             return client.records.uploadAttachment({
                 baseId,
                 recordId,
                 field: toFieldSchema(attachmentFieldIdOrName).id,
                 ...uploadOptions,
+                signal: requestOptions?.signal,
             });
         },
         formulaToString(formula) {

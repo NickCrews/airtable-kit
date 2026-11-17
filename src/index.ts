@@ -11,6 +11,7 @@ export {
     type ApiKey,
     type Fetcher,
     type RequestArgs,
+    type RequestOptions,
     type Requester,
     DEFAULT_BASE_URL,
 } from "./request.ts";

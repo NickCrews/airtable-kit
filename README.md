@@ -400,6 +400,26 @@ const spec = baseToOpenApi(base, {
 console.log(JSON.stringify(spec, null, 2));
 ```
 
+## Cancelling Requests
+
+Every function and client method that calls the API accepts an
+[`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal).
+Aborting it cancels the in-flight request and rejects with the signal's `reason`.
+Paginated and batched calls, such as `listRecords` and `createRecords`, pass it to every request.
+A request is not sent if its signal is already aborted.
+
+```typescript
+// Airtable client: `signal` is a parameter
+const records = await airtable.records.list({ baseId, tableId, signal: AbortSignal.timeout(10_000) });
+
+// Typed clients and MCP tools: `{ signal }` is the last argument
+const controller = new AbortController();
+const tasks = await client.tables.tasks.listRecords({ maxRecords: 100 }, { signal: controller.signal });
+const result = await listTool.execute(input, { signal: controller.signal });
+```
+
+A custom `Fetcher` receives the signal as `init.signal`, so pass `init` through to `fetch`.
+
 ## Configuration
 
 `createAirtable` takes:
