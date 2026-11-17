@@ -406,11 +406,14 @@ console.log(JSON.stringify(spec, null, 2));
 
 - `apiKey`: an API key or OAuth access token, or a function returning one,
   which is called before every request (eg to refresh an OAuth token).
-  Defaults to the `AIRTABLE_API_KEY` environment variable.
+  Defaults to the `AIRTABLE_API_KEY` environment variable, read before every request,
+  so a client can be created before the variable is set.
 - `fetch`: any function with the shape `(url: string, init: RequestInit) => Promise<Response>`.
   Defaults to `globalThis.fetch`. If you pass a custom `fetch` and no API key is found,
   requests are sent without an `Authorization` header, so your `fetch` can add its own.
 - `baseUrl`: defaults to `https://api.airtable.com/v0`.
+- `contentBaseUrl`: the base URL for attachment uploads. Defaults to `baseUrl` if given,
+  otherwise `https://content.airtable.com/v0`.
 
 Anywhere a typed client takes an `airtable` argument, you can pass either an `Airtable`
 client or these options. If you omit it, `createAirtable()` is used.

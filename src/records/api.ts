@@ -209,7 +209,6 @@ export interface RecordsApi {
 const CREATE_BATCH_SIZE = 25;
 const UPDATE_BATCH_SIZE = 10;
 const DELETE_BATCH_SIZE = 10;
-const CONTENT_BASE_URL = "https://content.airtable.com/v0";
 
 function chunk<T>(items: ReadonlyArray<T>, size: number): T[][] {
     const result: T[][] = [];
@@ -219,7 +218,7 @@ function chunk<T>(items: ReadonlyArray<T>, size: number): T[][] {
     return result;
 }
 
-export function makeRecordsApi(request: Requester): RecordsApi {
+export function makeRecordsApi(request: Requester, { contentBaseUrl }: { contentBaseUrl: string }): RecordsApi {
     // https://airtable.com/developers/web/api/list-records
     async function listPage({ baseId, tableId, ...options }: ListRecordsPageParams): Promise<ListRecordsPageResponse> {
         const queryParams = new URLSearchParams();
@@ -321,7 +320,7 @@ export function makeRecordsApi(request: Requester): RecordsApi {
         // https://airtable.com/developers/web/api/upload-attachment
         uploadAttachment({ baseId, recordId, field, contentType, file, filename }) {
             return request<UploadAttachmentResponse>({
-                baseUrl: CONTENT_BASE_URL,
+                baseUrl: contentBaseUrl,
                 path: `/${baseId}/${recordId}/${encodeURIComponent(field)}/uploadAttachment`,
                 method: "POST",
                 data: { contentType, file, filename },

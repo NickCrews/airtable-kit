@@ -36,7 +36,7 @@ export interface BasesApi {
    * Get the {@link BaseSchema} of a base, including all of its tables and fields.
    *
    * Airtable's schema endpoint doesn't return the base's name, so given a base ID this also lists
-   * the bases to find it. Given a {@link BaseSummary} from {@link BasesApi.list}, it uses that name instead:
+   * bases until it finds that one. Given a {@link BaseSummary} from {@link BasesApi.list}, it uses that name instead:
    *
    * ```typescript
    * const schemas = await Promise.all((await airtable.bases.list()).map((base) => airtable.bases.get(base)));
@@ -55,8 +55,7 @@ export function makeBasesApi(request: Requester): BasesApi {
   }
 
   // https://airtable.com/developers/web/api/list-bases
-  async function list(): Promise<BaseSummary[]> {
-    const result: BaseSummary[] = [];
+  async function* listPages(): AsyncGenerator<BaseSummary[]> {
     let offset: string | undefined = undefined;
     do {
       const queryParams = new URLSearchParams();
@@ -66,10 +65,28 @@ export function makeBasesApi(request: Requester): BasesApi {
       const response: { bases: BaseSummary[]; offset?: string } = await request({
         path: `/meta/bases?${queryParams.toString()}`,
       });
-      result.push(...response.bases);
+      yield response.bases;
       offset = response.offset;
     } while (offset);
+  }
+
+  async function list(): Promise<BaseSummary[]> {
+    const result: BaseSummary[] = [];
+    for await (const page of listPages()) {
+      result.push(...page);
+    }
     return result;
+  }
+
+  /** Find a base's name by listing bases, stopping at the page that contains it. */
+  async function findName(baseId: BaseId): Promise<string> {
+    for await (const page of listPages()) {
+      const match = page.find((b) => b.id === baseId);
+      if (match) {
+        return match.name;
+      }
+    }
+    throw new Error(`Could not find base name for base ID ${baseId}`);
   }
 
   return {
@@ -78,11 +95,7 @@ export function makeBasesApi(request: Requester): BasesApi {
       if (typeof base === "object") {
         return { id: base.id, name: base.name, tables: await getTables(base.id) };
       }
-      const [tables, bases] = await Promise.all([getTables(base), list()]);
-      const name = bases.find((b) => b.id === base)?.name;
-      if (!name) {
-        throw new Error(`Could not find base name for base ID ${base}`);
-      }
+      const [tables, name] = await Promise.all([getTables(base), findName(base)]);
       return { id: base, name, tables };
     },
     // https://airtable.com/developers/web/api/create-base

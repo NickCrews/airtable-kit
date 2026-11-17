@@ -400,8 +400,6 @@ export function createTableClient<T extends TableClientSchema>(
                 baseId,
                 tableId,
                 ...rawOptions,
-                pageSize: listOptions?.pageSize,
-                offset: listOptions?.offset,
             });
             return {
                 records: page.records.map((record) => fromRaw(record, readFields, listOptions?.recordMetadata)),

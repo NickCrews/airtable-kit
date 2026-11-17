@@ -14,6 +14,7 @@ function captureHeaders() {
 
 afterEach(() => {
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
 });
 
 describe("createAirtable", () => {
@@ -57,9 +58,20 @@ describe("createAirtable", () => {
         expect(calls[0]).not.toHaveProperty("Authorization");
     });
 
-    it("throws on creation without an API key when using the global fetch", () => {
+    it("rejects requests without an API key when using the global fetch", async () => {
         vi.stubEnv("AIRTABLE_API_KEY", "");
-        expect(() => createAirtable()).toThrow("AIRTABLE_API_KEY");
+        const airtable = createAirtable();
+        await expect(airtable.request({ path: "/meta/bases" })).rejects.toThrow("AIRTABLE_API_KEY");
+    });
+
+    it("reads AIRTABLE_API_KEY at request time, not at creation", async () => {
+        vi.stubEnv("AIRTABLE_API_KEY", "");
+        const { fetch, calls } = captureHeaders();
+        vi.stubGlobal("fetch", fetch);
+        const airtable = createAirtable();
+        vi.stubEnv("AIRTABLE_API_KEY", "patLater");
+        await airtable.request({ path: "/meta/bases" });
+        expect(calls[0]).toMatchObject({ Authorization: "Bearer patLater" });
     });
 
     it("throws AirtableKitApiError with the status on a non-ok response", async () => {
@@ -89,6 +101,31 @@ describe("createAirtable with an existing client", () => {
         const airtable = createAirtable({ apiKey: "patABC" });
         const schema = { id: "app1", name: "base", tables: [] } as const;
         expect(createBaseClient(schema, airtable).airtable).toBe(airtable);
+    });
+});
+
+describe("createMockFetch", () => {
+    it("rejects requests until a return value is set", async () => {
+        const fetch = createMockFetch();
+        const airtable = createAirtable({ apiKey: "patABC", fetch });
+        await expect(airtable.request({ path: "/x" })).rejects.toThrow("setReturnValue");
+        fetch.setReturnValue(null);
+        await expect(airtable.request({ path: "/x" })).resolves.toBeNull();
+    });
+});
+
+describe("airtable.bases", () => {
+    it("stops listing bases once get finds the base's name", async () => {
+        const urls: string[] = [];
+        const fetch: Fetcher = async (url) => {
+            urls.push(url);
+            if (url.includes("/tables")) return Response.json({ tables: [] });
+            if (url.includes("offset=page2")) return Response.json({ bases: [{ id: "app2", name: "Two" }], offset: "page3" });
+            return Response.json({ bases: [{ id: "app1", name: "One" }], offset: "page2" });
+        };
+        const schema = await createAirtable({ apiKey: "patABC", fetch }).bases.get("app2");
+        expect(schema.name).toBe("Two");
+        expect(urls.filter((u) => u.includes("/meta/bases?"))).toHaveLength(2);
     });
 });
 
@@ -127,17 +164,35 @@ describe("airtable.records", () => {
         expect(urls[1]).toContain("offset=page2");
     });
 
+    const upload = { baseId: "app1", recordId: "rec1", contentType: "text/plain", file: "aGk=", filename: "hi.txt" } as const;
+
     it("uploads attachments to the content API", async () => {
         const fetch = createMockFetch();
-        await createAirtable({ apiKey: "patABC", fetch }).records.uploadAttachment({
-            baseId: "app1",
-            recordId: "rec1",
-            field: "fldA",
-            contentType: "text/plain",
-            file: "aGk=",
-            filename: "hi.txt",
-        });
+        fetch.setReturnValue({});
+        await createAirtable({ apiKey: "patABC", fetch }).records.uploadAttachment({ ...upload, field: "fldA" });
         expect(fetch.getCallHistory()[0].url).toBe("https://content.airtable.com/v0/app1/rec1/fldA/uploadAttachment");
+    });
+
+    it("encodes the attachment field name", async () => {
+        const fetch = createMockFetch();
+        fetch.setReturnValue({});
+        await createAirtable({ apiKey: "patABC", fetch }).records.uploadAttachment({ ...upload, field: "Photos / Docs" });
+        expect(fetch.getCallHistory()[0].url).toBe("https://content.airtable.com/v0/app1/rec1/Photos%20%2F%20Docs/uploadAttachment");
+    });
+
+    it("uploads attachments to a custom baseUrl", async () => {
+        const fetch = createMockFetch();
+        fetch.setReturnValue({});
+        await createAirtable({ apiKey: "patABC", fetch, baseUrl: "https://proxy.test/v0" }).records.uploadAttachment({ ...upload, field: "fldA" });
+        expect(fetch.getCallHistory()[0].url).toBe("https://proxy.test/v0/app1/rec1/fldA/uploadAttachment");
+    });
+
+    it("uploads attachments to contentBaseUrl", async () => {
+        const fetch = createMockFetch();
+        fetch.setReturnValue({});
+        await createAirtable({ apiKey: "patABC", fetch, baseUrl: "https://proxy.test/v0", contentBaseUrl: "https://content-proxy.test/v0" })
+            .records.uploadAttachment({ ...upload, field: "fldA" });
+        expect(fetch.getCallHistory()[0].url).toBe("https://content-proxy.test/v0/app1/rec1/fldA/uploadAttachment");
     });
 
     it("deletes in batches of 10", async () => {

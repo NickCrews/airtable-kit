@@ -38,12 +38,20 @@ export type Requester = <T = unknown>(args: RequestArgs) => Promise<T>;
 /** Default base URL for the Airtable API: "https://api.airtable.com/v0" */
 export const DEFAULT_BASE_URL = "https://api.airtable.com/v0";
 
+/** Default base URL for attachment uploads: "https://content.airtable.com/v0" */
+export const DEFAULT_CONTENT_BASE_URL = "https://content.airtable.com/v0";
+
 export function makeRequester(
-    { apiKey, baseUrl, fetch }: { apiKey: ApiKey | undefined; baseUrl: string; fetch: Fetcher },
+    { getToken, baseUrl, fetch }: {
+        /** Returns the token for the `Authorization` header, or undefined to omit the header */
+        getToken: () => Promise<string | undefined>;
+        baseUrl: string;
+        fetch: Fetcher;
+    },
 ): Requester {
     return async <T = unknown>({ path, method = "GET", data, baseUrl: baseUrlOverride }: RequestArgs): Promise<T> => {
         const headers: Record<string, string> = { "Content-Type": "application/json" };
-        const token = typeof apiKey === "function" ? await apiKey() : apiKey;
+        const token = await getToken();
         if (token) {
             headers.Authorization = `Bearer ${token}`;
         }
