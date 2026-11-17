@@ -254,10 +254,6 @@ describe("Records API", () => {
             expect(result.records).toBeDefined();
         });
 
-        it("throws when fields is empty, since Airtable would return every field", async () => {
-            await expect(tasks.listRecordsPage({ fields: [] })).rejects.toThrow("`fields` must list at least one field");
-        });
-
         it("throws error when field not found", async () => {
             await expect(
                 tasks.listRecordsPage({

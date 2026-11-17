@@ -50,6 +50,13 @@ describe("TableClient.listRecords with a fields subset", () => {
         }>();
     });
 
+    it("returns no field values for an empty subset", async () => {
+        const { fetch } = mockTable({ [SINGLE_LINE_TEXT.id]: "hello", [AUTO_NUMBER.id]: 7 });
+        const client = createTableClient("appTest", tableSchema, { fetch }, { onReadUnexpectedField: "throw" });
+        const records = await client.listRecords({ fields: [] });
+        expect(records[0].fields).toEqual({});
+    });
+
     it("passes pageSize and offset to listRecordsPage", async () => {
         const { fetch, client } = mockTable({ [SINGLE_LINE_TEXT.id]: "hello" });
         await client.listRecordsPage({ fields: [SINGLE_LINE_TEXT.name], pageSize: 5, offset: "itr1" });
