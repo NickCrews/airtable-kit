@@ -22,12 +22,12 @@ This has several advantages:
 
 - **Rename-Resistant**: When someone modifies the name of a field in airtable, your code won't break because the client always sends field IDs to the API under the hood.
 - **Complete Type-Safety**: Not just the basics. Eg get type safety on the valid options for single-select and multi-select fields, date formats, etc.
-- **More-sane read behavior**: The raw API (and vanilla [airtable.js](https://github.com/airtable/airtable.js/)) don't include "falsy" values when reading records. We fill in those missing values with sane defaults, eg the empty string for text-like fields, empty arrays for multi-value fields, or an explicit `null` for eg number and date fields.
+- **More-sane read behavior**: The Airtable API (and vanilla [airtable.js](https://github.com/airtable/airtable.js/)) don't include "falsy" values when reading records. We fill in those missing values with sane defaults, eg the empty string for text-like fields, empty arrays for multi-value fields, or an explicit `null` for eg number and date fields.
 - **Typesafe Formula Builder**: Build Airtable formulas programmatically with full type-safety and autocompletion, eg 
   `formulaToString(tableSchema, ["<=", { field: "Due Date" }, ["DATEADD", ["TODAY"], 7, "days"]])`
   yields
   `{fld123xyz} <= DATEADD(TODAY(), 7, "days")`.
-- **Two Layers**: A plain REST client, `createAirtable()`, that maps 1:1 to the Airtable API, and schema-aware clients from `airtable-kit/typed`, with methods like `base.tables.myTable.createRecords(records)`, built on top of it.
+- **Two Layers**: The Airtable client, `createAirtable()`, maps 1:1 to the Airtable REST API. Typed clients from `airtable-kit/typed`, with methods like `base.tables.myTable.createRecords(records)`, are built on top of it. See [Concepts](#concepts).
 - **Bring Your Own `fetch`**: Pass any `fetch`-shaped function for retries, logging, proxies, or mocking in tests.
 - **Zero-Dependencies**: No required dependencies! `zod` is optional if you want runtime validation (eg for MCP tools).
 - **Portable**: Works in Node.js, Deno, and the browser, including in sandboxed environments, e.g. where `process.env` and `os.homedir()` are not available.
@@ -92,6 +92,18 @@ This is [available on npm](https://www.npmjs.com/package/airtable-kit):
 ```bash
 pnpm add airtable-kit
 ```
+
+## Concepts
+
+- **The Airtable client**, from `createAirtable()` in `airtable-kit`, calls the Airtable REST API:
+  `airtable.bases`, `airtable.tables`, `airtable.fields`, and `airtable.records`.
+  It handles authentication, pagination, and batching, and does not need a schema.
+- **Typed clients**, `BaseClient` and `TableClient` from `airtable-kit/typed`, wrap an Airtable client
+  with a base or table schema. They convert field values using the schema and type them precisely.
+- **Raw records** (`RawRecord`) are records as Airtable sends them: empty fields are omitted,
+  and values are plain JSON. The Airtable client reads and writes raw records.
+- **Typed records** (`TypedRecord`) are records converted using the schema: keyed by field name,
+  with empty fields filled in (eg `false`, `[]`, or `null`). Typed clients read and write typed records.
 
 ## Quick Start
 
@@ -257,11 +269,9 @@ const agent = new ToolLoopAgent({
 });
 ```
 
-### Use Case 3: Plain REST Calls
+### Use Case 3: The Airtable Client Without a Schema
 
-`createAirtable()` returns a client for the Airtable REST API, grouped by resource.
-It sends and returns Airtable's JSON as-is, without value conversion,
-and handles pagination and batching.
+The Airtable client reads and writes raw records, so it needs no schema.
 
 ```typescript
 import { createAirtable } from 'airtable-kit';
@@ -285,7 +295,7 @@ const records = await airtable.records.list({
   tableId: 'tblAAAAAAAAAAAAAA',
   filterByFormula: '{Done} = FALSE()',
 });
-// records[0].fields is Record<string, unknown>, and Airtable omits empty fields
+// raw records: records[0].fields is Record<string, unknown>, and empty fields are omitted
 ```
 
 The available methods are:
@@ -296,8 +306,8 @@ The available methods are:
 - `airtable.records`: `list`, `listPage`, `get`, `create`, `update`, `delete`, `uploadAttachment`
 - `airtable.request`: any other endpoint, with the client's credentials
 
-To get value conversion for a few fields without a generated schema,
-describe just those fields in a table client.
+To get typed records for a few fields without a generated schema,
+describe just those fields in a typed table client.
 Each field needs the same `options` Airtable returns in the base schema:
 
 ```typescript

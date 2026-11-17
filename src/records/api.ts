@@ -9,10 +9,10 @@ import { RecordId } from "./types.ts";
 /** ISO 8601 format in UTC, eg `2024-01-01T12:00:00.000Z` */
 export type Timestamp = string;
 
-/** Field values as Airtable sends and receives them, keyed by field name or ID. */
+/** Raw field values: as Airtable sends and receives them, keyed by field name or ID. */
 export type RawFields = Record<string, unknown>;
 
-/** A record as Airtable returns it. */
+/** A raw record: a record as Airtable returns it, without conversion. Empty fields are omitted. */
 export interface RawRecord {
     id: RecordId;
     createdTime: Timestamp;
@@ -186,8 +186,8 @@ export type UploadAttachmentResponse = {
 /**
  * Methods for the Airtable records API, available as `airtable.records`.
  *
- * Values are sent and returned as Airtable's JSON, without conversion.
- * For typed, converted values, use a table client from `airtable-kit/typed`.
+ * Reads and writes raw records: Airtable's JSON, without conversion.
+ * For typed records, use a typed table client from `airtable-kit/typed`.
  */
 export interface RecordsApi {
     /** List records. Pagination is handled automatically. */

@@ -39,7 +39,7 @@ describe("Records API", () => {
             expect(result[0].createdTime).toBeDefined();
         });
 
-        it("can create more than 25 records (batches to the raw API)", async () => {
+        it("can create more than 25 records (batches requests to Airtable)", async () => {
             const n = 100;
             const records = Array.from({ length: n }, (_, i) => ({
                 name: `Task ${i + 1}`,
@@ -89,7 +89,7 @@ describe("Records API", () => {
 
             expect(result).toHaveLength(1);
             expect(result[0].fields.name).toBe("Raw Create Task");
-            // Airtable omits empty fields, and the raw API does not fill them in
+            // Raw records omit empty fields
             expect(result[0].fields).not.toHaveProperty("completed");
         });
 

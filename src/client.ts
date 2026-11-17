@@ -26,8 +26,8 @@ export interface AirtableOptions {
 /**
  * A client for the Airtable REST API, created with {@link createAirtable}.
  *
- * Values are sent and returned as Airtable's JSON, without conversion.
- * For typed, converted values, pass this client to `createBaseClient` from `airtable-kit/typed`.
+ * Reads and writes raw records: Airtable's JSON, without conversion.
+ * For typed records, pass this client to a typed client, eg `createBaseClient` from `airtable-kit/typed`.
  */
 export interface Airtable {
     /** Bases: list, get schemas, create */
