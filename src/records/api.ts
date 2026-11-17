@@ -477,6 +477,16 @@ export async function updateRecords<T extends FieldSchemaRead>(
     const results = await Promise.all(promises);
     for (const res of results) {
         result.records.push(...res.records);
+        if (res.createdRecords) {
+            (result.createdRecords ??= []).push(...res.createdRecords);
+        }
+        if (res.updatedRecords) {
+            (result.updatedRecords ??= []).push(...res.updatedRecords);
+        }
+        if (res.details) {
+            const reasons = new Set([...(result.details?.reasons ?? []), ...res.details.reasons]);
+            result.details = { message: res.details.message, reasons: [...reasons] };
+        }
     }
     return result;
 }
