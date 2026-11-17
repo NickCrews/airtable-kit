@@ -120,7 +120,7 @@ export function createRecordCommand(resolveAirtable: () => Airtable): Command {
 
       const client = createTableClient(base.id, table, airtable);
 
-      const results = await client.createRecords(records);
+      const results = await client.createRecords(records.map((record) => record.fields));
       if (options.format === "json") {
         console.log(JSON.stringify(results, null, 2));
       } else {
