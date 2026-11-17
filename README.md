@@ -264,17 +264,88 @@ Try it with no installation using `npx airtable-kit`:
 ```bash
 # Reads the API key from AIRTABLE_API_KEY, or a .env file. Or pass --api-key.
 npx airtable-kit base list
-npx airtable-kit base use "Project Tracker"   # later commands default to this base
+# # Bases (2)
+#
+# | Name            | ID                | Tables |
+# | --------------- | ----------------- | ------ |
+# | Project Tracker | appQ5r6S7t8U9v0W1 | 2      |
+# | CRM             | appX2y3Z4a5B6c7D8 | 1      |
+
+npx airtable-kit base use "Project Tracker"
+# ✓ Set current base to: Project Tracker (appQ5r6S7t8U9v0W1)
+
 npx airtable-kit table list
-npx airtable-kit table use tasks              # ...and to this table
+# # Tables in base `Project Tracker` (appQ5r6S7t8U9v0W1)
+#
+# Total: **2** tables
+#
+# | Name   | ID                | Fields | Description  |
+# | ------ | ----------------- | ------ | ------------ |
+# | tasks  | tblE9f0G1h2I3j4K5 | 3      | Things to do |
+# | people | tblL6m7N8o9P0q1R2 | 1      |              |
+
+npx airtable-kit table use tasks
+# ✓ Set current table to: tasks (tblE9f0G1h2I3j4K5) in Project Tracker
 
 npx airtable-kit record list --filter '{status} = "To Do"' --sort dueDate:asc --max 10
-npx airtable-kit record list --fields name,status --format json > tasks.json
-npx airtable-kit record create --data '{"fields": {"name": "Write report", "status": "To Do"}}'
-npx airtable-kit record update recXXXXXXXXXXXXXX --data '{"fields": {"status": "Done"}}'
+# ** Total: 2 records **
+#
+# | ID                | name          | status | dueDate    |
+# | ----------------- | ------------- | ------ | ---------- |
+# | recA1b2C3d4E5f6G7 | Write report  | To Do  | 2026-11-20 |
+# | recH8i9J0k1L2m3N4 | Review budget | To Do  | 2026-11-24 |
+
+npx airtable-kit record list --fields name,status --format json
+# [
+#   {
+#     "id": "recA1b2C3d4E5f6G7",
+#     "createdTime": "2026-11-01T09:00:00.000Z",
+#     "fields": {
+#       "name": "Write report",
+#       "status": "To Do"
+#     }
+#   },
+#   ...
+# ]
+
+npx airtable-kit record update recA1b2C3d4E5f6G7 --data '{"fields": {"status": "Done"}}'
+# # Record recA1b2C3d4E5f6G7
+#
+# | Field   | Value             |
+# | ------- | ----------------- |
+# | ID      | recA1b2C3d4E5f6G7 |
+# | name    | Write report      |
+# | status  | Done              |
+# | dueDate | 2026-11-20        |
+#
+# ✅ Updated record: recA1b2C3d4E5f6G7
+
+npx airtable-kit record create --data '{"fields": {"name": "Plan offsite", "status": "To Do"}}'
+# ** Total: 1 records **
+#
+# | ID                | name         | status | dueDate |
+# | ----------------- | ------------ | ------ | ------- |
+# | recZ1a2B3c4D5e6F7 | Plan offsite | To Do  | (empty) |
+#
+# ✅ Created 1 record(s)
 
 npx airtable-kit field create notes --type multilineText --description "Anything else to know"
-npx airtable-kit codegen --outdir schemas     # write a schema file for every base
+# # Field `notes` (fldS3t4U5v6W7x8Y9)
+#
+# - **Name**: notes
+# - **ID**: fldS3t4U5v6W7x8Y9
+# - **Type**: multilineText
+# - **Description**: Anything else to know
+#
+# ✅ Field created: notes (fldS3t4U5v6W7x8Y9)
+
+npx airtable-kit codegen --outdir schemas
+# 🔍 Fetching all base schemas...
+# ✓ Found 2 bases
+#   • Generated schemas/projectTracker.generated.ts
+#   • Generated schemas/crm.generated.ts
+#
+# ✅ Generated 2 schema file(s) in schemas
 ```
 
 Run `npx airtable-kit <command> --help` for every command and option.
