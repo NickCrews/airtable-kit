@@ -1,5 +1,6 @@
 import { FieldSchemaForConvert } from "./value-converters/index.ts";
-import { FieldId, FieldSchemaRead } from "./fields/types.ts";
+import { FieldId } from "./fields/types.ts";
+import type { ConvertibleFieldSchema } from "./records/converters.ts";
 
 export class AirtableKitError extends Error {
     constructor(message: string) {
@@ -95,8 +96,8 @@ export class FieldNotWritableError extends AirtableKitError {
  * but your code/schema still expects it to be there.
  */
 export class MissingFieldReadError extends AirtableKitError {
-    public readonly fieldSchema: FieldSchemaRead;
-    constructor(fieldSchema: FieldSchemaRead) {
+    public readonly fieldSchema: ConvertibleFieldSchema;
+    constructor(fieldSchema: ConvertibleFieldSchema) {
         super(`Missing required field on read: ${fieldSchema.type} field`);
         this.fieldSchema = fieldSchema;
         this.name = "MissingFieldReadError";
@@ -124,7 +125,7 @@ export class UnexpectedFieldReadError extends AirtableKitError {
 export class RecordReadError extends AirtableKitError {
     public readonly errors: ReadonlyArray<AirtableKitError>;
     public readonly rawValues: Record<FieldId, unknown>;
-    public readonly fieldSchemas: ReadonlyArray<FieldSchemaRead>;
+    public readonly fieldSchemas: ReadonlyArray<ConvertibleFieldSchema>;
     constructor({
         errors,
         rawValues,
@@ -132,7 +133,7 @@ export class RecordReadError extends AirtableKitError {
     }: {
         errors: ReadonlyArray<AirtableKitError>;
         rawValues: Record<FieldId, unknown>;
-        fieldSchemas: ReadonlyArray<FieldSchemaRead>;
+        fieldSchemas: ReadonlyArray<ConvertibleFieldSchema>;
     }) {
         super(`Errors reading record: \n${errors.map(e => `- ${e.message}`).join("\n")}`);
         this.errors = errors;

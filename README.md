@@ -308,7 +308,8 @@ The available methods are:
 
 To get typed records for a few fields without a generated schema,
 describe just those fields in a typed table client.
-Each field needs the same `options` Airtable returns in the base schema:
+Each field needs its `id`, `name`, and `type`. Only select fields need `options` (their `choices`),
+and formula, rollup, and lookup fields need `options.result`:
 
 ```typescript
 import { createTableClient } from 'airtable-kit/typed';
@@ -316,8 +317,8 @@ import { createTableClient } from 'airtable-kit/typed';
 const tasks = createTableClient('appZZZZZZZZZZZZZZ', {
   id: 'tblAAAAAAAAAAAAAA',
   fields: [
-    { id: 'fldDue', name: 'dueDate', type: 'date', options: { dateFormat: { name: 'iso', format: 'YYYY-MM-DD' } } },
-    { id: 'fldDone', name: 'done', type: 'checkbox', options: { icon: 'check', color: 'greenBright' } },
+    { id: 'fldDue', name: 'dueDate', type: 'date' },
+    { id: 'fldDone', name: 'done', type: 'checkbox' },
   ],
 } as const, airtable);
 

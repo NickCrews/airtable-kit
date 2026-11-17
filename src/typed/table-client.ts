@@ -6,25 +6,29 @@ import { Timezone } from "../fields/timezones.ts";
 import { TableSchema } from "../tables/types.ts";
 import { BaseId } from "../bases/types.ts";
 import { RecordId } from "../records/types.ts";
-import { convertValuesForWrite, convertValuesFromRead, type ValuesForWrite, type ValuesFromRead } from "../records/converters.ts";
+import { convertValuesForWrite, convertValuesFromRead, type ConvertibleFieldSchema, type ValuesForWrite, type ValuesFromRead } from "../records/converters.ts";
 
-type FieldsByName<T extends ReadonlyArray<FieldSchemaRead>> = {
+type FieldsByName<T extends ReadonlyArray<ConvertibleFieldSchema>> = {
     [K in T[number]as K["name"]]: K;
 };
 
 /**
- * The parts of a {@link TableSchema} a {@link TableClient} needs: the table ID and the fields it reads and writes.
+ * The parts of a {@link TableSchema} a {@link TableClient} needs: the table ID and the fields it reads and writes,
+ * each described by a {@link ConvertibleFieldSchema}.
  * A full {@link TableSchema} also satisfies this.
  */
-export type TableClientSchema = Pick<TableSchema, "id" | "fields"> & Partial<Omit<TableSchema, "id" | "fields">>;
+export type TableClientSchema = {
+    id: TableSchema["id"];
+    fields: ReadonlyArray<ConvertibleFieldSchema>;
+} & Partial<Omit<TableSchema, "id" | "fields">>;
 
 type FieldType<T extends TableClientSchema> = T['fields'][number];
 type FieldIdInTable<T extends TableClientSchema> = FieldType<T>['id'];
-type FieldNameOrId<F extends FieldSchemaRead> = F['name'] | F['id'];
+type FieldNameOrId<F extends ConvertibleFieldSchema> = F['name'] | F['id'];
 type FieldNameOrIdInTable<T extends TableClientSchema> = FieldNameOrId<FieldType<T>>;
 
 /** The field schemas in `F` selected by the field names or IDs `K`. */
-export type SelectedFields<F extends FieldSchemaRead, K extends FieldNameOrId<F>> =
+export type SelectedFields<F extends ConvertibleFieldSchema, K extends FieldNameOrId<F>> =
     Extract<F, { name: K }> | Extract<F, { id: K }>;
 
 /** Behavior when a record read from Airtable has a field that is not in the table schema. See {@link convertValuesFromRead}. */
@@ -40,7 +44,7 @@ export type RecordMetadata = 'commentCount';
  * `M` is the {@link RecordMetadata} that was requested. Each requested kind adds its property,
  * eg `commentCount` when `M` includes `"commentCount"`.
  */
-export type TypedRecord<F extends FieldSchemaRead, M extends RecordMetadata = never> = {
+export type TypedRecord<F extends ConvertibleFieldSchema, M extends RecordMetadata = never> = {
     id: RecordId;
     createdTime: raw.Timestamp;
     fields: ValuesFromRead<F>;
@@ -51,7 +55,7 @@ export type TypedRecord<F extends FieldSchemaRead, M extends RecordMetadata = ne
 
 /** Options for {@link TableClient.listRecords}. */
 export interface ListRecordsOptions<
-    F extends FieldSchemaRead,
+    F extends ConvertibleFieldSchema,
     K extends FieldNameOrId<F> = FieldNameOrId<F>,
     M extends RecordMetadata = never,
 > {
@@ -80,11 +84,11 @@ export interface ListRecordsOptions<
      */
     recordMetadata?: ReadonlyArray<M>;
 }
-export type ListRecordsResponse<F extends FieldSchemaRead, M extends RecordMetadata = never> = Array<TypedRecord<F, M>>;
+export type ListRecordsResponse<F extends ConvertibleFieldSchema, M extends RecordMetadata = never> = Array<TypedRecord<F, M>>;
 
 /** Options for {@link TableClient.listRecordsPage}. */
 export type ListRecordsPageOptions<
-    F extends FieldSchemaRead,
+    F extends ConvertibleFieldSchema,
     K extends FieldNameOrId<F> = FieldNameOrId<F>,
     M extends RecordMetadata = never,
 > = ListRecordsOptions<F, K, M> & {
@@ -93,7 +97,7 @@ export type ListRecordsPageOptions<
     /** The `offset` returned by the previous page */
     offset?: string;
 };
-export interface ListRecordsPageResponse<F extends FieldSchemaRead, M extends RecordMetadata = never> {
+export interface ListRecordsPageResponse<F extends ConvertibleFieldSchema, M extends RecordMetadata = never> {
     records: Array<TypedRecord<F, M>>;
     /** Pass to the next call to get the next page. Absent on the last page. */
     offset?: string;
@@ -106,7 +110,7 @@ export interface GetRecordOptions {
 }
 
 /** Response from {@link TableClient.createRecords}. */
-export interface CreateRecordsResponse<F extends FieldSchemaRead> {
+export interface CreateRecordsResponse<F extends ConvertibleFieldSchema> {
     /** The created records, in the same order as the input. */
     records: Array<TypedRecord<F>>;
     /** Problems Airtable reported for an otherwise successful write. Empty if there were none. */
@@ -114,7 +118,7 @@ export interface CreateRecordsResponse<F extends FieldSchemaRead> {
 }
 
 /** Options for {@link TableClient.updateRecords}. */
-export interface UpdateRecordsOptions<F extends FieldSchemaRead> {
+export interface UpdateRecordsOptions<F extends ConvertibleFieldSchema> {
     /**
      * If not destructive (the default), then only the fields included in the update will be modified; all other fields will remain unchanged.
      * If destructive, then ALL fields in the target record will be updated, meaning that any fields not included in the update will be cleared.
@@ -130,7 +134,7 @@ export interface UpdateRecordsOptions<F extends FieldSchemaRead> {
 }
 
 /** Response from {@link TableClient.updateRecords}. */
-export interface UpdateRecordsResponse<F extends FieldSchemaRead> {
+export interface UpdateRecordsResponse<F extends ConvertibleFieldSchema> {
     /** The written records, in the same order as the input. */
     records: Array<TypedRecord<F> & {
         /**
@@ -163,7 +167,7 @@ export interface TableClient<T extends TableClientSchema = TableSchema> {
     baseId: BaseId;
     /** The schema of the table this client interacts with */
     tableSchema: T;
-    /** An object mapping field names to their respective {@link FieldSchemaRead} */
+    /** An object mapping field names to their field schemas */
     fields: FieldsByName<T["fields"]>;
     /** The {@link Airtable} client used to make requests */
     airtable: Airtable;
@@ -306,7 +310,7 @@ export function createTableClient<T extends TableClientSchema>(
         }
         return spec;
     };
-    const fromRaw = <S extends FieldSchemaRead, M extends RecordMetadata = never>(
+    const fromRaw = <S extends ConvertibleFieldSchema, M extends RecordMetadata = never>(
         record: raw.RawRecord,
         readFields: ReadonlyArray<S>,
         metadata?: ReadonlyArray<M>,
