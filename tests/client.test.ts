@@ -195,6 +195,23 @@ describe("airtable.records", () => {
         expect(fetch.getCallHistory()[0].url).toBe("https://content-proxy.test/v0/app1/rec1/fldA/uploadAttachment");
     });
 
+    it("sends update and delete batches one at a time", async () => {
+        let inFlight = 0;
+        let maxInFlight = 0;
+        const fetch: Fetcher = async () => {
+            inFlight++;
+            maxInFlight = Math.max(maxInFlight, inFlight);
+            await new Promise((resolve) => setTimeout(resolve, 1));
+            inFlight--;
+            return Response.json({ records: [] });
+        };
+        const airtable = createAirtable({ apiKey: "patABC", fetch });
+        const recordIds = Array.from({ length: 25 }, (_, i) => `rec${i}` as const);
+        await airtable.records.update({ baseId: "app1", tableId: "tbl1", records: recordIds.map((id) => ({ id, fields: {} })) });
+        await airtable.records.delete({ baseId: "app1", tableId: "tbl1", recordIds });
+        expect(maxInFlight).toBe(1);
+    });
+
     it("deletes in batches of 10", async () => {
         const urls: string[] = [];
         const fetch: Fetcher = async (url) => {
