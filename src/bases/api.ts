@@ -105,7 +105,8 @@ export async function getBaseSchema({
  * @param params.fetcher The {@link IntoFetcher} to use for making API requests.
  * @returns A promise that resolves to an array of {@link BaseSchema} objects.
  */
-export async function fetchAllSchemas({ fetcher }: { fetcher: IntoFetcher }
+export async function fetchAllSchemas(
+  { fetcher }: { fetcher?: IntoFetcher } = {},
 ): Promise<BaseSchema[]> {
   // https://airtable.com/developers/web/api/list-bases
   const realFetcher = makeFetcher(fetcher);
