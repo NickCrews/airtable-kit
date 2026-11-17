@@ -1,5 +1,5 @@
 import { BaseId } from "../bases/types";
-import type { Requester } from "../request.ts";
+import type { RequestOptions, Requester } from "../request.ts";
 import { FieldSchemaCreate } from "../fields";
 import { TableId, TableSchema } from "./types";
 
@@ -13,11 +13,9 @@ export interface TableSchemaCreate {
     fields: Array<FieldSchemaCreate>
 }
 
-export interface CreateTableParams {
+export interface CreateTableParams extends RequestOptions {
     baseId: BaseId;
     table: TableSchemaCreate;
-    /** Aborts the request. */
-    signal?: AbortSignal;
 }
 
 export interface UpdateTableSchema<T extends TableId = TableId> {
@@ -27,11 +25,9 @@ export interface UpdateTableSchema<T extends TableId = TableId> {
     dateDependencySettings?: any;
 }
 
-export interface UpdateTableParams {
+export interface UpdateTableParams extends RequestOptions {
     baseId: BaseId;
     table: UpdateTableSchema;
-    /** Aborts the request. */
-    signal?: AbortSignal;
 }
 
 /** Methods for the Airtable tables API, available as `airtable.tables`. */

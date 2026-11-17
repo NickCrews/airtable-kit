@@ -16,15 +16,6 @@ function recordingFetch(respond: (url: string, init: RequestInit, callIndex: num
     return { fetch, calls };
 }
 
-async function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
-    return promise.then(
-        () => {
-            throw new Error("expected the promise to reject");
-        },
-        (e: unknown) => e,
-    );
-}
-
 const tableSchema = {
     id: "tbl1",
     name: "Table",
@@ -46,11 +37,39 @@ describe("request", () => {
         const controller = new AbortController();
         const reason = new Error("stop");
         controller.abort(reason);
-        const error = await rejectionOf(
+        await expect(
             createAirtable({ apiKey: "key", fetch: fetchMock }).request({ path: "/app1/tbl1", signal: controller.signal }),
-        );
-        expect(error).toBe(reason);
+        ).rejects.toBe(reason);
         expect(fetchMock).not.toHaveBeenCalled();
+    });
+});
+
+describe("aborting partway through a multi-request call", () => {
+    it("records.list sends no more pages", async () => {
+        const controller = new AbortController();
+        const reason = new Error("stop");
+        const { fetch, calls } = recordingFetch((_url, _init, i) => {
+            controller.abort(reason);
+            return { records: [], ...(i === 0 ? { offset: "next" } : {}) };
+        });
+        await expect(
+            createAirtable({ apiKey: "key", fetch }).records.list({ baseId: "app1", tableId: "tbl1", signal: controller.signal }),
+        ).rejects.toBe(reason);
+        expect(calls).toHaveLength(1);
+    });
+
+    it("records.delete sends no more batches", async () => {
+        const controller = new AbortController();
+        const reason = new Error("stop");
+        const { fetch, calls } = recordingFetch(() => {
+            controller.abort(reason);
+            return { records: [] };
+        });
+        const recordIds = Array.from({ length: 15 }, (_, i) => `rec${i}` as const);
+        await expect(
+            createAirtable({ apiKey: "key", fetch }).records.delete({ baseId: "app1", tableId: "tbl1", recordIds, signal: controller.signal }),
+        ).rejects.toBe(reason);
+        expect(calls).toHaveLength(1);
     });
 });
 

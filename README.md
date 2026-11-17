@@ -369,7 +369,7 @@ const agent = new ToolLoopAgent({
     listRecords: tool({
       description: listTool.description,
       inputSchema: listTool.zodInputValidator,
-      execute: listTool.execute,
+      execute: (input, { abortSignal }) => listTool.execute(input, { signal: abortSignal }),
     })
   },
 });
@@ -409,13 +409,16 @@ Paginated and batched calls, such as `listRecords` and `createRecords`, pass it 
 A request is not sent if its signal is already aborted.
 
 ```typescript
-// Airtable client: `signal` is a parameter
+// Airtable client: `signal` goes in the params object
 const records = await airtable.records.list({ baseId, tableId, signal: AbortSignal.timeout(10_000) });
+const schema = await airtable.bases.get(baseId, { signal: AbortSignal.timeout(10_000) });
 
 // Typed clients and MCP tools: `{ signal }` is the last argument
 const controller = new AbortController();
-const tasks = await client.tables.tasks.listRecords({ maxRecords: 100 }, { signal: controller.signal });
-const result = await listTool.execute(input, { signal: controller.signal });
+const { signal } = controller;
+const taskRecords = await client.tables.tasks.listRecords({ maxRecords: 100 }, { signal });
+const sameRecords = await client.tables.tasks.listRecords(undefined, { signal });
+const result = await listTool.execute(input, { signal });
 ```
 
 A custom `Fetcher` receives the signal as `init.signal`, so pass `init` through to `fetch`.

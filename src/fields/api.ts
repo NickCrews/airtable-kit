@@ -1,5 +1,5 @@
 import { BaseId } from "../bases/types.ts";
-import type { Requester } from "../request.ts";
+import type { RequestOptions, Requester } from "../request.ts";
 import { TableId } from "../tables/types.ts";
 import { FieldId } from "./types.ts";
 
@@ -77,12 +77,10 @@ export function fieldCreationAbility<T extends FieldType = FieldType>(fieldType:
     return result;
 }
 
-export interface CreateFieldParams {
+export interface CreateFieldParams extends RequestOptions {
     baseId: BaseId;
     tableId: TableId;
     field: FieldSchemaCreate;
-    /** Aborts the request. */
-    signal?: AbortSignal;
 }
 
 export interface UpdateFieldSchema {
@@ -91,12 +89,10 @@ export interface UpdateFieldSchema {
     description?: string;
 }
 
-export interface UpdateFieldParams {
+export interface UpdateFieldParams extends RequestOptions {
     baseId: BaseId;
     tableId: TableId;
     field: UpdateFieldSchema;
-    /** Aborts the request. */
-    signal?: AbortSignal;
 }
 
 /** Methods for the Airtable fields API, available as `airtable.fields`. */

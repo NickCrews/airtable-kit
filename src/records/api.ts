@@ -1,4 +1,4 @@
-import type { Requester } from "../request.ts";
+import type { RequestOptions, Requester } from "../request.ts";
 import { Timezone } from "../fields/timezones.ts";
 import { AttachmentId } from "../fields/types.ts";
 import { URLSearchParams } from "../url.ts";
@@ -42,11 +42,9 @@ function addWarnings(warnings: WriteWarning[], reasons: ReadonlyArray<WriteWarni
     }
 }
 
-interface TableRef {
+interface TableRef extends RequestOptions {
     baseId: BaseId;
     tableId: TableId;
-    /** Aborts the request(s) made by the call. */
-    signal?: AbortSignal;
 }
 
 /**
@@ -160,7 +158,7 @@ export interface DeleteRecordsResponse {
     }>;
 }
 
-export interface UploadAttachmentParams {
+export interface UploadAttachmentParams extends RequestOptions {
     baseId: BaseId;
     recordId: RecordId;
     /** The attachment field's name or ID */
@@ -171,8 +169,6 @@ export interface UploadAttachmentParams {
     file: string;
     /** Filename (e.g., "photo.jpg") */
     filename: string;
-    /** Aborts the request. */
-    signal?: AbortSignal;
 }
 export type AttachmentDetails = {
     filename: string;

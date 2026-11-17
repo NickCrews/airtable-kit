@@ -1,4 +1,4 @@
-import type { Requester } from "../request.ts";
+import type { RequestOptions, Requester } from "../request.ts";
 import { TableSchemaCreate } from "../tables/api.ts";
 import { URLSearchParams } from "../url.ts";
 import { BaseId, BaseSchema } from "./types.ts";
@@ -12,13 +12,11 @@ export interface BaseSchemaCreate {
   tables: Array<TableSchemaCreate>
 }
 
-export interface CreateBaseParams {
+export interface CreateBaseParams extends RequestOptions {
   /** The ID of the workspace where the base should be created */
   workspaceId: WorkspaceId,
   /** The schema of the base to create */
   schema: BaseSchemaCreate,
-  /** Aborts the request(s) made by the call. */
-  signal?: AbortSignal,
 }
 
 export type PermissionLevel = "none" | "read" | "comment" | "edit" | "create";
@@ -33,7 +31,7 @@ export interface BaseSummary {
 /** Methods for the Airtable bases API, available as `airtable.bases`. */
 export interface BasesApi {
   /** List all bases the API key can access. Pagination is handled automatically. */
-  list(params?: { signal?: AbortSignal }): Promise<BaseSummary[]>;
+  list(requestOptions?: RequestOptions): Promise<BaseSummary[]>;
   /**
    * Get the {@link BaseSchema} of a base, including all of its tables and fields.
    *
@@ -44,7 +42,7 @@ export interface BasesApi {
    * const schemas = await Promise.all((await airtable.bases.list()).map((base) => airtable.bases.get(base)));
    * ```
    */
-  get(base: BaseId | BaseSummary, params?: { signal?: AbortSignal }): Promise<BaseSchema>;
+  get(base: BaseId | BaseSummary, requestOptions?: RequestOptions): Promise<BaseSchema>;
   /** Create a new base, returning its schema with all table and field IDs. */
   create(params: CreateBaseParams): Promise<BaseSchema>;
 }
@@ -73,9 +71,9 @@ export function makeBasesApi(request: Requester): BasesApi {
     } while (offset);
   }
 
-  async function list(params?: { signal?: AbortSignal }): Promise<BaseSummary[]> {
+  async function list(requestOptions?: RequestOptions): Promise<BaseSummary[]> {
     const result: BaseSummary[] = [];
-    for await (const page of listPages(params?.signal)) {
+    for await (const page of listPages(requestOptions?.signal)) {
       result.push(...page);
     }
     return result;
@@ -94,8 +92,8 @@ export function makeBasesApi(request: Requester): BasesApi {
 
   return {
     list,
-    async get(base, params) {
-      const signal = params?.signal;
+    async get(base, requestOptions) {
+      const signal = requestOptions?.signal;
       if (typeof base === "object") {
         return { id: base.id, name: base.name, tables: await getTables(base.id, signal) };
       }
