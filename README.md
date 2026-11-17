@@ -100,28 +100,6 @@ The available methods are:
 - `airtable.records`: `list`, `listPage`, `get`, `create`, `update`, `delete`, `uploadAttachment`
 - `airtable.request`: any other endpoint, with the client's credentials
 
-To get typed records for a few fields without a generated schema,
-describe just those fields in a typed table client.
-Each field needs its `id`, `name`, and `type`. Only select fields need `options` (their `choices`),
-and formula, rollup, and lookup fields need `options.result`:
-
-```typescript
-import { createTableClient } from 'airtable-kit/typed';
-
-// `airtable` from createAirtable(), above
-const tasks = createTableClient('appZZZZZZZZZZZZZZ', {
-  id: 'tblAAAAAAAAAAAAAA',
-  fields: [
-    { id: 'fldDue', name: 'dueDate', type: 'date' },
-    { id: 'fldDone', name: 'done', type: 'checkbox' },
-  ],
-} as const, airtable);
-
-await tasks.updateRecords([{ id: 'recXXXXXXXXXXXXXX', fields: { dueDate: new Date(), done: true } }]);
-const [record] = await tasks.listRecords({ fields: ['dueDate', 'done'] });
-record.fields.done; // boolean
-```
-
 ### Use Case 2: Statically Typed Client for a Known Base
 
 **Option A: Use the Web App (No Installation Required)**
@@ -253,6 +231,28 @@ import otherBaseSchema from './schemas/otherBase.ts';
 const projectTracker = createBaseClient(projectTrackerSchema, airtable);
 const otherBase = createBaseClient(otherBaseSchema, airtable);
 otherBase.tables.someTable.createRecords([ ... ]);
+```
+
+Without a generated schema, you can still get typed records for a few fields
+by describing just those fields in a typed table client.
+Each field needs its `id`, `name`, and `type`. Only select fields need `options` (their `choices`),
+and formula, rollup, and lookup fields need `options.result`:
+
+```typescript
+import { createTableClient } from 'airtable-kit/typed';
+
+// `airtable` from createAirtable(), see Use Case 1
+const tasks = createTableClient('appZZZZZZZZZZZZZZ', {
+  id: 'tblAAAAAAAAAAAAAA',
+  fields: [
+    { id: 'fldDue', name: 'dueDate', type: 'date' },
+    { id: 'fldDone', name: 'done', type: 'checkbox' },
+  ],
+} as const, airtable);
+
+await tasks.updateRecords([{ id: 'recXXXXXXXXXXXXXX', fields: { dueDate: new Date(), done: true } }]);
+const [record] = await tasks.listRecords({ fields: ['dueDate', 'done'] });
+record.fields.done; // boolean
 ```
 
 ### Use Case 3: The CLI
