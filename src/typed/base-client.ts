@@ -11,7 +11,7 @@ type TableClientsByName<T extends ReadonlyArray<TableSchema>> = {
 type TableIdInBase<T extends BaseSchema> = T['tables'][number]['id'];
 
 /**
- * A client for one base, which converts values according to the base's schema.
+ * A typed client for one base, which converts field values using the base's schema.
  *
  * `tables` maps table names to their {@link TableClient}.
  */
@@ -37,7 +37,7 @@ export interface BaseClient<T extends BaseSchema = BaseSchema> {
 }
 
 /**
- * Create a {@link BaseClient} for a base, which converts values according to the base's schema.
+ * Create a typed {@link BaseClient}, which converts field values using the base's schema.
  *
  * ```typescript
  * import { createBaseClient } from 'airtable-kit/typed';

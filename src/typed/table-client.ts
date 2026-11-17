@@ -24,7 +24,7 @@ export type SelectedFields<F extends FieldSchemaRead, K extends FieldNameOrId<F>
 /** Behavior when a record read from Airtable has a field that is not in the table schema. See {@link convertValuesFromRead}. */
 export type OnReadUnexpectedField = "throw" | { warn: boolean; keep: boolean; };
 
-/** A record with values converted according to the table schema, keyed by field name. */
+/** A record with field values converted using the table schema, keyed by field name. See {@link raw.RawRecord} for the unconverted form. */
 export interface TypedRecord<F extends FieldSchemaRead> {
     id: RecordId;
     createdTime: raw.Timestamp;
@@ -133,7 +133,7 @@ export interface UploadAttachmentOptions {
 }
 
 /**
- * A client for one table, which converts values according to the table's schema.
+ * A typed client for one table, which converts field values using the table's schema.
  *
  * Usually accessed as `baseClient.tables.<name>`, or created with {@link createTableClient}.
  */
@@ -241,7 +241,7 @@ export interface TableClientOptions {
 }
 
 /**
- * Create a {@link TableClient} for a table, which converts values according to the table's schema.
+ * Create a typed {@link TableClient}, which converts field values using the table's schema.
  *
  * ```typescript
  * import { createTableClient } from 'airtable-kit/typed';
