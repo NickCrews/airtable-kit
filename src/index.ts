@@ -56,3 +56,12 @@ export {
     type UploadAttachmentResponse,
     type AttachmentDetails,
 } from "./records/api.ts";
+
+export {
+    withRetry,
+    withThrottle,
+    defaultShouldRetry,
+    AIRTABLE_REQUESTS_PER_SECOND,
+    type RetryOptions,
+    type ThrottleOptions,
+} from "./fetcher.ts";
