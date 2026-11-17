@@ -8,6 +8,7 @@ import path from "node:path";
 import { toIdentifier } from "../codegen/identifiers.ts";
 import { BaseSchema } from "../bases/types.ts";
 import { makeOpenApiCommand } from "./openapi.ts";
+import { getAllBaseSchemas } from "./schemas.ts";
 
 export function createBaseCommand(resolveAirtable: () => Airtable): Command {
   const cmd = new Command("base")
@@ -21,7 +22,7 @@ export function createBaseCommand(resolveAirtable: () => Airtable): Command {
     .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (options: any) => {
       const airtable = resolveAirtable();
-      const schemas = await airtable.bases.listSchemas();
+      const schemas = await getAllBaseSchemas(airtable);
       if (options.format === "json") {
         console.log(JSON.stringify(schemas, null, 2));
         return;
@@ -37,7 +38,7 @@ export function createBaseCommand(resolveAirtable: () => Airtable): Command {
     .action(async (baseId: string | undefined, options: any) => {
       const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const schemas = await airtable.bases.listSchemas();
+      const schemas = await getAllBaseSchemas(airtable);
 
       const resolvedId = baseId || config.getBaseId();
       const resolved = resolveBase(resolvedId || null, schemas);
@@ -56,7 +57,7 @@ export function createBaseCommand(resolveAirtable: () => Airtable): Command {
     .action(async (identifier: string) => {
       const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const schemas = await airtable.bases.listSchemas();
+      const schemas = await getAllBaseSchemas(airtable);
 
       const resolved = resolveBase(identifier, schemas);
       const base = ensureOneMatch(resolved, "base", identifier);
@@ -73,7 +74,7 @@ export function createBaseCommand(resolveAirtable: () => Airtable): Command {
     .action(async (identifier: string | undefined, options: any) => {
       const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const schemas = await airtable.bases.listSchemas();
+      const schemas = await getAllBaseSchemas(airtable);
 
       let baseSchemas = schemas;
       if (identifier) {

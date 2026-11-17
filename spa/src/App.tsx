@@ -6,6 +6,12 @@ import { createSignal, For, Show, onMount, createEffect } from 'solid-js'
 import { ExternalLink } from 'lucide-solid'
 import './App.css'
 
+async function getAllBaseSchemas(apiKey: string): Promise<BaseSchema[]> {
+  const airtable = createAirtable({ apiKey })
+  const bases = await airtable.bases.list()
+  return Promise.all(bases.map((base) => airtable.bases.get(base)))
+}
+
 const STORAGE_KEY = 'airtable-kit:saved-api-keys'
 const STORAGE_ENABLED_KEY = 'airtable-kit:storage-enabled'
 
@@ -75,7 +81,7 @@ function App() {
     const results: BasesForKey[] = []
     for (const key of enabledKeys) {
       try {
-        const fetchedBases = await createAirtable({ apiKey: key }).bases.listSchemas()
+        const fetchedBases = await getAllBaseSchemas(key)
         results.push({ key, bases: fetchedBases })
         setKeyValidation((prev) => ({ ...prev, [key]: true }))
       } catch {
@@ -145,7 +151,7 @@ function App() {
     setLoading(true)
     setError(null)
     try {
-      const fetchedBases = await createAirtable({ apiKey: key }).bases.listSchemas()
+      const fetchedBases = await getAllBaseSchemas(key)
       if (fetchedBases.length === 0) {
         setError('No bases found. Make sure your API key has access to at least one base.')
         setKeyValidation((prev) => ({ ...prev, [key]: false }))

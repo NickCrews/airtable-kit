@@ -5,6 +5,7 @@ import { resolveTable, ensureOneMatch } from "./resolvers.ts";
 import { type Airtable } from "../client.ts";
 import { readInput, validateRecordData, validateBatchData } from "./input.ts";
 import { createTableClient } from "../typed/table-client.ts";
+import { getAllBaseSchemas } from "./schemas.ts";
 
 export function createRecordCommand(resolveAirtable: () => Airtable): Command {
   const cmd = new Command("record")
@@ -24,7 +25,7 @@ export function createRecordCommand(resolveAirtable: () => Airtable): Command {
     .action(async (options: any) => {
       const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await airtable.bases.listSchemas();
+      const allSchemas = await getAllBaseSchemas(airtable);
 
       const baseId = options.base || config.getBaseId();
       const tableId = options.table || config.getTableId();
@@ -73,7 +74,7 @@ export function createRecordCommand(resolveAirtable: () => Airtable): Command {
     .action(async (recordId: string, options: any) => {
       const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await airtable.bases.listSchemas();
+      const allSchemas = await getAllBaseSchemas(airtable);
 
       const baseId = options.base || config.getBaseId();
       const tableId = options.table || config.getTableId();
@@ -102,7 +103,7 @@ export function createRecordCommand(resolveAirtable: () => Airtable): Command {
     .action(async (options: any) => {
       const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await airtable.bases.listSchemas();
+      const allSchemas = await getAllBaseSchemas(airtable);
 
       const baseId = options.base || config.getBaseId();
       const tableId = options.table || config.getTableId();
@@ -143,7 +144,7 @@ export function createRecordCommand(resolveAirtable: () => Airtable): Command {
     .action(async (recordId: string, options: any) => {
       const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await airtable.bases.listSchemas();
+      const allSchemas = await getAllBaseSchemas(airtable);
 
       const baseId = options.base || config.getBaseId();
       const tableId = options.table || config.getTableId();
@@ -184,7 +185,7 @@ export function createRecordCommand(resolveAirtable: () => Airtable): Command {
     .action(async (recordIds: string[], options: any) => {
       const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await airtable.bases.listSchemas();
+      const allSchemas = await getAllBaseSchemas(airtable);
 
       const baseId = options.base || config.getBaseId();
       const tableId = options.table || config.getTableId();
@@ -210,7 +211,7 @@ export function createRecordCommand(resolveAirtable: () => Airtable): Command {
     .action(async (options: any) => {
       const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await airtable.bases.listSchemas();
+      const allSchemas = await getAllBaseSchemas(airtable);
 
       const baseId = options.base || config.getBaseId();
       const tableId = options.table || config.getTableId();
