@@ -1,15 +1,13 @@
 import { Command } from "commander";
-import { fetchAllSchemas } from "../bases/api.ts";
 import { ConfigManager } from "./config.ts";
 import { mdTable } from "./md.ts";
 import { resolveBase, resolveTable, resolveField, ensureOneMatch } from "./resolvers.ts";
-import { IntoFetcher } from "../fetcher.ts";
-import { createField, updateField } from "../fields/api.ts";
+import { type Airtable } from "../client.ts";
 import { readInput } from "./input.ts";
 import { FieldSchemaRead } from "../fields/types.ts";
 import { TableSchema } from "../tables/types.ts";
 
-export function createFieldCommand(resolveFetcher: () => IntoFetcher): Command {
+export function createFieldCommand(resolveAirtable: () => Airtable): Command {
   const cmd = new Command("field")
     .description("Manage Airtable fields");
 
@@ -20,9 +18,9 @@ export function createFieldCommand(resolveFetcher: () => IntoFetcher): Command {
     .option("--table <id>", "Table ID or name (uses context if not provided)")
     .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (options: any) => {
-      const fetcher = resolveFetcher();
+      const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await fetchAllSchemas({ fetcher });
+      const allSchemas = await airtable.bases.listSchemas();
 
       const baseId = options.base || config.getBaseId();
       const tableId = options.table || config.getTableId();
@@ -44,9 +42,9 @@ export function createFieldCommand(resolveFetcher: () => IntoFetcher): Command {
     .option("--table <id>", "Table ID or name (uses context if not provided)")
     .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (identifier: string, options: any) => {
-      const fetcher = resolveFetcher();
+      const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await fetchAllSchemas({ fetcher });
+      const allSchemas = await airtable.bases.listSchemas();
 
       const baseId = options.base || config.getBaseId();
       const tableId = options.table || config.getTableId();
@@ -71,9 +69,9 @@ export function createFieldCommand(resolveFetcher: () => IntoFetcher): Command {
     .option("--data <json>", "Field options as JSON")
     .option("--file <path>", "JSON file with field config")
     .action(async (name: string, options: any) => {
-      const fetcher = resolveFetcher();
+      const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await fetchAllSchemas({ fetcher });
+      const allSchemas = await airtable.bases.listSchemas();
 
       const baseId = options.base || config.getBaseId();
       const tableId = options.table || config.getTableId();
@@ -103,11 +101,10 @@ export function createFieldCommand(resolveFetcher: () => IntoFetcher): Command {
         ...fieldOptions,
       };
 
-      const result = await createField({
+      const result = await airtable.fields.create({
         baseId: base.id,
         tableId: table.id,
         field: field as any,
-        fetcher,
       });
 
       console.log(formatField(result));
@@ -122,9 +119,9 @@ export function createFieldCommand(resolveFetcher: () => IntoFetcher): Command {
     .option("--name <name>", "New field name")
     .option("--description <text>", "New description")
     .action(async (identifier: string, options: any) => {
-      const fetcher = resolveFetcher();
+      const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await fetchAllSchemas({ fetcher });
+      const allSchemas = await airtable.bases.listSchemas();
 
       const baseId = options.base || config.getBaseId();
       const tableId = options.table || config.getTableId();
@@ -135,7 +132,7 @@ export function createFieldCommand(resolveFetcher: () => IntoFetcher): Command {
       const fieldResolved = resolveField(base.id, tableId || null, identifier, allSchemas);
       const { table, field } = ensureOneMatch(fieldResolved, "field", identifier, tableId ? `in table ${tableId}` : undefined);
 
-      const updated = await updateField({
+      const updated = await airtable.fields.update({
         baseId: base.id,
         tableId: table.id,
         field: {
@@ -144,7 +141,6 @@ export function createFieldCommand(resolveFetcher: () => IntoFetcher): Command {
           name: options.name || field.name,
           description: options.description !== undefined ? options.description : field.description,
         },
-        fetcher,
       });
 
       console.log(formatField(updated));

@@ -6,11 +6,11 @@ import {
   makeListTool,
   makeDeleteTool,
 } from '../src/mcp/index.ts';
-import { makeBaseClient } from "../src/bases/base-client.ts";
-import { prepTestBaseClient } from '../src/tests/test-utils.ts';
+import { createBaseClient } from "airtable-kit/typed";
+import { getTestAirtable, prepTestBaseClient } from '../src/tests/test-utils.ts';
 
 import testBaseSchema from "../src/tests/test-base-schema.generated.ts";
-const baseClient = makeBaseClient({ baseSchema: testBaseSchema });
+const baseClient = createBaseClient(testBaseSchema, getTestAirtable());
 const tasksTableClient = baseClient.tables.tasks;
 const { resetBaseData } = prepTestBaseClient(baseClient);
 

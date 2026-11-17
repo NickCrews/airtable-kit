@@ -14,10 +14,15 @@
   },
   "bin": "./dist/src/bin.cjs",
   "exports": {
-    "./fetcher": {
-      "types": "./dist/src/fetcher.d.cts",
-      "import": "./dist/src/fetcher.js",
-      "require": "./dist/src/fetcher.cjs"
+    ".": {
+      "types": "./dist/src/index.d.cts",
+      "import": "./dist/src/index.js",
+      "require": "./dist/src/index.cjs"
+    },
+    "./typed": {
+      "types": "./dist/src/typed/index.d.cts",
+      "import": "./dist/src/typed/index.js",
+      "require": "./dist/src/typed/index.cjs"
     },
     "./bases": {
       "types": "./dist/src/bases/index.d.cts",
@@ -106,7 +111,8 @@
   "zshy": {
     "bin": "./src/bin.ts",
     "exports": {
-      "./fetcher": "./src/fetcher.ts",
+      ".": "./src/index.ts",
+      "./typed": "./src/typed/index.ts",
       "./bases": "./src/bases/index.ts",
       "./tables": "./src/tables/index.ts",
       "./fields": "./src/fields/index.ts",
@@ -123,8 +129,10 @@
   "files": [
     "dist"
   ],
-  "module": "./dist/index.js",
+  "module": "./dist/src/index.js",
   "dependencies": {
     "commander": "^14.0.3"
-  }
+  },
+  "main": "./dist/src/index.cjs",
+  "types": "./dist/src/index.d.cts"
 }

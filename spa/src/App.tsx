@@ -1,4 +1,5 @@
-import * as atk_bases from 'airtable-kit/bases';
+import { createAirtable } from 'airtable-kit';
+import type { BaseSchema } from 'airtable-kit/bases';
 import * as atk_codegen from 'airtable-kit/codegen';
 import { createSignal, For, Show, onMount, createEffect } from 'solid-js'
 
@@ -20,7 +21,7 @@ interface KeyValidation {
 
 interface BasesForKey {
   key: string
-  bases: atk_bases.BaseSchema[]
+  bases: BaseSchema[]
 }
 
 interface AddedKey {
@@ -33,7 +34,7 @@ function App() {
   const [apiKeyBeingAdded, setApiKeyBeingAdded] = createSignal('')
   const [loading, setLoading] = createSignal(false)
   const [error, setError] = createSignal<string | null>(null)
-  const [bases, setBases] = createSignal<atk_bases.BaseSchema[]>([])
+  const [bases, setBases] = createSignal<BaseSchema[]>([])
   const [selectedBaseId, setSelectedBaseId] = createSignal<string>('')
   const [expandedTables, setExpandedTables] = createSignal<Set<string>>(new Set())
   const [selectedItems, setSelectedItems] = createSignal<SelectedItems>({
@@ -74,7 +75,7 @@ function App() {
     const results: BasesForKey[] = []
     for (const key of enabledKeys) {
       try {
-        const fetchedBases = await atk_bases.fetchAllSchemas({ fetcher: key })
+        const fetchedBases = await createAirtable({ apiKey: key }).bases.listSchemas()
         results.push({ key, bases: fetchedBases })
         setKeyValidation((prev) => ({ ...prev, [key]: true }))
       } catch {
@@ -144,7 +145,7 @@ function App() {
     setLoading(true)
     setError(null)
     try {
-      const fetchedBases = await atk_bases.fetchAllSchemas({ fetcher: key })
+      const fetchedBases = await createAirtable({ apiKey: key }).bases.listSchemas()
       if (fetchedBases.length === 0) {
         setError('No bases found. Make sure your API key has access to at least one base.')
         setKeyValidation((prev) => ({ ...prev, [key]: false }))
@@ -227,7 +228,7 @@ function App() {
     }
 
     const selected = selectedItems()
-    const filteredBase: atk_bases.BaseSchema = {
+    const filteredBase: BaseSchema = {
       ...base,
       tables: base.tables
         .filter((t) => selected.tableIds.has(t.id))

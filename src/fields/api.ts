@@ -1,5 +1,5 @@
 import { BaseId } from "../bases/types.ts";
-import { IntoFetcher, doFetch } from "../fetcher.ts";
+import type { Requester } from "../request.ts";
 import { TableId } from "../tables/types.ts";
 import { FieldId } from "./types.ts";
 
@@ -81,27 +81,6 @@ export interface CreateFieldParams {
     baseId: BaseId;
     tableId: TableId;
     field: FieldSchemaCreate;
-    fetcher?: IntoFetcher;
-}
-
-/**
- * Create a field in a table.
- */
-export async function createField({
-    baseId,
-    tableId,
-    field,
-    fetcher,
-}: CreateFieldParams): Promise<FieldSchemaRead> {
-    const response = await doFetch<FieldSchemaRead>({
-        fetcher,
-        path: `/meta/bases/${baseId}/tables/${tableId}/fields`,
-        method: "POST",
-        data: {
-            ...field,
-        },
-    });
-    return response;
 }
 
 export interface UpdateFieldSchema {
@@ -114,26 +93,36 @@ export interface UpdateFieldParams {
     baseId: BaseId;
     tableId: TableId;
     field: UpdateFieldSchema;
-    fetcher?: IntoFetcher;
 }
 
-/**
- * You can update a field's name and description, but not its type or options.
- */
-export async function updateField({
-    baseId,
-    tableId,
-    field,
-    fetcher,
-}: UpdateFieldParams): Promise<FieldSchemaRead> {
-    const response = await doFetch<FieldSchemaRead>({
-        fetcher,
-        path: `/meta/bases/${baseId}/tables/${tableId}/fields/${field.id}`,
-        method: "PATCH",
-        data: {
-            name: field.name || undefined,
-            description: field.description || undefined,
+/** Methods for the Airtable fields API, available as `airtable.fields`. */
+export interface FieldsApi {
+    /** Create a field in a table. */
+    create(params: CreateFieldParams): Promise<FieldSchemaRead>;
+    /** Update a field's name and description. A field's type and options cannot be changed. */
+    update(params: UpdateFieldParams): Promise<FieldSchemaRead>;
+}
+
+export function makeFieldsApi(request: Requester): FieldsApi {
+    return {
+        // https://airtable.com/developers/web/api/create-field
+        create({ baseId, tableId, field }) {
+            return request<FieldSchemaRead>({
+                path: `/meta/bases/${baseId}/tables/${tableId}/fields`,
+                method: "POST",
+                data: field,
+            });
         },
-    });
-    return response;
+        // https://airtable.com/developers/web/api/update-field
+        update({ baseId, tableId, field }) {
+            return request<FieldSchemaRead>({
+                path: `/meta/bases/${baseId}/tables/${tableId}/fields/${field.id}`,
+                method: "PATCH",
+                data: {
+                    name: field.name || undefined,
+                    description: field.description || undefined,
+                },
+            });
+        },
+    };
 }

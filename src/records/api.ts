@@ -1,32 +1,26 @@
-import { doFetch, IntoFetcher } from "../fetcher";
-import { ValueFromRead } from "../value-converters/index.ts";
-import { Timezone } from "../fields/timezones";
-import { AttachmentId, FieldId, FieldSchemaRead } from "../fields/types";
-import { Formula, formulaToString } from "../formula";
-import { convertValuesFromRead, convertValuesForWrite, ValuesFromRead, ValuesForWrite, WriteValuesById } from "./converters";
-import * as exceptions from "../exceptions";
+import type { Requester } from "../request.ts";
+import { Timezone } from "../fields/timezones.ts";
+import { AttachmentId } from "../fields/types.ts";
 import { URLSearchParams } from "../url.ts";
 import { BaseId } from "../bases/types.ts";
 import { TableId } from "../tables/types.ts";
 import { RecordId } from "./types.ts";
 
-type FieldNameOrId<T extends FieldSchemaRead> = T['name'] | T['id'];
-
-/** The field schemas in `T` selected by the field names or IDs `K`. */
-export type SelectedFields<T extends FieldSchemaRead, K extends FieldNameOrId<T>> =
-    Extract<T, { name: K }> | Extract<T, { id: K }>;
-
 /** ISO 8601 format in UTC, eg `2024-01-01T12:00:00.000Z` */
 export type Timestamp = string;
 
-export interface CreateRecordsParams<T extends FieldSchemaRead> {
-    records: ReadonlyArray<ValuesForWrite<T>>;
-    baseId: BaseId;
-    tableId: TableId;
-    fields: ReadonlyArray<T>;
-    onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
-    fetcher?: IntoFetcher;
+/** Field values as Airtable sends and receives them, keyed by field name or ID. */
+export type RawFields = Record<string, unknown>;
+
+/** A record as Airtable returns it. */
+export interface RawRecord {
+    id: RecordId;
+    createdTime: Timestamp;
+    fields: RawFields;
+    /** Only present when `recordMetadata: ["commentCount"]` is requested */
+    commentCount?: number;
 }
+
 /**
  * A reason Airtable gives when a create or update only partially succeeded:
  * the records were written, but something else, such as uploading attachments from URLs, failed.
@@ -48,125 +42,17 @@ function addWarnings(warnings: WriteWarning[], reasons: ReadonlyArray<WriteWarni
     }
 }
 
-/**
- * Response from {@link createRecords} and {@link createRecordsRaw}.
- */
-export interface CreateRecordsResponse<T extends FieldSchemaRead> {
-    /** The created records, in the same order as the input. */
-    records: Array<{
-        id: RecordId;
-        fields: ValuesFromRead<T>;
-        createdTime: Timestamp;
-    }>;
-    /** Problems Airtable reported for an otherwise successful write. Empty if there were none. */
-    warnings: WriteWarning[];
-}
-
-// https://airtable.com/developers/web/api/create-records
-type RawReadValues<T extends FieldSchemaRead> = {
-    [K in T["id"]]: ValueFromRead<Extract<T, { id: K }>>;
-}
-/** Create records, sending them in batches of up to 25, the most Airtable accepts per request. */
-export async function createRecords<T extends FieldSchemaRead>(
-    {
-        records,
-        baseId,
-        tableId,
-        fields,
-        onUnexpectedField,
-        fetcher,
-    }: CreateRecordsParams<T>,
-): Promise<CreateRecordsResponse<T>> {
-    // on 2026-05-05 I got:
-    // Fetch error: 422 Unprocessable Entity - {"error":{"type":"INVALID_RECORDS","message":"A maximum of 25 records can be created per request but you have provided 35."}}
-    const BATCH_SIZE = 25;
-    const result: CreateRecordsResponse<T> = { records: [], warnings: [] };
-    for (let i = 0; i < records.length; i += BATCH_SIZE) {
-        const batch = records.slice(i, i + BATCH_SIZE);
-        const created = await createRecordsRaw<T>({
-            records: batch,
-            fields,
-            baseId,
-            tableId,
-            fetcher,
-            onUnexpectedField,
-        });
-        result.records.push(...created.records);
-        addWarnings(result.warnings, created.warnings);
-    }
-    return result;
-}
-
-export interface CreateRecordsRawParams<T extends FieldSchemaRead> {
-    records: ReadonlyArray<ValuesForWrite<T>>;
+interface TableRef {
     baseId: BaseId;
     tableId: TableId;
-    fields: ReadonlyArray<T>;
-    fetcher?: IntoFetcher;
-    onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
-}
-export type CreateRecordsRawResponse<T extends FieldSchemaRead> = CreateRecordsResponse<T>;
-
-export async function createRecordsRaw<T extends FieldSchemaRead>(
-    {
-        records,
-        baseId,
-        tableId,
-        fields,
-        fetcher,
-        onUnexpectedField,
-    }: CreateRecordsRawParams<T>,
-): Promise<CreateRecordsRawResponse<T>> {
-    if (records.length === 0) {
-        return { records: [], warnings: [] };
-    }
-    const convertedToAirtable = records.map((record) => {
-        const withoutUndefinedAndNulls = Object.fromEntries(
-            Object.entries(record).filter(([_, v]) => v !== undefined && v !== null)
-        );
-        return {
-            fields: convertValuesForWrite(
-                withoutUndefinedAndNulls as Partial<ValuesForWrite<T>>,
-                fields,
-            ),
-        };
-    });
-    type CreateApiResponse<T extends FieldSchemaRead> = {
-        records: Array<{
-            id: `rec${string}`;
-            createdTime: string;
-            fields: RawReadValues<T>;
-        }>;
-        details?: PartialSuccessDetails;
-    };
-    const raw = await doFetch<CreateApiResponse<T>>({
-        fetcher,
-        path: `/${baseId}/${tableId}`,
-        method: "POST",
-        data: {
-            records: convertedToAirtable,
-            returnFieldsByFieldId: true,
-        },
-    });
-    const warnings: WriteWarning[] = [];
-    addWarnings(warnings, raw.details?.reasons);
-    return {
-        records: raw.records.map((record) => ({
-            id: record.id,
-            fields: convertValuesFromRead(record.fields, fields, onUnexpectedField),
-            createdTime: record.createdTime,
-        })),
-        warnings,
-    };
 }
 
 /**
- * Options for listing records
+ * Options for listing records.
+ *
+ * See https://airtable.com/developers/web/api/list-records
  */
-export interface ListRecordsOptions<
-    T extends FieldSchemaRead,
-    K extends FieldNameOrId<T> = FieldNameOrId<T>,
-> {
+export interface ListRecordsOptions {
     /** Time zone for formatting dates when using cellFormat: "string" */
     timeZone?: Timezone;
     /** User locale for formatting dates when using cellFormat: "string" */
@@ -175,296 +61,83 @@ export interface ListRecordsOptions<
     maxRecords?: number;
     /** View name or ID to filter by */
     view?: string;
-    /** Sort configuration */
-    sort?: Array<{ field: FieldNameOrId<T>; direction?: 'asc' | 'desc' }>;
-    /** Formula to filter records, either a string or a {@link Formula} object */
-    filterByFormula?: string | Formula<T>;
+    /** Sort by field names or IDs */
+    sort?: ReadonlyArray<{ field: string; direction?: 'asc' | 'desc' }>;
+    /** Formula to filter records */
+    filterByFormula?: string;
     /** Cell value format: "json" (default) or "string" */
     cellFormat?: 'json' | 'string';
-    /**
-     * Fields to include (names or IDs).
-     * Only these fields are returned, and the returned record type is narrowed to them.
-     */
-    fields?: ReadonlyArray<K>;
+    /** Field names or IDs to include. Other fields are omitted from the response. */
+    fields?: ReadonlyArray<string>;
+    /** Key the returned fields by field ID instead of field name */
+    returnFieldsByFieldId?: boolean;
     /** Include metadata like comment count */
-    recordMetadata?: Array<'commentCount'>;
+    recordMetadata?: ReadonlyArray<'commentCount'>;
 }
-export interface ListRecordsParams<
-    T extends FieldSchemaRead,
-    K extends FieldNameOrId<T> = FieldNameOrId<T>,
-> {
-    baseId: BaseId;
-    tableId: TableId;
-    fields: ReadonlyArray<T>;
-    options?: ListRecordsOptions<T, K>;
-    fetcher?: IntoFetcher;
-    onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
-}
-export type ListRecordsResponse<T extends FieldSchemaRead> = Array<{
-    id: RecordId;
-    createdTime: Timestamp;
-    fields: ValuesFromRead<T>;
-    commentCount?: number;
-}>;
+export interface ListRecordsParams extends TableRef, ListRecordsOptions { }
 
-export async function listRecords<
-    T extends FieldSchemaRead,
-    K extends FieldNameOrId<T> = FieldNameOrId<T>,
->(
-    {
-        options,
-        fields,
-        fetcher,
-        baseId,
-        tableId,
-        onUnexpectedField,
-    }: ListRecordsParams<T, K>,
-): Promise<ListRecordsResponse<SelectedFields<T, K>>> {
-    const allRecords: ListRecordsResponse<SelectedFields<T, K>> = [];
-    let offset = undefined;
-    do {
-        const response: ListRecordsRawResponse<SelectedFields<T, K>> = await listRecordsRaw<T, K>({
-            options: {
-                ...options,
-                offset,
-            },
-            fields,
-            baseId,
-            tableId,
-            fetcher,
-            onUnexpectedField,
-        });
-        allRecords.push(...response.records);
-        offset = response.offset;
-    } while (offset);
-    return allRecords;
-}
-
-export type ListRecordsRawOptions<
-    T extends FieldSchemaRead,
-    K extends FieldNameOrId<T> = FieldNameOrId<T>,
-> = ListRecordsOptions<T, K> & {
+export interface ListRecordsPageParams extends ListRecordsParams {
+    /** Number of records per page, at most 100 */
     pageSize?: number;
+    /** The `offset` returned by the previous page */
     offset?: string;
-};
-export interface ListRecordsRawParams<
-    T extends FieldSchemaRead,
-    K extends FieldNameOrId<T> = FieldNameOrId<T>,
-> {
-    baseId: BaseId;
-    tableId: TableId;
-    fields: ReadonlyArray<T>;
-    options?: ListRecordsRawOptions<T, K>;
-    fetcher?: IntoFetcher;
-    onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
 }
-export type ListRecordsRawResponse<T extends FieldSchemaRead> = {
-    records: Array<{
-        id: RecordId;
-        createdTime: Timestamp;
-        fields: ValuesFromRead<T>;
-        commentCount: number;
-    }>;
-    offset?: RecordId;
-};
-export async function listRecordsRaw<
-    T extends FieldSchemaRead,
-    K extends FieldNameOrId<T> = FieldNameOrId<T>,
->(
-    {
-        options,
-        fields,
-        fetcher,
-        baseId,
-        tableId,
-        onUnexpectedField,
-    }: ListRecordsRawParams<T, K>,
-): Promise<ListRecordsRawResponse<SelectedFields<T, K>>> {
-    const queryParams = new URLSearchParams();
-    queryParams.append('returnFieldsByFieldId', 'true');
-
-    if (options?.timeZone) queryParams.append('timeZone', options.timeZone);
-    if (options?.userLocale) queryParams.append('userLocale', options.userLocale);
-    if (options?.pageSize) queryParams.append('pageSize', String(options.pageSize));
-    if (options?.maxRecords) queryParams.append('maxRecords', String(options.maxRecords));
-    if (options?.offset) queryParams.append('offset', options.offset);
-    if (options?.view) queryParams.append('view', options.view);
-    if (options?.filterByFormula) queryParams.append('filterByFormula', typeof options.filterByFormula === 'string' ? options.filterByFormula : formulaToString(fields, options.filterByFormula));
-    if (options?.cellFormat) queryParams.append('cellFormat', options.cellFormat);
-
-    const toFieldSchema = (field: FieldNameOrId<T>) => {
-        const spec = fields.find(f => f.id === field || f.name === field);
-        if (!spec) {
-            throw new Error(`Field "${field}" not found in table schema.`);
-        }
-        return spec;
-    }
-    const toFieldId = (field: FieldNameOrId<T>) => toFieldSchema(field).id;
-
-    if (options?.sort) {
-        // trying to build up something like
-        // ...?sort[0][field]=fldabc&sort[0][direction]=asc
-        options.sort.forEach((s, i) => {
-            queryParams.append(`sort[${i}][field]`, toFieldId(s.field));
-            if (s.direction) queryParams.append(`sort[${i}][direction]`, s.direction);
-        });
-    }
-
-    // When a subset of fields is requested, Airtable only returns those fields,
-    // so only validate the returned values against those fields' schemas.
-    // Otherwise, fields that are always present (eg createdTime) would look like
-    // they had been deleted upstream.
-    let readFields: ReadonlyArray<SelectedFields<T, K>> = fields as ReadonlyArray<SelectedFields<T, K>>;
-    if (options?.fields) {
-        const selected = [...new Set(options.fields.map(toFieldSchema))];
-        selected.forEach(spec => {
-            queryParams.append('fields[]', spec.id);
-        });
-        readFields = selected as SelectedFields<T, K>[];
-    }
-
-    if (options?.recordMetadata) {
-        options.recordMetadata.forEach(meta => {
-            queryParams.append('recordMetadata[]', meta);
-        });
-    }
-    const query = queryParams.toString();
-    const path = `/${baseId}/${tableId}${query ? `?${query}` : ''}`;
-
-    type ListApiSuccessResponse<T extends FieldSchemaRead> = {
-        records: Array<{
-            id: RecordId;
-            createdTime: Timestamp;
-            fields: RawReadValues<T>;
-            commentCount?: number;
-        }>;
-        offset?: RecordId;
-    };
-    type ListApiErrorResponse = {
-        error: {
-            type: string;
-            message?: string;
-        };
-        // eg
-        // error: {
-        //     type: 'INVALID_FILTER_BY_FORMULA',
-        //     message: 'The formula for filtering records is invalid: Unknown field names: firstname, lastname'
-        // }
-    };
-    type ListApiResponse<T extends FieldSchemaRead> = ListApiSuccessResponse<T> | ListApiErrorResponse;
-    const raw = await doFetch<ListApiResponse<T>>({ fetcher, path, method: "GET" });
-    if ('error' in raw) {
-        throw new exceptions.AirtableKitApiError(
-            `Error listing records: ${raw.error.message ?? raw.error.type}`,
-            path,
-        )
-    }
-    return {
-        records: raw.records.map((record) => {
-            return {
-                id: record.id,
-                createdTime: record.createdTime,
-                fields: convertValuesFromRead(record.fields, readFields, onUnexpectedField),
-                commentCount: record.commentCount ?? 0,
-            };
-        }),
-        offset: raw.offset,
-    };
+export interface ListRecordsPageResponse {
+    records: RawRecord[];
+    /** Pass to the next call to get the next page. Absent on the last page. */
+    offset?: string;
 }
 
-/**
- * Options for getting a single record
- */
-export interface GetRecordOptions {
+export interface GetRecordParams extends TableRef {
+    recordId: RecordId;
     /** Cell value format: "json" (default) or "string" */
     cellFormat?: 'json' | 'string';
+    /** Key the returned fields by field ID instead of field name */
+    returnFieldsByFieldId?: boolean;
 }
-export interface GetRecordParams<T extends FieldSchemaRead> {
-    recordId: RecordId;
-    fields: ReadonlyArray<T>;
-    baseId: BaseId;
-    tableId: TableId;
-    options?: GetRecordOptions;
-    fetcher?: IntoFetcher;
-    onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
+
+export interface CreateRecordsParams extends TableRef {
+    records: ReadonlyArray<{ fields: RawFields }>;
+    /** Let Airtable convert string values to the appropriate cell values */
+    typecast?: boolean;
+    /** Key the returned fields by field ID instead of field name */
+    returnFieldsByFieldId?: boolean;
 }
-export interface GetRecordResponse<T extends FieldSchemaRead> {
-    id: RecordId;
-    createdTime: Timestamp;
-    fields: ValuesFromRead<T>;
-}
-export async function getRecord<T extends FieldSchemaRead>(
-    {
-        recordId,
-        fields,
-        options,
-        fetcher: intoFetcher,
-        baseId,
-        tableId,
-        onUnexpectedField,
-    }: GetRecordParams<T>,
-): Promise<GetRecordResponse<T>> {
-    const queryParams = new URLSearchParams();
-    queryParams.append('returnFieldsByFieldId', 'true');
-
-    if (options?.cellFormat) queryParams.append('cellFormat', options.cellFormat);
-
-    const query = queryParams.toString();
-    const path = `/${baseId}/${tableId}/${recordId}${query ? `?${query}` : ''}`;
-
-    type GetApiResponse<T extends FieldSchemaRead> = {
-        id: RecordId;
-        createdTime: Timestamp;
-        fields: RawReadValues<T>;
-    };
-    const result = await doFetch<GetApiResponse<T>>({
-        fetcher: intoFetcher,
-        path,
-        method: "GET",
-    });
-
-    return {
-        id: result.id,
-        createdTime: result.createdTime,
-        fields: convertValuesFromRead(result.fields, fields, onUnexpectedField),
-    }
+export interface CreateRecordsResponse {
+    /** The created records, in the same order as the input. */
+    records: RawRecord[];
+    /** Problems Airtable reported for an otherwise successful write. Empty if there were none. */
+    warnings: WriteWarning[];
 }
 
 /**
- * Options for updating records
+ * Options for updating records.
+ *
+ * See https://airtable.com/developers/web/api/update-multiple-records
  */
-export interface UpdateRecordsOptions<T extends FieldSchemaRead> {
+export interface UpdateRecordsOptions {
     /**
      * If not destructive (the default), then only the fields included in the update will be modified; all other fields will remain unchanged.
-     * If destructive, then ALL fields in the target record will be updated, meaning that any fields not included in the update will be cleared. 
-    */
+     * If destructive, then ALL fields in the target record will be updated, meaning that any fields not included in the update will be cleared.
+     */
     destructive?: boolean;
     /** Enable upsert behavior */
     performUpsert?: {
-        /** Fields to use as external ID for matching (1-3 fields) */
-        fieldsToMergeOn: T['name'][];
+        /** Field names or IDs to use as an external ID for matching (1-3 fields) */
+        fieldsToMergeOn: ReadonlyArray<string>;
     };
-    /** Enable typecasting for string values */
+    /** Let Airtable convert string values to the appropriate cell values */
     typecast?: boolean;
 }
-export interface UpdateRecordsParams<T extends FieldSchemaRead> {
-    records: Array<{ id?: string; fields: ValuesForWrite<T> }>;
-    fields: ReadonlyArray<T>;
-    baseId: BaseId;
-    tableId: TableId;
-    options?: UpdateRecordsOptions<T>;
-    fetcher?: IntoFetcher;
-    onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
+export interface UpdateRecordsParams extends TableRef, UpdateRecordsOptions {
+    /** Records to update. With `performUpsert`, records without an `id` are matched on `fieldsToMergeOn`. */
+    records: ReadonlyArray<{ id?: string; fields: RawFields }>;
+    /** Key the returned fields by field ID instead of field name */
+    returnFieldsByFieldId?: boolean;
 }
-/**
- * Response from {@link updateRecords} and {@link updateRecordsRaw}.
- */
-export interface UpdateRecordsResponse<T extends FieldSchemaRead> {
+export interface UpdateRecordsResponse {
     /** The written records, in the same order as the input. */
-    records: Array<{
-        id: RecordId;
-        createdTime: Timestamp;
-        fields: ValuesFromRead<T>;
+    records: Array<RawRecord & {
         /**
          * Whether the record was created or updated.
          * Records are only created when upserting with `performUpsert` and no existing record matched.
@@ -475,217 +148,21 @@ export interface UpdateRecordsResponse<T extends FieldSchemaRead> {
     warnings: WriteWarning[];
 }
 
-/** Handles pagination for you, since Airtable can only handle 10 records to update at a time. */
-export async function updateRecords<T extends FieldSchemaRead>(
-    {
-        records,
-        options,
-        fields,
-        fetcher,
-        baseId,
-        tableId,
-        onUnexpectedField,
-    }: UpdateRecordsParams<T>,
-): Promise<UpdateRecordsResponse<T>> {
-    const BATCH_SIZE = 10;
-    const result: UpdateRecordsResponse<T> = { records: [], warnings: [] };
-    const promises = [];
-    for (let i = 0; i < records.length; i += BATCH_SIZE) {
-        const batch = records.slice(i, i + BATCH_SIZE);
-        promises.push(updateRecordsRaw<T>({
-            records: batch,
-            options,
-            fields,
-            baseId,
-            tableId,
-            fetcher,
-            onUnexpectedField,
-        }));
-    }
-    const results = await Promise.all(promises);
-    for (const res of results) {
-        result.records.push(...res.records);
-        addWarnings(result.warnings, res.warnings);
-    }
-    return result;
-}
-
-export interface UpdateRecordsRawParams<T extends FieldSchemaRead> {
-    records: Array<{ id?: string; fields: ValuesForWrite<T> }>;
-    options?: UpdateRecordsOptions<T>;
-    fields: ReadonlyArray<T>;
-    baseId: BaseId;
-    tableId: TableId;
-    fetcher?: IntoFetcher;
-    onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
-}
-export type UpdateRecordsRawResponse<T extends FieldSchemaRead> = UpdateRecordsResponse<T>;
-
-export async function updateRecordsRaw<T extends FieldSchemaRead>(
-    {
-        records,
-        options,
-        fields,
-        fetcher,
-        baseId,
-        tableId,
-        onUnexpectedField,
-    }: UpdateRecordsRawParams<T>,
-): Promise<UpdateRecordsRawResponse<T>> {
-    if (records.length === 0) {
-        return { records: [], warnings: [] };
-    }
-    if (records.length > 10) {
-        throw new Error("Can only update up to 10 records at a time in updateRecordsRaw(). Use updateRecords() for automatic batching.");
-    }
-    // https://airtable.com/developers/web/api/update-multiple-records
-    type UpdateApiRequestBody<T extends FieldSchemaRead> = {
-        records: Array<{
-            id?: string;
-            fields: WriteValuesById<T>;
-        }>;
-        performUpsert?: {
-            fieldsToMergeOn: string[];
-        };
-        returnFieldsByFieldId?: boolean;
-        typecast?: boolean;
-    };
-    type UpdateApiResponse<T extends FieldSchemaRead> = {
-        records: Array<{
-            id: RecordId;
-            createdTime: Timestamp;
-            fields: RawReadValues<T>;
-        }>;
-        details?: PartialSuccessDetails;
-        /** Only present when upserting. */
-        createdRecords?: RecordId[];
-    };
-    const rawRequestBody: UpdateApiRequestBody<T> = {
-        records: records.map((record) => {
-            const withoutUndefined = Object.fromEntries(
-                Object.entries(record.fields).filter(([_, v]) => v !== undefined)
-            );
-            const converted: UpdateApiRequestBody<T>['records'][number] = {
-                fields: convertValuesForWrite(
-                    withoutUndefined as Partial<ValuesForWrite<T>>,
-                    fields,
-                ),
-            };
-            if (record.id) {
-                converted.id = record.id;
-            }
-            return converted;
-        }),
-        returnFieldsByFieldId: true,
-    };
-    if (options?.typecast) rawRequestBody.typecast = true;
-    if (options?.performUpsert) {
-        rawRequestBody.performUpsert = {
-            fieldsToMergeOn: options.performUpsert.fieldsToMergeOn,
-        };
-    }
-
-    const path = `/${baseId}/${tableId}`;
-    const method = options?.destructive ? "PUT" : "PATCH";
-    const rawResponse = await doFetch<UpdateApiResponse<T>>({
-        fetcher,
-        path,
-        method,
-        data: rawRequestBody,
-    });
-
-    const createdIds = new Set(rawResponse.createdRecords ?? []);
-    const warnings: WriteWarning[] = [];
-    addWarnings(warnings, rawResponse.details?.reasons);
-    return {
-        records: rawResponse.records.map((record) => ({
-            id: record.id,
-            createdTime: record.createdTime,
-            fields: convertValuesFromRead(record.fields, fields, onUnexpectedField),
-            operation: createdIds.has(record.id) ? "created" : "updated",
-        })),
-        warnings,
-    };
-}
-
-export interface DeleteRecordsParams {
+export interface DeleteRecordsParams extends TableRef {
     recordIds: ReadonlyArray<RecordId>;
-    baseId: BaseId;
-    tableId: TableId;
-    fetcher?: IntoFetcher;
 }
-/**
- * Response from deleting records
- */
 export interface DeleteRecordsResponse {
     records: Array<{
         id: RecordId;
         deleted: true;
     }>;
 }
-export async function deleteRecords(
-    {
-        recordIds,
-        fetcher,
-        baseId,
-        tableId,
-    }: DeleteRecordsParams,
-): Promise<DeleteRecordsResponse> {
-    const batches: RecordId[][] = [];
-    for (let i = 0; i < recordIds.length; i += 10) {
-        batches.push(recordIds.slice(i, i + 10));
-    }
-    const promises = batches.map(batch => deleteRecordsRaw({
-        recordIds: batch,
-        baseId,
-        tableId,
-        fetcher,
-    }));
-    const results = await Promise.all(promises);
-    const allDeletedRecords: DeleteRecordsResponse['records'] = [];
-    for (const res of results) {
-        allDeletedRecords.push(...res.records);
-    }
-    return {
-        records: allDeletedRecords,
-    };
-}
 
-export type DeleteRecordsRawParams = DeleteRecordsParams;
-export type DeleteRecordsRawResponse = DeleteRecordsResponse;
-export async function deleteRecordsRaw(
-    {
-        recordIds,
-        fetcher,
-        baseId,
-        tableId,
-    }: DeleteRecordsRawParams,
-): Promise<DeleteRecordsRawResponse> {
-    if (recordIds.length === 0) {
-        return { records: [] };
-    }
-    if (recordIds.length > 10) {
-        throw new Error("Can only delete up to 10 records at a time in deleteRecordsRaw. Use deleteRecords for automatic batching.");
-    }
-
-    type DeleteApiResponse = DeleteRecordsResponse;
-    const queryParams = new URLSearchParams();
-    recordIds.forEach(id => {
-        queryParams.append('records[]', id);
-    });
-    const query = queryParams.toString();
-    const path = `/${baseId}/${tableId}${query ? `?${query}` : ''}`;
-    return await doFetch<DeleteApiResponse>({
-        fetcher,
-        path,
-        method: "DELETE",
-    });
-}
-
-/**
- * Options for uploading an attachment
- */
-export interface UploadAttachmentOptions {
+export interface UploadAttachmentParams {
+    baseId: BaseId;
+    recordId: RecordId;
+    /** The attachment field's name or ID */
+    field: string;
     /** Content type (e.g., "image/jpeg") */
     contentType: string;
     /** Base64 encoded file data */
@@ -693,20 +170,6 @@ export interface UploadAttachmentOptions {
     /** Filename (e.g., "photo.jpg") */
     filename: string;
 }
-export interface UploadAttachmentParams<T extends FieldId | string> {
-    recordId: RecordId;
-    attachmentFieldIdOrName: T;
-    options: UploadAttachmentOptions;
-    baseId: BaseId;
-    fetcher?: IntoFetcher;
-}
-// {
-// "filename": "sample.txt",
-// "id": "att00000000000000",
-// "size": 11,
-// "type": "text/plain",
-// "url": "https://v5.airtableusercontent.com/v3/u/29/29/1716940800000/ffhiecnieIwxisnIBDSAln/foDeknw_G5CdkdPW1j-U0yUCX9YSaE1EJft3wvXb85pnTY1sKZdYeFvKpsM-fqOa6Bnu5MQVPA_ApINEUXL_E3SAZn6z01VN9Pn9SluhSy4NoakZGapcvl4tuN3jktO2Dt7Ck_gh4oMdsrcV8J-t_A/53m17XmDDHsNtIqzM1PQVnRKutK6damFgNNS5WCaTbI"
-// }
 export type AttachmentDetails = {
     filename: string;
     id: AttachmentId;
@@ -717,42 +180,151 @@ export type AttachmentDetails = {
 export type UploadAttachmentResponse = {
     id: RecordId;
     createdTime: Timestamp;
-    fields: { FieldId: [AttachmentDetails] };
+    fields: Record<string, AttachmentDetails[]>;
 };
 
-export async function uploadAttachment<T extends FieldId | string>(
-    params: UploadAttachmentParams<T>,
-): Promise<UploadAttachmentResponse> {
-    const {
-        recordId,
-        attachmentFieldIdOrName,
-        options,
-        fetcher,
-        baseId,
-    } = params;
-    type ErrorResponse = {
-        error: string;
-    };
-    // This method uses a different baseUrl!! :(
-    const baseUrl = "https://content.airtable.com/v0/";
-    const result = await doFetch<UploadAttachmentResponse | ErrorResponse>({
-        fetcher,
-        path: `/${baseId}/${recordId}/${attachmentFieldIdOrName}/uploadAttachment`,
-        method: "POST",
-        data: {
-            contentType: options.contentType,
-            file: options.file,
-            filename: options.filename,
-        },
-        config: {
-            baseUrl
-        }
-    });
-    if ('error' in result) {
-        throw new exceptions.AirtableKitApiError(
-            `Error uploading attachment using parameters: ${JSON.stringify(params, null, 2)}: ${JSON.stringify(result, null, 2)}`,
-            result,
-        )
+/**
+ * Methods for the Airtable records API, available as `airtable.records`.
+ *
+ * Values are sent and returned as Airtable's JSON, without conversion.
+ * For typed, converted values, use a table client from `airtable-kit/typed`.
+ */
+export interface RecordsApi {
+    /** List records. Pagination is handled automatically. */
+    list(params: ListRecordsParams): Promise<RawRecord[]>;
+    /** List a single page of records. */
+    listPage(params: ListRecordsPageParams): Promise<ListRecordsPageResponse>;
+    /** Get a single record. */
+    get(params: GetRecordParams): Promise<RawRecord>;
+    /** Create records, sending them in batches of up to 25, the most Airtable accepts per request. */
+    create(params: CreateRecordsParams): Promise<CreateRecordsResponse>;
+    /** Update or upsert records, sending them in batches of up to 10, the most Airtable accepts per request. */
+    update(params: UpdateRecordsParams): Promise<UpdateRecordsResponse>;
+    /** Delete records, sending them in batches of up to 10, the most Airtable accepts per request. */
+    delete(params: DeleteRecordsParams): Promise<DeleteRecordsResponse>;
+    /** Upload an attachment to a record's attachment field. */
+    uploadAttachment(params: UploadAttachmentParams): Promise<UploadAttachmentResponse>;
+}
+
+const CREATE_BATCH_SIZE = 25;
+const UPDATE_BATCH_SIZE = 10;
+const DELETE_BATCH_SIZE = 10;
+const CONTENT_BASE_URL = "https://content.airtable.com/v0";
+
+function chunk<T>(items: ReadonlyArray<T>, size: number): T[][] {
+    const result: T[][] = [];
+    for (let i = 0; i < items.length; i += size) {
+        result.push(items.slice(i, i + size));
     }
     return result;
+}
+
+export function makeRecordsApi(request: Requester): RecordsApi {
+    // https://airtable.com/developers/web/api/list-records
+    async function listPage({ baseId, tableId, ...options }: ListRecordsPageParams): Promise<ListRecordsPageResponse> {
+        const queryParams = new URLSearchParams();
+        if (options.returnFieldsByFieldId) queryParams.append('returnFieldsByFieldId', 'true');
+        if (options.timeZone) queryParams.append('timeZone', options.timeZone);
+        if (options.userLocale) queryParams.append('userLocale', options.userLocale);
+        if (options.pageSize) queryParams.append('pageSize', String(options.pageSize));
+        if (options.maxRecords) queryParams.append('maxRecords', String(options.maxRecords));
+        if (options.offset) queryParams.append('offset', options.offset);
+        if (options.view) queryParams.append('view', options.view);
+        if (options.filterByFormula) queryParams.append('filterByFormula', options.filterByFormula);
+        if (options.cellFormat) queryParams.append('cellFormat', options.cellFormat);
+        options.sort?.forEach((s, i) => {
+            queryParams.append(`sort[${i}][field]`, s.field);
+            if (s.direction) queryParams.append(`sort[${i}][direction]`, s.direction);
+        });
+        options.fields?.forEach((field) => queryParams.append('fields[]', field));
+        options.recordMetadata?.forEach((meta) => queryParams.append('recordMetadata[]', meta));
+        const query = queryParams.toString();
+        return request<ListRecordsPageResponse>({
+            path: `/${baseId}/${tableId}${query ? `?${query}` : ''}`,
+        });
+    }
+
+    return {
+        listPage,
+        async list(params) {
+            const records: RawRecord[] = [];
+            let offset: string | undefined = undefined;
+            do {
+                const page: ListRecordsPageResponse = await listPage({ ...params, offset });
+                records.push(...page.records);
+                offset = page.offset;
+            } while (offset);
+            return records;
+        },
+        // https://airtable.com/developers/web/api/get-record
+        get({ baseId, tableId, recordId, cellFormat, returnFieldsByFieldId }) {
+            const queryParams = new URLSearchParams();
+            if (returnFieldsByFieldId) queryParams.append('returnFieldsByFieldId', 'true');
+            if (cellFormat) queryParams.append('cellFormat', cellFormat);
+            const query = queryParams.toString();
+            return request<RawRecord>({
+                path: `/${baseId}/${tableId}/${recordId}${query ? `?${query}` : ''}`,
+            });
+        },
+        // https://airtable.com/developers/web/api/create-records
+        async create({ baseId, tableId, records, typecast, returnFieldsByFieldId }) {
+            const result: CreateRecordsResponse = { records: [], warnings: [] };
+            for (const batch of chunk(records, CREATE_BATCH_SIZE)) {
+                const response = await request<{ records: RawRecord[]; details?: PartialSuccessDetails }>({
+                    path: `/${baseId}/${tableId}`,
+                    method: "POST",
+                    data: { records: batch, typecast, returnFieldsByFieldId },
+                });
+                result.records.push(...response.records);
+                addWarnings(result.warnings, response.details?.reasons);
+            }
+            return result;
+        },
+        // https://airtable.com/developers/web/api/update-multiple-records
+        async update({ baseId, tableId, records, destructive, performUpsert, typecast, returnFieldsByFieldId }) {
+            type UpdateApiResponse = {
+                records: RawRecord[];
+                details?: PartialSuccessDetails;
+                /** Only present when upserting. */
+                createdRecords?: RecordId[];
+            };
+            const responses = await Promise.all(chunk(records, UPDATE_BATCH_SIZE).map((batch) =>
+                request<UpdateApiResponse>({
+                    path: `/${baseId}/${tableId}`,
+                    method: destructive ? "PUT" : "PATCH",
+                    data: { records: batch, performUpsert, typecast, returnFieldsByFieldId },
+                })
+            ));
+            const result: UpdateRecordsResponse = { records: [], warnings: [] };
+            for (const response of responses) {
+                const createdIds = new Set(response.createdRecords ?? []);
+                for (const record of response.records) {
+                    result.records.push({ ...record, operation: createdIds.has(record.id) ? "created" : "updated" });
+                }
+                addWarnings(result.warnings, response.details?.reasons);
+            }
+            return result;
+        },
+        // https://airtable.com/developers/web/api/delete-multiple-records
+        async delete({ baseId, tableId, recordIds }) {
+            const responses = await Promise.all(chunk(recordIds, DELETE_BATCH_SIZE).map((batch) => {
+                const queryParams = new URLSearchParams();
+                batch.forEach((id) => queryParams.append('records[]', id));
+                return request<DeleteRecordsResponse>({
+                    path: `/${baseId}/${tableId}?${queryParams.toString()}`,
+                    method: "DELETE",
+                });
+            }));
+            return { records: responses.flatMap((response) => response.records) };
+        },
+        // https://airtable.com/developers/web/api/upload-attachment
+        uploadAttachment({ baseId, recordId, field, contentType, file, filename }) {
+            return request<UploadAttachmentResponse>({
+                baseUrl: CONTENT_BASE_URL,
+                path: `/${baseId}/${recordId}/${field}/uploadAttachment`,
+                method: "POST",
+                data: { contentType, file, filename },
+            });
+        },
+    };
 }

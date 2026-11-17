@@ -4,9 +4,8 @@ import process from 'node:process';
 import fs from 'node:fs';
 import { Command } from 'commander';
 
-import { fetchAllSchemas } from "../bases/api.ts";
 import { generateCode } from "../codegen/index.ts";
-import { IntoFetcher, DEFAULT_API_KEY_ENV_VAR } from '../fetcher.ts';
+import { type Airtable, type IntoAirtable, DEFAULT_API_KEY_ENV_VAR, createAirtable, toAirtable } from '../client.ts';
 import { toIdentifier } from '../codegen/identifiers.ts';
 import { createBaseCommand } from "./base.ts";
 import { createTableCommand } from "./table.ts";
@@ -16,7 +15,14 @@ import { makeOpenApiCommand } from "./openapi.ts";
 
 import * as packageJson from '../../package.json';
 
-export async function cli(args: string[], fetcher?: IntoFetcher): Promise<void> {
+/**
+ * Run the CLI with the given arguments.
+ *
+ * @param args - Command line arguments, without the program name
+ * @param airtable - The client to use. Defaults to one using the API key from `--api-key`,
+ *   the AIRTABLE_API_KEY environment variable, or a .env file.
+ */
+export async function cli(args: string[], airtable?: IntoAirtable): Promise<void> {
   const program = new Command()
     .name('airtable-kit')
     .version(packageJson.version, "--version")
@@ -29,16 +35,18 @@ export async function cli(args: string[], fetcher?: IntoFetcher): Promise<void> 
     })
     .exitOverride();
 
-  const resolveFetcher = (): IntoFetcher => {
-    const apiKeyFromArgs = getApiKeyFromArgs(args);
-    return fetcher ?? getApiKey(apiKeyFromArgs);
+  const resolveAirtable = (): Airtable => {
+    if (airtable) {
+      return toAirtable(airtable);
+    }
+    return createAirtable({ apiKey: getApiKey(getApiKeyFromArgs(args)) });
   };
 
-  program.addCommand(createBaseCommand(resolveFetcher));
-  program.addCommand(createTableCommand(resolveFetcher));
-  program.addCommand(createFieldCommand(resolveFetcher));
-  program.addCommand(createRecordCommand(resolveFetcher));
-  program.addCommand(makeOpenApiCommand(resolveFetcher));
+  program.addCommand(createBaseCommand(resolveAirtable));
+  program.addCommand(createTableCommand(resolveAirtable));
+  program.addCommand(createFieldCommand(resolveAirtable));
+  program.addCommand(createRecordCommand(resolveAirtable));
+  program.addCommand(makeOpenApiCommand(resolveAirtable));
 
   program
     .command('codegen')
@@ -47,12 +55,12 @@ export async function cli(args: string[], fetcher?: IntoFetcher): Promise<void> 
     .option('--format <format>', 'Output format: ts or js')
     .option('--outdir <path>', 'Output directory', '.atk/bases')
     .action(async (options) => {
-      const finalFetcher = resolveFetcher();
+      const client = resolveAirtable();
       const finalFormat = (options.format === 'ts' || options.format === 'js') ? options.format : 'ts';
       const outDir = options.outdir ?? '.atk/bases';
 
       console.log("🔍 Fetching all base schemas...");
-      const baseSchemas = await fetchAllSchemas({ fetcher: finalFetcher });
+      const baseSchemas = await client.bases.listSchemas();
       console.log(`✓ Found ${baseSchemas.length} bases`);
 
       for (const baseSchema of baseSchemas) {

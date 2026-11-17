@@ -10,11 +10,9 @@ export {
 export {
   FieldCreationAbility,
   fieldCreationAbility,
-  CreateFieldParams,
-  createField,
-  UpdateFieldSchema,
-  UpdateFieldParams,
-  updateField,
+  type CreateFieldParams,
+  type UpdateFieldSchema,
+  type UpdateFieldParams,
 } from "./api.ts";
 export {
   TIMEZONES,

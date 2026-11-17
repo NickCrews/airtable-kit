@@ -17,7 +17,8 @@
     "noEmit": true,
     "resolveJsonModule": true,
     "paths": {
-      "airtable-kit/fetcher": ["./src/fetcher.ts"],
+      "airtable-kit": ["./src/index.ts"],
+      "airtable-kit/typed": ["./src/typed/index.ts"],
       "airtable-kit/bases": ["./src/bases/index.ts"],
       "airtable-kit/tables": ["./src/tables/index.ts"],
       "airtable-kit/fields": ["./src/fields/index.ts"],

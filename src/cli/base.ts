@@ -1,28 +1,27 @@
 import { Command } from "commander";
-import { fetchAllSchemas } from "../bases/api.ts";
 import { ConfigManager } from "./config.ts";
 import { mdTable } from "./md.ts";
 import { resolveBase, ensureOneMatch } from "./resolvers.ts";
-import { IntoFetcher } from "../fetcher.ts";
+import { type Airtable } from "../client.ts";
 import { generateCode } from "../codegen/index.ts";
 import path from "node:path";
 import { toIdentifier } from "../codegen/identifiers.ts";
 import { BaseSchema } from "../bases/types.ts";
 import { makeOpenApiCommand } from "./openapi.ts";
 
-export function createBaseCommand(resolveFetcher: () => IntoFetcher): Command {
+export function createBaseCommand(resolveAirtable: () => Airtable): Command {
   const cmd = new Command("base")
     .description("Manage Airtable bases");
 
-  cmd.addCommand(makeOpenApiCommand(resolveFetcher));
+  cmd.addCommand(makeOpenApiCommand(resolveAirtable));
 
   cmd
     .command("list")
     .description("List all accessible bases")
     .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (options: any) => {
-      const fetcher = resolveFetcher();
-      const schemas = await fetchAllSchemas({ fetcher });
+      const airtable = resolveAirtable();
+      const schemas = await airtable.bases.listSchemas();
       if (options.format === "json") {
         console.log(JSON.stringify(schemas, null, 2));
         return;
@@ -36,9 +35,9 @@ export function createBaseCommand(resolveFetcher: () => IntoFetcher): Command {
     .description("Get base details")
     .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (baseId: string | undefined, options: any) => {
-      const fetcher = resolveFetcher();
+      const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const schemas = await fetchAllSchemas({ fetcher });
+      const schemas = await airtable.bases.listSchemas();
 
       const resolvedId = baseId || config.getBaseId();
       const resolved = resolveBase(resolvedId || null, schemas);
@@ -55,9 +54,9 @@ export function createBaseCommand(resolveFetcher: () => IntoFetcher): Command {
     .command("use <identifier>")
     .description("Set current base context")
     .action(async (identifier: string) => {
-      const fetcher = resolveFetcher();
+      const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const schemas = await fetchAllSchemas({ fetcher });
+      const schemas = await airtable.bases.listSchemas();
 
       const resolved = resolveBase(identifier, schemas);
       const base = ensureOneMatch(resolved, "base", identifier);
@@ -72,9 +71,9 @@ export function createBaseCommand(resolveFetcher: () => IntoFetcher): Command {
     .option("--format <format>", "Output format: ts or js", "ts")
     .option("--outdir <path>", "Output directory", ".atk/bases")
     .action(async (identifier: string | undefined, options: any) => {
-      const fetcher = resolveFetcher();
+      const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const schemas = await fetchAllSchemas({ fetcher });
+      const schemas = await airtable.bases.listSchemas();
 
       let baseSchemas = schemas;
       if (identifier) {

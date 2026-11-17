@@ -1,9 +1,8 @@
-import { IntoFetcher } from "../fetcher";
+import { type Airtable, createAirtable } from "../client";
 import { generateCode } from "../codegen";
-import { createField, fieldCreationAbility, updateField } from "../fields/api";
+import { fieldCreationAbility } from "../fields/api";
 import { type FieldSchemaCreate, type FieldSchemaRead } from "../fields/types";
-import { createTable, updateTable } from "../tables/api";
-import { createBase, BaseSchemaCreate, getBaseSchema } from "../bases/api";
+import { BaseSchemaCreate } from "../bases/api";
 import dotenv from "dotenv";
 import { fileURLToPath } from "node:url";
 import { BaseId, BaseSchema } from "../bases/types";
@@ -362,11 +361,12 @@ export async function ensureTestBaseReady(
     apiKey: string,
     baseId?: BaseId,
 ): Promise<BaseSchema> {
-    const existingSchema = await ensureTestBaseCreated(workspaceId, apiKey, desiredSchema, baseId);
+    const airtable = createAirtable({ apiKey });
+    const existingSchema = await ensureTestBaseCreated(workspaceId, airtable, desiredSchema, baseId);
     const updatedSchema = await ensureTestBaseSchemaUpToDate(
         existingSchema,
         desiredSchema,
-        apiKey
+        airtable
     );
     // There might be old tables with broken schemas left over - don't write
     // those to disk to keep the generated schema clean.
@@ -387,13 +387,13 @@ export async function ensureTestBaseReady(
  */
 async function ensureTestBaseCreated(
     workspaceId: WorkspaceId,
-    fetcher: IntoFetcher,
+    airtable: Airtable,
     desiredSchema: BaseSchemaCreate,
     baseId?: BaseId,
 ): Promise<BaseSchema> {
     if (baseId) {
         // If a base ID is provided, just use that
-        return getBaseSchema({ baseId, fetcher });
+        return airtable.bases.get(baseId);
     }
     try {
         // The module looks like:
@@ -408,14 +408,13 @@ async function ensureTestBaseCreated(
             throw new Error(`Test base schema file ${TEST_BASE_SCHEMA_FILEPATH} is malformed`);
         }
         // now fetch the actual base schema from Airtable to ensure it's up to date
-        return getBaseSchema({ baseId, fetcher });
+        return airtable.bases.get(baseId);
     } catch (e) {
         // File doesn't exist - create the base
         console.log("Test base schema file not found, creating test base in Airtable...");
-        return createBase({
+        return airtable.bases.create({
             workspaceId,
-            baseSchema: desiredSchema,
-            fetcher,
+            schema: desiredSchema,
         });
     }
 }
@@ -423,7 +422,7 @@ async function ensureTestBaseCreated(
 async function ensureTestBaseSchemaUpToDate(
     currentSchema: BaseSchema,
     desiredSchema: BaseSchemaCreate,
-    fetcher: IntoFetcher
+    airtable: Airtable
 ): Promise<BaseSchema> {
     // Create any missing tables
     for (const desiredTable of desiredSchema.tables) {
@@ -431,10 +430,9 @@ async function ensureTestBaseSchemaUpToDate(
         if (!existingTable) {
             // Create the table
             console.log(`Creating missing table "${desiredTable.name}" in test base...`);
-            const created = await createTable({
+            const created = await airtable.tables.create({
                 baseId: currentSchema.id,
                 table: desiredTable,
-                fetcher,
             });
         } else {
             // If any field types are incorrect, rename the table to a broken name
@@ -467,34 +465,31 @@ async function ensureTestBaseSchemaUpToDate(
             if (mismatchesRequiringRecreation.length > 0) {
                 console.log(`Recreating table "${desiredTable.name}" due to field mismatches: ${JSON.stringify(mismatchesRequiringRecreation, null, 2)}`);
                 const brokenName = `BROKEN_${desiredTable.name}_${Date.now()}`;
-                await updateTable({
+                await airtable.tables.update({
                     baseId: currentSchema.id,
                     table: {
                         id: existingTable.id,
                         name: brokenName,
                     },
-                    fetcher,
                 });
-                await createTable({
+                await airtable.tables.create({
                     baseId: currentSchema.id,
                     table: desiredTable,
-                    fetcher,
                 });
             } else {
                 // Create any missing fields
                 for (const fieldToCreate of fieldsToCreate) {
                     console.log(`Creating missing field "${fieldToCreate.name}" in table "${desiredTable.name}"...`);
-                    const newField = await createField({
+                    const newField = await airtable.fields.create({
                         baseId: currentSchema.id,
                         tableId: existingTable.id,
                         field: fieldToCreate,
-                        fetcher,
                     });
                 }
                 // Update any fields with name/description mismatches
                 for (const { desiredField, existingField } of mismatchesRequiringUpdate) {
                     console.log(`Updating field "${desiredField.name}" in table "${desiredTable.name}" to fix name/description...`);
-                    await updateField({
+                    await airtable.fields.update({
                         baseId: currentSchema.id,
                         tableId: existingTable.id,
                         field: {
@@ -502,13 +497,12 @@ async function ensureTestBaseSchemaUpToDate(
                             name: desiredField.name,
                             description: desiredField.description,
                         },
-                        fetcher,
                     });
                 }
             }
         }
     }
-    return getBaseSchema({ baseId: currentSchema.id, fetcher });
+    return airtable.bases.get(currentSchema.id);
 }
 
 function optionsMismatch(desired: FieldSchemaCreate, existing: FieldSchemaRead): boolean {
