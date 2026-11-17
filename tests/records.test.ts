@@ -642,7 +642,7 @@ describe("Records API", () => {
                 fields: tasksTable.fields,
             });
 
-            expect(result).toEqual({ records: [] });
+            expect(result).toEqual({ records: [], warnings: [] });
         });
 
         it("removes undefined fields but keeps null fields", async () => {

@@ -86,7 +86,7 @@ describe("TableClient", () => {
     describe("update", () => {
         it("can handle 0-record updates", async () => {
             const result = await tasksTableClient.updateRecords([]);
-            expect(result).toEqual({ records: [] });
+            expect(result).toEqual({ records: [], warnings: [] });
         });
 
         it("can update records", async () => {
