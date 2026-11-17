@@ -5,6 +5,7 @@ export {
 export {
     type TableClient,
     type TableClientOptions,
+    type TableClientSchema,
     type OnReadUnexpectedField,
     type TypedRecord,
     type RecordMetadata,

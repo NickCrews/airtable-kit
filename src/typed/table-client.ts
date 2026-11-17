@@ -12,10 +12,16 @@ type FieldsByName<T extends ReadonlyArray<FieldSchemaRead>> = {
     [K in T[number]as K["name"]]: K;
 };
 
-type FieldType<T extends TableSchema> = T['fields'][number];
-type FieldIdInTable<T extends TableSchema> = FieldType<T>['id'];
+/**
+ * The parts of a {@link TableSchema} a {@link TableClient} needs: the table ID and the fields it reads and writes.
+ * A full {@link TableSchema} also satisfies this.
+ */
+export type TableClientSchema = Pick<TableSchema, "id" | "fields"> & Partial<Omit<TableSchema, "id" | "fields">>;
+
+type FieldType<T extends TableClientSchema> = T['fields'][number];
+type FieldIdInTable<T extends TableClientSchema> = FieldType<T>['id'];
 type FieldNameOrId<F extends FieldSchemaRead> = F['name'] | F['id'];
-type FieldNameOrIdInTable<T extends TableSchema> = FieldNameOrId<FieldType<T>>;
+type FieldNameOrIdInTable<T extends TableClientSchema> = FieldNameOrId<FieldType<T>>;
 
 /** The field schemas in `F` selected by the field names or IDs `K`. */
 export type SelectedFields<F extends FieldSchemaRead, K extends FieldNameOrId<F>> =
@@ -152,10 +158,10 @@ export interface UploadAttachmentOptions {
  *
  * Usually accessed as `baseClient.tables.<name>`, or created with {@link createTableClient}.
  */
-export interface TableClient<T extends TableSchema = TableSchema> {
+export interface TableClient<T extends TableClientSchema = TableSchema> {
     /** The ID of the base this table belongs to, e.g. "appXXXXXXXXXXXXXXX" */
     baseId: BaseId;
-    /** The {@link TableSchema} of the table this client interacts with */
+    /** The schema of the table this client interacts with */
     tableSchema: T;
     /** An object mapping field names to their respective {@link FieldSchemaRead} */
     fields: FieldsByName<T["fields"]>;
@@ -274,11 +280,11 @@ export interface TableClientOptions {
  * ```
  *
  * @param baseId - The ID of the base the table belongs to
- * @param tableSchema - The table's schema. The client only reads and writes the fields it lists.
+ * @param tableSchema - The table's ID and the fields to read and write, eg a {@link TableSchema}. The client only reads and writes the fields it lists.
  * @param airtable - An {@link Airtable} client, or options to create one. Defaults to `createAirtable()`.
  * @param options - See {@link TableClientOptions}
  */
-export function createTableClient<T extends TableSchema>(
+export function createTableClient<T extends TableClientSchema>(
     baseId: BaseId,
     tableSchema: T,
     airtable?: IntoAirtable,

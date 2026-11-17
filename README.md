@@ -315,7 +315,6 @@ import { createTableClient } from 'airtable-kit/typed';
 
 const tasks = createTableClient('appZZZZZZZZZZZZZZ', {
   id: 'tblAAAAAAAAAAAAAA',
-  name: 'tasks',
   fields: [
     { id: 'fldDue', name: 'dueDate', type: 'date', options: { dateFormat: { name: 'iso', format: 'YYYY-MM-DD' } } },
     { id: 'fldDone', name: 'done', type: 'checkbox', options: { icon: 'check', color: 'greenBright' } },
