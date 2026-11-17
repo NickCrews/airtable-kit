@@ -1,4 +1,4 @@
-import { doFetch, makeFetcher, type IntoFetcher } from "../fetcher.ts";
+import { doFetch, type IntoFetcher } from "../fetcher.ts";
 import { TableSchemaCreate } from "../tables/api.ts";
 import { URLSearchParams } from "../url.ts";
 import { BaseId, BaseSchema } from "./types.ts";
@@ -84,9 +84,8 @@ export async function getBaseSchema({
 }: GetBaseSchemaParams
 ): Promise<BaseSchema> {
   const path = `/meta/bases/${baseId}/tables`;
-  const realFetcher = makeFetcher(fetcher);
-  const response = await realFetcher.fetch<{ tables: TableSchema[] }>({ path });
-  const allBases = await listBasesRaw(realFetcher);
+  const response = await doFetch<{ tables: TableSchema[] }>({ fetcher, path });
+  const allBases = await listBasesRaw(fetcher);
   const baseName = allBases.find((b) => b.id === baseId)?.name;
   if (!baseName) {
     throw new Error(`Could not find base name for base ID ${baseId}`);
@@ -109,15 +108,14 @@ export async function fetchAllSchemas(
   { fetcher }: { fetcher?: IntoFetcher } = {},
 ): Promise<BaseSchema[]> {
   // https://airtable.com/developers/web/api/list-bases
-  const realFetcher = makeFetcher(fetcher);
-  const bases = await listBasesRaw(realFetcher);
+  const bases = await listBasesRaw(fetcher);
 
   // now fetch all the base schemas in parallel
   const baseSchemas = await Promise.all(
     bases.map(async (base) => {
       const schema = await getBaseRaw({
         baseId: base.id,
-        fetcher: realFetcher,
+        fetcher,
       });
       return {
         id: base.id,
@@ -136,8 +134,7 @@ async function getBaseRaw({
 }
 ) {
   const path = `/meta/bases/${baseId}/tables`;
-  const realFetcher = makeFetcher(fetcher);
-  const response = await realFetcher.fetch<{ tables: TableSchema[] }>({ path });
+  const response = await doFetch<{ tables: TableSchema[] }>({ fetcher, path });
   return {
     id: baseId,
     tables: response.tables,
