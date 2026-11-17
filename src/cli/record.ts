@@ -137,9 +137,10 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
       if (options.format === "json") {
         console.log(JSON.stringify(results, null, 2));
       } else {
-        console.log(formatRecordList(results, table.fields));
+        console.log(formatRecordList(results.records, table.fields));
       }
-      console.log(`\n✅ Created ${results.length} record(s)`);
+      console.log(`\n✅ Created ${results.records.length} record(s)`);
+      printWarnings(results.warnings);
     });
 
   cmd
@@ -189,6 +190,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
         console.log(formatRecord(updated, table.fields));
       }
       console.log(`\n✅ Updated record: ${recordId}`);
+      printWarnings(result.warnings);
     });
 
   cmd
@@ -266,9 +268,17 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
         console.log(formatRecordList(results.records, table.fields));
       }
       console.log(`\n✅ Upserted ${results.records.length} record(s)`);
+      printWarnings(results.warnings);
     });
 
   return cmd;
+}
+
+/** Print warnings Airtable reported for a partially successful write to stderr. */
+function printWarnings(warnings: readonly string[]): void {
+  for (const warning of warnings) {
+    console.warn(`⚠️  Airtable reported: ${warning}`);
+  }
 }
 
 function truncate(str: string, maxLen: number = 60): string {

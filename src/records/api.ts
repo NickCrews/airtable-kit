@@ -27,16 +27,46 @@ export interface CreateRecordsParams<T extends FieldSchemaRead> {
     onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
     fetcher?: IntoFetcher;
 }
-export type CreateRecordsResponse<T extends FieldSchemaRead> = Array<{
-    id: RecordId,
-    fields: ValuesFromRead<T>,
-    createdTime: Timestamp,
-}>;
+/**
+ * A reason Airtable gives when a create or update only partially succeeded:
+ * the records were written, but something else, such as uploading attachments from URLs, failed.
+ */
+export type WriteWarning = 'attachmentsFailedUploading' | 'attachmentUploadRateIsTooHigh';
+
+/** The `details` that Airtable includes in a create or update response that only partially succeeded. */
+type PartialSuccessDetails = {
+    message: 'partialSuccess';
+    reasons: WriteWarning[];
+};
+
+/** Add `reasons` to `warnings`, skipping duplicates. */
+function addWarnings(warnings: WriteWarning[], reasons: ReadonlyArray<WriteWarning> | undefined): void {
+    for (const reason of reasons ?? []) {
+        if (!warnings.includes(reason)) {
+            warnings.push(reason);
+        }
+    }
+}
+
+/**
+ * Response from {@link createRecords} and {@link createRecordsRaw}.
+ */
+export interface CreateRecordsResponse<T extends FieldSchemaRead> {
+    /** The created records, in the same order as the input. */
+    records: Array<{
+        id: RecordId;
+        fields: ValuesFromRead<T>;
+        createdTime: Timestamp;
+    }>;
+    /** Problems Airtable reported for an otherwise successful write. Empty if there were none. */
+    warnings: WriteWarning[];
+}
 
 // https://airtable.com/developers/web/api/create-records
 type RawReadValues<T extends FieldSchemaRead> = {
     [K in T["id"]]: ValueFromRead<Extract<T, { id: K }>>;
 }
+/** Create records, sending them in batches of up to 25, the most Airtable accepts per request. */
 export async function createRecords<T extends FieldSchemaRead>(
     {
         records,
@@ -46,15 +76,11 @@ export async function createRecords<T extends FieldSchemaRead>(
         onUnexpectedField,
         fetcher,
     }: CreateRecordsParams<T>,
-) {
+): Promise<CreateRecordsResponse<T>> {
     // on 2026-05-05 I got:
     // Fetch error: 422 Unprocessable Entity - {"error":{"type":"INVALID_RECORDS","message":"A maximum of 25 records can be created per request but you have provided 35."}}
     const BATCH_SIZE = 25;
-    const result: Array<{
-        id: RecordId,
-        fields: ValuesFromRead<T>,
-        createdTime: Timestamp,
-    }> = [];
+    const result: CreateRecordsResponse<T> = { records: [], warnings: [] };
     for (let i = 0; i < records.length; i += BATCH_SIZE) {
         const batch = records.slice(i, i + BATCH_SIZE);
         const created = await createRecordsRaw<T>({
@@ -65,7 +91,8 @@ export async function createRecords<T extends FieldSchemaRead>(
             fetcher,
             onUnexpectedField,
         });
-        result.push(...created);
+        result.records.push(...created.records);
+        addWarnings(result.warnings, created.warnings);
     }
     return result;
 }
@@ -78,11 +105,7 @@ export interface CreateRecordsRawParams<T extends FieldSchemaRead> {
     fetcher?: IntoFetcher;
     onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
 }
-export type CreateRecordsRawResponse<T extends FieldSchemaRead> = Array<{
-    id: RecordId,
-    fields: ValuesFromRead<T>,
-    createdTime: Timestamp,
-}>;
+export type CreateRecordsRawResponse<T extends FieldSchemaRead> = CreateRecordsResponse<T>;
 
 export async function createRecordsRaw<T extends FieldSchemaRead>(
     {
@@ -95,7 +118,7 @@ export async function createRecordsRaw<T extends FieldSchemaRead>(
     }: CreateRecordsRawParams<T>,
 ): Promise<CreateRecordsRawResponse<T>> {
     if (records.length === 0) {
-        return [];
+        return { records: [], warnings: [] };
     }
     const convertedToAirtable = records.map((record) => {
         const withoutUndefinedAndNulls = Object.fromEntries(
@@ -114,6 +137,7 @@ export async function createRecordsRaw<T extends FieldSchemaRead>(
             createdTime: string;
             fields: RawReadValues<T>;
         }>;
+        details?: PartialSuccessDetails;
     };
     const raw = await doFetch<CreateApiResponse<T>>({
         fetcher,
@@ -124,12 +148,16 @@ export async function createRecordsRaw<T extends FieldSchemaRead>(
             returnFieldsByFieldId: true,
         },
     });
-    const result = raw.records.map((record) => ({
-        id: record.id,
-        fields: convertValuesFromRead(record.fields, fields, onUnexpectedField),
-        createdTime: record.createdTime,
-    }));
-    return result;
+    const warnings: WriteWarning[] = [];
+    addWarnings(warnings, raw.details?.reasons);
+    return {
+        records: raw.records.map((record) => ({
+            id: record.id,
+            fields: convertValuesFromRead(record.fields, fields, onUnexpectedField),
+            createdTime: record.createdTime,
+        })),
+        warnings,
+    };
 }
 
 /**
@@ -429,20 +457,22 @@ export interface UpdateRecordsParams<T extends FieldSchemaRead> {
     onUnexpectedField?: "throw" | { warn: boolean; keep: boolean; };
 }
 /**
- * Response from updating records
+ * Response from {@link updateRecords} and {@link updateRecordsRaw}.
  */
 export interface UpdateRecordsResponse<T extends FieldSchemaRead> {
+    /** The written records, in the same order as the input. */
     records: Array<{
         id: RecordId;
         createdTime: Timestamp;
         fields: ValuesFromRead<T>;
+        /**
+         * Whether the record was created or updated.
+         * Records are only created when upserting with `performUpsert` and no existing record matched.
+         */
+        operation: "created" | "updated";
     }>;
-    details?: {
-        message: 'partialSuccess';
-        reasons: Array<'attachmentsFailedUploading' | 'attachmentUploadRateIsTooHigh'>;
-    };
-    createdRecords?: RecordId[];
-    updatedRecords?: RecordId[];
+    /** Problems Airtable reported for an otherwise successful write. Empty if there were none. */
+    warnings: WriteWarning[];
 }
 
 /** Handles pagination for you, since Airtable can only handle 10 records to update at a time. */
@@ -458,9 +488,7 @@ export async function updateRecords<T extends FieldSchemaRead>(
     }: UpdateRecordsParams<T>,
 ): Promise<UpdateRecordsResponse<T>> {
     const BATCH_SIZE = 10;
-    const result: UpdateRecordsResponse<T> = {
-        records: [],
-    };
+    const result: UpdateRecordsResponse<T> = { records: [], warnings: [] };
     const promises = [];
     for (let i = 0; i < records.length; i += BATCH_SIZE) {
         const batch = records.slice(i, i + BATCH_SIZE);
@@ -477,16 +505,7 @@ export async function updateRecords<T extends FieldSchemaRead>(
     const results = await Promise.all(promises);
     for (const res of results) {
         result.records.push(...res.records);
-        if (res.createdRecords) {
-            (result.createdRecords ??= []).push(...res.createdRecords);
-        }
-        if (res.updatedRecords) {
-            (result.updatedRecords ??= []).push(...res.updatedRecords);
-        }
-        if (res.details) {
-            const reasons = new Set([...(result.details?.reasons ?? []), ...res.details.reasons]);
-            result.details = { message: res.details.message, reasons: [...reasons] };
-        }
+        addWarnings(result.warnings, res.warnings);
     }
     return result;
 }
@@ -514,7 +533,7 @@ export async function updateRecordsRaw<T extends FieldSchemaRead>(
     }: UpdateRecordsRawParams<T>,
 ): Promise<UpdateRecordsRawResponse<T>> {
     if (records.length === 0) {
-        return { records: [] };
+        return { records: [], warnings: [] };
     }
     if (records.length > 10) {
         throw new Error("Can only update up to 10 records at a time in updateRecordsRaw(). Use updateRecords() for automatic batching.");
@@ -537,12 +556,9 @@ export async function updateRecordsRaw<T extends FieldSchemaRead>(
             createdTime: Timestamp;
             fields: RawReadValues<T>;
         }>;
-        details?: {
-            message: 'partialSuccess';
-            reasons: Array<'attachmentsFailedUploading' | 'attachmentUploadRateIsTooHigh'>;
-        };
+        details?: PartialSuccessDetails;
+        /** Only present when upserting. */
         createdRecords?: RecordId[];
-        updatedRecords?: RecordId[];
     };
     const rawRequestBody: UpdateApiRequestBody<T> = {
         records: records.map((record) => {
@@ -578,19 +594,18 @@ export async function updateRecordsRaw<T extends FieldSchemaRead>(
         data: rawRequestBody,
     });
 
+    const createdIds = new Set(rawResponse.createdRecords ?? []);
+    const warnings: WriteWarning[] = [];
+    addWarnings(warnings, rawResponse.details?.reasons);
     return {
-        records: rawResponse.records.map((record: any) => {
-            const converted = convertValuesFromRead(record.fields, fields, onUnexpectedField);
-            return {
-                id: record.id,
-                createdTime: record.createdTime,
-                fields: converted,
-            };
-        }),
-        details: rawResponse.details,
-        createdRecords: rawResponse.createdRecords,
-        updatedRecords: rawResponse.updatedRecords,
-    } as UpdateRecordsResponse<T>;
+        records: rawResponse.records.map((record) => ({
+            id: record.id,
+            createdTime: record.createdTime,
+            fields: convertValuesFromRead(record.fields, fields, onUnexpectedField),
+            operation: createdIds.has(record.id) ? "created" : "updated",
+        })),
+        warnings,
+    };
 }
 
 export interface DeleteRecordsParams {

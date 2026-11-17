@@ -312,7 +312,7 @@ async function populateSeedData(
     baseClient: TestBaseClient
 ): Promise<void> {
     const linkedItemRecords = await baseClient.tables.linkedItems.createRecords(linkedItemsSeedData);
-    const linkedItemRecordIds = linkedItemRecords.map((r: any) => r.id);
+    const linkedItemRecordIds = linkedItemRecords.records.map((r: any) => r.id);
 
     const tasksSeedData = getTasksSeedData();
     await baseClient.tables.tasks.createRecords(tasksSeedData);

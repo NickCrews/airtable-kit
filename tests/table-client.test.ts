@@ -28,12 +28,12 @@ describe("TableClient", () => {
 
     describe("createRecords", () => {
         it("can handle 0-record creates", async () => {
-            const result = await tasksTableClient.createRecords([]);
+            const { records: result } = await tasksTableClient.createRecords([]);
             expect(result).toEqual([]);
         });
 
         it("can create records", async () => {
-            const response = await tasksTableClient.createRecords([
+            const { records: response } = await tasksTableClient.createRecords([
                 {
                     name: "Fold Laundry",
                     completed: false,
@@ -60,7 +60,7 @@ describe("TableClient", () => {
         });
 
         it("can create records with select options by name", async () => {
-            const response = await tasksTableClient.createRecords([
+            const { records: response } = await tasksTableClient.createRecords([
                 {
                     name: "Test Task",
                     status: "In Progress",
@@ -91,7 +91,7 @@ describe("TableClient", () => {
 
         it("can update records", async () => {
             // First create a record
-            const [created] = await tasksTableClient.createRecords([
+            const { records: [created] } = await tasksTableClient.createRecords([
                 {
                     name: "Task to Update",
                     completed: false,
@@ -126,7 +126,7 @@ describe("TableClient", () => {
     describe("delete", () => {
         it("can delete records", async () => {
             // Create a record
-            const [created] = await tasksTableClient.createRecords([
+            const { records: [created] } = await tasksTableClient.createRecords([
                 {
                     name: "Task to Delete",
                 },
@@ -220,7 +220,7 @@ describe("TableClient", () => {
     describe("get", () => {
         it("can get a record by ID", async () => {
             // Create a record
-            const [created] = await tasksTableClient.createRecords([
+            const { records: [created] } = await tasksTableClient.createRecords([
                 {
                     name: "Get Test Task",
                     completed: false,
@@ -248,7 +248,7 @@ describe("TableClient", () => {
 
         it("fills in default values for empty fields", async () => {
             // Create a record with minimal fields
-            const [created] = await tasksTableClient.createRecords([
+            const { records: [created] } = await tasksTableClient.createRecords([
                 {
                     name: "Minimal Task",
                 },

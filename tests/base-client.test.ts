@@ -16,7 +16,7 @@ describe("BaseClient", () => {
     });
 
     it("can create records via table clients", async () => {
-        const result = await baseClient.tables.tasks.createRecords([
+        const { records: result } = await baseClient.tables.tasks.createRecords([
             {
                 name: "do laundry",
                 dueDate: "1990-01-01",

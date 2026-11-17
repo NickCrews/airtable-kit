@@ -27,7 +27,7 @@ describe('MCP Tool - Create Tool', () => {
 
   it('should work for valid input', async () => {
     const createTool = makeCreateTool(tasksTableClient);
-    const result = await createTool.execute({
+    const { records: result } = await createTool.execute({
       records: [
         {
           name: "My new task",
@@ -64,7 +64,7 @@ describe('MCP Tool - Update Tool', () => {
     const updateTool = makeUpdateTool(tasksTableClient);
 
     // Create a record first
-    const [created] = await tasksTableClient.createRecords([
+    const { records: [created] } = await tasksTableClient.createRecords([
       {
         name: "My new task",
         completed: false,
@@ -116,7 +116,7 @@ describe('MCP Tool - Get Tool', () => {
 
   it('should work for valid input', async () => {
     const getTool = makeGetTool(tasksTableClient);
-    const [created] = await tasksTableClient.createRecords([
+    const { records: [created] } = await tasksTableClient.createRecords([
       {
         name: "my task"
       },
@@ -186,7 +186,7 @@ describe('MCP Tool - Delete Tool', () => {
     const deleteTool = makeDeleteTool(tasksTableClient);
     const nRecordsBefore = (await tasksTableClient.listRecords({ fields: ["name"] })).length
 
-    const created = await tasksTableClient.createRecords([
+    const { records: created } = await tasksTableClient.createRecords([
       { name: "Delete Me 1" },
       { name: "Delete Me 2" },
     ]);

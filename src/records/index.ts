@@ -6,6 +6,7 @@ export {
 } from "./converters.ts";
 export {
     type Timestamp,
+    type WriteWarning,
     type CreateRecordsParams,
     type CreateRecordsResponse,
     createRecords,

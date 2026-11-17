@@ -9,7 +9,7 @@ import { makeRecordWriteValidator } from '../validators/schema-to-zod.ts';
 import { toIdentifier } from '../codegen/identifiers.ts';
 import { RecordIdSchema } from '../validators/index.ts';
 import { TIMEZONES } from '../fields/timezones.ts';
-import { ListRecordsOptions, ListRecordsResponse, UpdateRecordsOptions, UpdateRecordsResponse } from '../records/api.ts';
+import { ListRecordsOptions, ListRecordsResponse, UpdateRecordsOptions, UpdateRecordsResponse, WriteWarning } from '../records/api.ts';
 import { TableSchema } from '../tables/types.ts';
 import { RecordId } from '../records/types.ts';
 
@@ -25,12 +25,15 @@ export interface MCPToolDefinition<TInput = any, TOutput = any> {
 type CreateInput<T extends TableSchema> = {
   records: ReadonlyArray<ValuesForWrite<T["fields"][number]>>;
 };
-type CreateToolResult<T extends TableSchema> = Array<{
-  id: RecordId;
-  createdTime: string;
-  fields: ValuesFromRead<T["fields"][number]>;
-  url: string;
-}>;
+type CreateToolResult<T extends TableSchema> = {
+  records: Array<{
+    id: RecordId;
+    createdTime: string;
+    fields: ValuesFromRead<T["fields"][number]>;
+    url: string;
+  }>;
+  warnings: WriteWarning[];
+};
 export function makeCreateTool<
   T extends TableSchema,
 >(client: TableClient<T>): MCPToolDefinition<CreateInput<T>, CreateToolResult<T>> {
@@ -38,12 +41,15 @@ export function makeCreateTool<
   const zodInputValidator = z4.object({ records: z4.array(recordSchema) });
   async function execute(input: CreateInput<T>) {
     const validated = zodInputValidator.parse(input);
-    const createRecords = await client.createRecords(validated.records as ValuesForWrite<T["fields"][number]>[]);
-    return createRecords.map((r) => ({
-      ...r,
-      // include the URL so the bot can share it with the user
-      "url": `https://airtable.com/${client.baseId}/${client.tableSchema.id}/${r.id}`,
-    }));
+    const created = await client.createRecords(validated.records as ValuesForWrite<T["fields"][number]>[]);
+    return {
+      records: created.records.map((r) => ({
+        ...r,
+        // include the URL so the bot can share it with the user
+        "url": `https://airtable.com/${client.baseId}/${client.tableSchema.id}/${r.id}`,
+      })),
+      warnings: created.warnings,
+    };
   }
   let description = "";
   if (client.tableSchema.description) {
