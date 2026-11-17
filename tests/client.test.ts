@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { type Fetcher, createAirtable, createMockFetch, toAirtable } from "airtable-kit";
+import { type Fetcher, createAirtable, createMockFetch } from "airtable-kit";
 import { AirtableKitApiError } from "airtable-kit/exceptions";
 import { createBaseClient } from "airtable-kit/typed";
 
@@ -78,11 +78,11 @@ describe("createAirtable", () => {
     });
 });
 
-describe("toAirtable", () => {
-    it("returns an existing client unchanged, and creates one from options", () => {
+describe("createAirtable with an existing client", () => {
+    it("returns the client unchanged", () => {
         const airtable = createAirtable({ apiKey: "patABC" });
-        expect(toAirtable(airtable)).toBe(airtable);
-        expect(toAirtable({ apiKey: "patABC" })).not.toBe(airtable);
+        expect(createAirtable(airtable)).toBe(airtable);
+        expect(createAirtable({ apiKey: "patABC" })).not.toBe(airtable);
     });
 
     it("lets typed clients share one Airtable client", () => {

@@ -5,7 +5,6 @@ export {
     type MockFetchCall,
     createAirtable,
     createMockFetch,
-    toAirtable,
     DEFAULT_API_KEY_ENV_VAR,
 } from "./client.ts";
 export {

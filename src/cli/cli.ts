@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import { Command } from 'commander';
 
 import { generateCode } from "../codegen/index.ts";
-import { type Airtable, type IntoAirtable, DEFAULT_API_KEY_ENV_VAR, createAirtable, toAirtable } from '../client.ts';
+import { type Airtable, type IntoAirtable, DEFAULT_API_KEY_ENV_VAR, createAirtable } from '../client.ts';
 import { toIdentifier } from '../codegen/identifiers.ts';
 import { createBaseCommand } from "./base.ts";
 import { createTableCommand } from "./table.ts";
@@ -35,12 +35,9 @@ export async function cli(args: string[], airtable?: IntoAirtable): Promise<void
     })
     .exitOverride();
 
-  const resolveAirtable = (): Airtable => {
-    if (airtable) {
-      return toAirtable(airtable);
-    }
-    return createAirtable({ apiKey: getApiKey(getApiKeyFromArgs(args)) });
-  };
+  // Resolved when a command runs, so that eg `--help` works without an API key.
+  const resolveAirtable = (): Airtable =>
+    createAirtable(airtable ?? { apiKey: getApiKey(getApiKeyFromArgs(args)) });
 
   program.addCommand(createBaseCommand(resolveAirtable));
   program.addCommand(createTableCommand(resolveAirtable));
