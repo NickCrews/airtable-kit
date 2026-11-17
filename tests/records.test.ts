@@ -27,7 +27,7 @@ describe("Records API", () => {
 
     describe("createRecords", () => {
         it("can create a single record", async () => {
-            const result = await api.createRecords({
+            const { records: result } = await api.createRecords({
                 records: [
                     {
                         name: "Single Task",
@@ -57,7 +57,7 @@ describe("Records API", () => {
                 status: i % 2 === 0 ? "Todo" : "In Progress" as any,
             }));
 
-            const result = await api.createRecords({
+            const { records: result } = await api.createRecords({
                 records,
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
@@ -73,7 +73,7 @@ describe("Records API", () => {
         });
 
         it("can handle empty record list", async () => {
-            const result = await api.createRecords({
+            const { records: result } = await api.createRecords({
                 records: [],
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
@@ -84,7 +84,7 @@ describe("Records API", () => {
         });
 
         it("removes undefined and null fields before sending", async () => {
-            const result = await api.createRecords({
+            const { records: result } = await api.createRecords({
                 records: [
                     {
                         name: "Test Task",
@@ -107,7 +107,7 @@ describe("Records API", () => {
 
     describe("createRecordsRaw", () => {
         it("can create a single record without batching", async () => {
-            const result = await api.createRecordsRaw({
+            const { records: result } = await api.createRecordsRaw({
                 records: [
                     {
                         name: "Raw Create Task",
@@ -124,7 +124,7 @@ describe("Records API", () => {
         });
 
         it("handles empty list", async () => {
-            const result = await api.createRecordsRaw({
+            const { records: result } = await api.createRecordsRaw({
                 records: [],
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
@@ -364,7 +364,7 @@ describe("Records API", () => {
 
     describe("getRecord", () => {
         it("can get a single record by ID", async () => {
-            const [created] = await api.createRecords({
+            const { records: [created] } = await api.createRecords({
                 records: [{ name: "Get Test Task" }],
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
@@ -388,7 +388,7 @@ describe("Records API", () => {
         });
 
         it("returns all fields with default values", async () => {
-            const [created] = await api.createRecords({
+            const { records: [created] } = await api.createRecords({
                 records: [{ name: "Minimal Task" }],
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
@@ -409,7 +409,7 @@ describe("Records API", () => {
         });
 
         it("can use string cell format", async () => {
-            const [created] = await api.createRecords({
+            const { records: [created] } = await api.createRecords({
                 records: [
                     {
                         name: "Date Task",
@@ -434,7 +434,7 @@ describe("Records API", () => {
 
     describe("updateRecords", () => {
         it("can update a single record", async () => {
-            const [created] = await api.createRecords({
+            const { records: [created] } = await api.createRecords({
                 records: [{ name: "Original Name" }],
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
@@ -463,11 +463,39 @@ describe("Records API", () => {
                     name: "Updated Name",
                     completed: true,
                 },
+                operation: "updated",
             });
+            expect(result.warnings).toEqual([]);
+        });
+
+        it("reports which records an upsert created and which it updated", async () => {
+            const { records: [existing] } = await api.createRecords({
+                records: [{ name: "Upsert Existing" }],
+                baseId: testBaseSchema.id,
+                tableId: tasksTable.id,
+                fields: tasksTable.fields,
+            });
+
+            const result = await api.updateRecords({
+                records: [
+                    { fields: { name: "Upsert Existing", priority: 1 } },
+                    { fields: { name: "Upsert New", priority: 2 } },
+                ],
+                options: { performUpsert: { fieldsToMergeOn: ["name"] } },
+                baseId: testBaseSchema.id,
+                tableId: tasksTable.id,
+                fields: tasksTable.fields,
+            });
+
+            expect(result.records).toHaveLength(2);
+            expect(result.records[0]).toMatchObject({ id: existing.id, operation: "updated" });
+            expect(result.records[1].operation).toBe("created");
+            expect(result.records[1].id).not.toBe(existing.id);
+            expect(result.warnings).toEqual([]);
         });
 
         it("can update multiple records in batches", async () => {
-            const created = await api.createRecords({
+            const { records: created } = await api.createRecords({
                 records: Array.from({ length: 25 }, (_, i) => ({
                     name: `Task ${i}`,
                 })),
@@ -493,7 +521,7 @@ describe("Records API", () => {
         });
 
         it("can use non-destructive update (PATCH)", async () => {
-            const [created] = await api.createRecords({
+            const { records: [created] } = await api.createRecords({
                 records: [
                     {
                         name: "Original Task",
@@ -536,7 +564,7 @@ describe("Records API", () => {
         });
 
         it("can use destructive update (PUT)", async () => {
-            const [created] = await api.createRecords({
+            const { records: [created] } = await api.createRecords({
                 records: [
                     {
                         name: "Original Task",
@@ -579,7 +607,7 @@ describe("Records API", () => {
         });
 
         it("can enable typecast", async () => {
-            const [created] = await api.createRecords({
+            const { records: [created] } = await api.createRecords({
                 records: [{ name: "Typecast Task" }],
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
@@ -618,7 +646,7 @@ describe("Records API", () => {
         });
 
         it("removes undefined fields but keeps null fields", async () => {
-            const [created] = await api.createRecords({
+            const { records: [created] } = await api.createRecords({
                 records: [
                     {
                         name: "Test Task",
@@ -661,7 +689,7 @@ describe("Records API", () => {
 
     describe("updateRecordsRaw", () => {
         it("rejects more than 10 records", async () => {
-            const created = await api.createRecords({
+            const { records: created } = await api.createRecords({
                 records: Array.from({ length: 11 }, (_, i) => ({
                     name: `Task ${i}`,
                 })),
@@ -686,7 +714,7 @@ describe("Records API", () => {
 
     describe("deleteRecords", () => {
         it("can delete a single record", async () => {
-            const [created] = await api.createRecords({
+            const { records: [created] } = await api.createRecords({
                 records: [{ name: "Delete Me" }],
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
@@ -707,7 +735,7 @@ describe("Records API", () => {
         });
 
         it("can delete multiple records in batches", async () => {
-            const created = await api.createRecords({
+            const { records: created } = await api.createRecords({
                 records: Array.from({ length: 25 }, (_, i) => ({
                     name: `Delete Task ${i}`,
                 })),
@@ -741,7 +769,7 @@ describe("Records API", () => {
         const fieldId = tasksTable.fields.find((f) => f.name === "attachments")?.id!;
         for (const attachmentFieldIdOrName of [fieldId, "attachments"]) {
             it(`can upload an attachment to a record with attachmentFieldIdOrName=${attachmentFieldIdOrName}`, async () => {
-                const [created] = await api.createRecords({
+                const { records: [created] } = await api.createRecords({
                     records: [{ name: "Attachment Test" }],
                     baseId: testBaseSchema.id,
                     tableId: tasksTable.id,
