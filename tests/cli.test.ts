@@ -1716,7 +1716,6 @@ describe('CLI', { timeout: 10_000 }, () => {
       expect(JSON.parse(calls[1][0])).toMatchInlineSnapshot(`
         [
           {
-            "commentCount": 0,
             "createdTime": "TIMESTAMP",
             "fields": {
               "name": "Item A",
@@ -1726,7 +1725,6 @@ describe('CLI', { timeout: 10_000 }, () => {
             "id": "rec0",
           },
           {
-            "commentCount": 0,
             "createdTime": "TIMESTAMP",
             "fields": {
               "name": "Item B",
@@ -1736,7 +1734,6 @@ describe('CLI', { timeout: 10_000 }, () => {
             "id": "rec1",
           },
           {
-            "commentCount": 0,
             "createdTime": "TIMESTAMP",
             "fields": {
               "name": "Item C",
@@ -1746,7 +1743,6 @@ describe('CLI', { timeout: 10_000 }, () => {
             "id": "rec2",
           },
           {
-            "commentCount": 0,
             "createdTime": "TIMESTAMP",
             "fields": {
               "name": "Item D",
@@ -1756,7 +1752,6 @@ describe('CLI', { timeout: 10_000 }, () => {
             "id": "rec3",
           },
           {
-            "commentCount": 0,
             "createdTime": "TIMESTAMP",
             "fields": {
               "name": "Item E",

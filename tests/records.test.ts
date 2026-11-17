@@ -118,7 +118,7 @@ describe("Records API", () => {
             expect(result[0]).toHaveProperty("id");
             expect(result[0]).toHaveProperty("fields");
             expect(result[0]).toHaveProperty("createdTime");
-            expect(result[0]).toHaveProperty("commentCount");
+            expect(result[0]).not.toHaveProperty("commentCount");
         }, 10_000);
 
         it("can filter records by formula string", async () => {
