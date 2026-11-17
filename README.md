@@ -27,7 +27,8 @@ This has several advantages:
   `formulaToString(tableSchema, ["<=", { field: "Due Date" }, ["DATEADD", ["TODAY"], 7, "days"]])`
   yields
   `{fld123xyz} <= DATEADD(TODAY(), 7, "days")`.
-- **Both Functional and OOP APIs**: Use either the functional API that is a 1:1 mapping to the Airtable REST API, or the OOP-style client with methods like `base.tables.myTable.create(records)`.
+- **Two Layers**: A plain REST client, `createAirtable()`, that maps 1:1 to the Airtable API, and schema-aware clients from `airtable-kit/typed`, with methods like `base.tables.myTable.createRecords(records)`, built on top of it.
+- **Bring Your Own `fetch`**: Pass any `fetch`-shaped function for retries, logging, proxies, or mocking in tests.
 - **Zero-Dependencies**: No required dependencies! `zod` is optional if you want runtime validation (eg for MCP tools).
 - **Portable**: Works in Node.js, Deno, and the browser, including in sandboxed environments, e.g. where `process.env` and `os.homedir()` are not available.
 - **Runtime Validation**: Optionally, dynamically generate Zod validators from the schema to validate all data sent to Airtable at runtime.
@@ -74,9 +75,9 @@ Or programmatically, for full control over which surfaces are included:
 
 ```typescript
 import { baseToOpenApi } from 'airtable-kit/openapi';
-import { getBaseSchema } from 'airtable-kit/bases';
+import { createAirtable } from 'airtable-kit';
 
-const base = await getBaseSchema({ baseId: 'appXXXXXXXXXXXXXX' });
+const base = await createAirtable().bases.get('appXXXXXXXXXXXXXX');
 const spec = baseToOpenApi(base, {
   title: 'My API',
   include: { records: true, webhooks: false }, // every surface defaults to true
@@ -168,13 +169,12 @@ are working with javascript. You can get the CLI to do this with the `--format j
 Now, use the generated schema to create a type-safe Airtable client:
 
 ```typescript
-import { makeBaseClient } from 'airtable-kit/bases';
+import { createBaseClient } from 'airtable-kit/typed';
 import projectTrackerSchema from './schemas/projectTracker.ts';
 
-const client = makeBaseClient({
-  baseSchema: projectTrackerSchema,
-  fetcher: 'YOUR_API_KEY',
-});
+// Uses the AIRTABLE_API_KEY environment variable,
+// or pass options: createBaseClient(projectTrackerSchema, { apiKey: 'YOUR_API_KEY' })
+const client = createBaseClient(projectTrackerSchema);
 // if you tried `client.tables.nonExistentTable` you would get a type error here
 client.tables.tasks.createRecords([
   {
@@ -216,32 +216,31 @@ const tasks = await client.tables.tasks.listRecords({
 console.log(tasks);
 ```
 
-This also supports multi-base clients!
+To work with several bases, create one `Airtable` client and share it,
+so that every base uses the same credentials and `fetch`:
 
 ```typescript
-import { makeOrgClient } from 'airtable-kit/bases';
+import { createAirtable } from 'airtable-kit';
+import { createBaseClient } from 'airtable-kit/typed';
 import projectTrackerSchema from './schemas/projectTracker.ts';
-import otherBase from './schemas/otherBase.ts';
+import otherBaseSchema from './schemas/otherBase.ts';
 
-const client = makeOrgClient({
-  bases: [projectTrackerSchema, otherBase],
-  fetcher: 'YOUR_API_KEY',
-});
-client.bases.otherBase.tables.someTable.createRecords([ ... ]);
-// `client.bases.<base name>` is an instance of BaseClient, like above.
-// `client.bases.nonExistentBase` would be a type error
+const airtable = createAirtable({ apiKey: 'YOUR_API_KEY' });
+const projectTracker = createBaseClient(projectTrackerSchema, airtable);
+const otherBase = createBaseClient(otherBaseSchema, airtable);
+otherBase.tables.someTable.createRecords([ ... ]);
 ```
 
 ### Use Case 2: Dynamic Client for Unknown Bases, eg an MCP Tool
 
 ```typescript
-import { getBaseSchema, makeBaseClient } from 'airtable-kit/bases';
+import { createAirtable } from 'airtable-kit';
+import { createBaseClient } from 'airtable-kit/typed';
 import { makeListTool } from 'airtable-kit/mcp';
 
-const fetcher = 'YOUR_API_KEY';
-const baseSchema = await getBaseSchema({ baseId: 'appXXXXXXXXXXXXXX', fetcher });
-const client = makeBaseClient({ baseSchema, fetcher });
-const listTool = makeListTool(client);
+const airtable = createAirtable({ apiKey: 'YOUR_API_KEY' });
+const client = createBaseClient(await airtable.bases.get('appXXXXXXXXXXXXXX'), airtable);
+const listTool = makeListTool(client.tables.tasks);
 
 // Now you can pass this off to an AI agent framework, eg Vercel's AI SDK (https://github.com/vercel/ai)
 import { tool, ToolLoopAgent } from 'ai'
@@ -258,43 +257,106 @@ const agent = new ToolLoopAgent({
 });
 ```
 
-### Use Case 3: Use the functional API for simple uses
+### Use Case 3: Plain REST Calls
+
+`createAirtable()` returns a client for the Airtable REST API, grouped by resource.
+It sends and returns Airtable's JSON as-is, without value conversion,
+and handles pagination and batching.
 
 ```typescript
-import { createField } from 'airtable-kit/fields';
-import { updateRecords } from 'airtable-kit/records';
+import { createAirtable } from 'airtable-kit';
 
-createField(
-  {
-    baseId: 'appZZZZZZZZZZZ',
-    tableId: 'tblAAAAAAAAAAAAAA',
-    field: {
-      name: 'newField',
-      type: 'singleLineText',
-    },
-    fetcher: 'YOUR_API_KEY',
-  }
-)
+const airtable = createAirtable({ apiKey: 'YOUR_API_KEY' });
 
-updateRecords(
-  {
-    records: [
-      {id: 'recXXXXXXXXXXXX', fields: { 'fldYYYYYYYYYYYYYY': 47 } },
-    ],
-    baseId: 'appZZZZZZZZZZZ',
-    tableId: 'tblAAAAAAAAAAAAAA',
-    fetcher: 'YOUR_API_KEY',
-    // TODO: This is currently required to do value conversion when reading
-    // and writing to the API, but ideally this would be optional, in which
-    // case we would just pass through values as-is.
-    // See the "more sane read behavior" feature above.
-    fields: [{
-      id: 'fldYYYYYYYYYYYYYY',
-      name: 'priority',
-      type: 'number',
-    }]
-  }
-)
+await airtable.fields.create({
+  baseId: 'appZZZZZZZZZZZZZZ',
+  tableId: 'tblAAAAAAAAAAAAAA',
+  field: { name: 'newField', type: 'singleLineText' },
+});
+
+await airtable.records.update({
+  baseId: 'appZZZZZZZZZZZZZZ',
+  tableId: 'tblAAAAAAAAAAAAAA',
+  records: [{ id: 'recXXXXXXXXXXXXXX', fields: { fldYYYYYYYYYYYYYY: 47 } }],
+});
+
+const records = await airtable.records.list({
+  baseId: 'appZZZZZZZZZZZZZZ',
+  tableId: 'tblAAAAAAAAAAAAAA',
+  filterByFormula: '{Done} = FALSE()',
+});
+// records[0].fields is Record<string, unknown>, and Airtable omits empty fields
+```
+
+The available methods are:
+
+- `airtable.bases`: `list`, `get` (the full schema), `listSchemas`, `create`
+- `airtable.tables`: `create`, `update`
+- `airtable.fields`: `create`, `update`
+- `airtable.records`: `list`, `listPage`, `get`, `create`, `update`, `delete`, `uploadAttachment`
+- `airtable.request`: any other endpoint, with the client's credentials
+
+To get value conversion for a few fields without a generated schema,
+describe just those fields in a table client.
+Each field needs the same `options` Airtable returns in the base schema:
+
+```typescript
+import { createTableClient } from 'airtable-kit/typed';
+
+const tasks = createTableClient('appZZZZZZZZZZZZZZ', {
+  id: 'tblAAAAAAAAAAAAAA',
+  name: 'tasks',
+  fields: [
+    { id: 'fldDue', name: 'dueDate', type: 'date', options: { dateFormat: { name: 'iso', format: 'YYYY-MM-DD' } } },
+    { id: 'fldDone', name: 'done', type: 'checkbox', options: { icon: 'check', color: 'greenBright' } },
+  ],
+} as const, airtable);
+
+await tasks.updateRecords([{ id: 'recXXXXXXXXXXXXXX', fields: { dueDate: new Date(), done: true } }]);
+const [record] = await tasks.listRecords({ fields: ['dueDate', 'done'] });
+record.fields.done; // boolean
+```
+
+## Configuration
+
+`createAirtable` takes:
+
+- `apiKey`: an API key or OAuth access token, or a function returning one,
+  which is called before every request (eg to refresh an OAuth token).
+  Defaults to the `AIRTABLE_API_KEY` environment variable.
+- `fetch`: any function with the shape `(url: string, init: RequestInit) => Promise<Response>`.
+  Defaults to `globalThis.fetch`. If you pass a custom `fetch` and no API key is found,
+  requests are sent without an `Authorization` header, so your `fetch` can add its own.
+- `baseUrl`: defaults to `https://api.airtable.com/v0`.
+
+Anywhere a typed client takes an `airtable` argument, you can pass either an `Airtable`
+client or these options. If you omit it, `createAirtable()` is used.
+
+```typescript
+const airtable = createAirtable({
+  fetch: async (url, init) => {
+    for (let attempt = 0; ; attempt++) {
+      const response = await fetch(url, init);
+      if (response.status !== 429 || attempt === 3) return response;
+      await new Promise((resolve) => setTimeout(resolve, 30_000));
+    }
+  },
+});
+```
+
+Failed requests throw an `AirtableKitApiError` (from `airtable-kit/exceptions`)
+with the HTTP `status` and the parsed response body as `rawResponse`.
+
+For tests, `createMockFetch()` returns a `fetch` that responds with a fixed JSON body and records each request:
+
+```typescript
+import { createAirtable, createMockFetch } from 'airtable-kit';
+
+const fetch = createMockFetch();
+fetch.setReturnValue({ records: [] });
+const airtable = createAirtable({ fetch });
+await airtable.records.list({ baseId: 'appX', tableId: 'tblX' });
+fetch.getCallHistory(); // [{ url: 'https://api.airtable.com/v0/appX/tblX', method: 'GET', data: undefined }]
 ```
 
 ## Comparison to Other Airtable Libraries
