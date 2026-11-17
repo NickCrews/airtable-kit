@@ -327,10 +327,6 @@ export function createTableClient<T extends TableClientSchema>(
     };
     const toRawListOptions = <K extends FieldNameOrId<F>, M extends RecordMetadata>(listOptions: ListRecordsOptions<F, K, M> | undefined) => {
         const { sort, filterByFormula, fields: selected, ...rest } = listOptions ?? {};
-        if (selected && selected.length === 0) {
-            // Airtable returns every field when none are selected.
-            throw new Error("`fields` must list at least one field. Omit it to list all fields.");
-        }
         // When a subset of fields is requested, Airtable only returns those fields,
         // so only validate the returned values against those fields' schemas.
         // Otherwise, fields that are always present (eg createdTime) would look like
@@ -347,7 +343,11 @@ export function createTableClient<T extends TableClientSchema>(
                 : formulaToString(fields, filterByFormula),
             fields: selected ? readFields.map((f) => f.id) : undefined,
         };
-        return { rawOptions, readFields };
+        // Airtable returns every field when no fields are requested, so with an empty
+        // selection, drop the returned values instead of reporting them as unexpected.
+        const toRecord = (record: raw.RawRecord) =>
+            fromRaw(selected?.length === 0 ? { ...record, fields: {} } : record, readFields, listOptions?.recordMetadata);
+        return { rawOptions, toRecord };
     };
     const withoutUndefined = (values: object) =>
         Object.fromEntries(Object.entries(values).filter(([_, v]) => v !== undefined));
@@ -390,19 +390,19 @@ export function createTableClient<T extends TableClientSchema>(
             return { record: response.records[0], warnings: response.warnings };
         },
         async listRecords(listOptions) {
-            const { rawOptions, readFields } = toRawListOptions(listOptions);
+            const { rawOptions, toRecord } = toRawListOptions(listOptions);
             const records = await client.records.list({ baseId, tableId, ...rawOptions });
-            return records.map((record) => fromRaw(record, readFields, listOptions?.recordMetadata));
+            return records.map(toRecord);
         },
         async listRecordsPage(listOptions) {
-            const { rawOptions, readFields } = toRawListOptions(listOptions);
+            const { rawOptions, toRecord } = toRawListOptions(listOptions);
             const page = await client.records.listPage({
                 baseId,
                 tableId,
                 ...rawOptions,
             });
             return {
-                records: page.records.map((record) => fromRaw(record, readFields, listOptions?.recordMetadata)),
+                records: page.records.map(toRecord),
                 offset: page.offset,
             };
         },
