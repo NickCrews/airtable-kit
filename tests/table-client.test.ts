@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, expectTypeOf, it } from "vitest";
 import { getTestAirtable, prepTestBaseClient } from '../src/tests/test-utils.ts';
-import { createBaseClient } from "airtable-kit/typed";
+import { createBaseClient, createTableClient } from "airtable-kit/typed";
 
 import testBaseSchema from "../src/tests/test-base-schema.generated.ts";
 const baseClient = createBaseClient(testBaseSchema, getTestAirtable());
@@ -264,6 +264,42 @@ describe("TableClient", () => {
             expect(record.fields).toHaveProperty("priority");
             expect(record.fields).toHaveProperty("status");
             expect(record.fields).toHaveProperty("tags");
+        });
+    });
+
+    describe("createTableClient with a hand-written schema", () => {
+        it("needs only the table ID, and each field's id, name, type, and the options its values depend on", async () => {
+            const { name, completed, dueDate, status } = tasksTableClient.fields;
+            const tasks = createTableClient(
+                testBaseSchema.id,
+                {
+                    id: tasksTableClient.tableSchema.id,
+                    fields: [
+                        { id: name.id, name: name.name, type: name.type },
+                        { id: completed.id, name: completed.name, type: completed.type },
+                        { id: dueDate.id, name: dueDate.name, type: dueDate.type },
+                        {
+                            id: status.id,
+                            name: status.name,
+                            type: status.type,
+                            options: { choices: status.options.choices.map(({ id, name }) => ({ id, name })) },
+                        },
+                    ],
+                },
+                getTestAirtable(),
+                // The table has other fields; leave them out of the records
+                { onReadUnexpectedField: { warn: false, keep: false } },
+            );
+
+            const { records: [created] } = await tasks.createRecords([
+                { name: "Hand-written schema", dueDate: new Date("2024-12-31"), status: "Done" },
+            ]);
+            expect(created.fields).toEqual({ name: "Hand-written schema", completed: false, dueDate: "2024-12-31", status: "Done" });
+            expectTypeOf(created.fields.completed).toEqualTypeOf<boolean>();
+            expectTypeOf(created.fields.status).toEqualTypeOf<"Todo" | "In Progress" | "Done" | null>();
+
+            const fetched = await tasks.getRecord(created.id);
+            expect(fetched.fields).toEqual(created.fields);
         });
     });
 });
