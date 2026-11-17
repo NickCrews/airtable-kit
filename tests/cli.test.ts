@@ -6,11 +6,11 @@ import fs from 'node:fs';
 import { describe, it, expect, beforeEach, vi, afterAll } from 'vitest';
 import { cli } from '../src/cli/cli.ts';
 import { makeInTmpDir } from '../src/tests/inTmpDir.ts';
-import { getTestEnv, prepTestBaseClient } from '../src/tests/test-utils.ts';
-import { makeBaseClient } from '../src/bases/base-client.ts';
+import { getTestEnv, getTestAirtable, prepTestBaseClient } from '../src/tests/test-utils.ts';
+import { createBaseClient } from "airtable-kit/typed";
 import realSchema from '../src/tests/test-base-schema.generated.ts';
 
-const baseClient = makeBaseClient({ baseSchema: realSchema });
+const baseClient = createBaseClient(realSchema, getTestAirtable());
 const { resetBaseData } = prepTestBaseClient(baseClient);
 
 const {

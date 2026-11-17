@@ -1,14 +1,12 @@
 import { Command } from "commander";
-import { fetchAllSchemas } from "../bases/api.ts";
 import { ConfigManager } from "./config.ts";
 import { mdTable } from "./md.ts";
 import { resolveBase, resolveTable, ensureOneMatch } from "./resolvers.ts";
-import { IntoFetcher } from "../fetcher.ts";
-import { createTable, updateTable } from "../tables/api.ts";
+import { type Airtable } from "../client.ts";
 import { TableSchema } from "../tables/types.ts";
 import { BaseSchema } from "../bases/types.ts";
 
-export function createTableCommand(resolveFetcher: () => IntoFetcher): Command {
+export function createTableCommand(resolveAirtable: () => Airtable): Command {
   const cmd = new Command("table")
     .description("Manage Airtable tables");
 
@@ -18,9 +16,9 @@ export function createTableCommand(resolveFetcher: () => IntoFetcher): Command {
     .option("--base <id>", "Base ID or name (uses context if not provided)")
     .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (options: any) => {
-      const fetcher = resolveFetcher();
+      const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await fetchAllSchemas({ fetcher });
+      const allSchemas = await airtable.bases.listSchemas();
 
       const baseId = options.base || config.getBaseId();
       const baseResolved = resolveBase(baseId || null, allSchemas);
@@ -39,9 +37,9 @@ export function createTableCommand(resolveFetcher: () => IntoFetcher): Command {
     .option("--base <id>", "Base ID or name (uses context if not provided)")
     .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (identifier: string, options: any) => {
-      const fetcher = resolveFetcher();
+      const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await fetchAllSchemas({ fetcher });
+      const allSchemas = await airtable.bases.listSchemas();
 
       const baseId = options.base || config.getBaseId();
       const tableResolved = resolveTable(baseId || null, identifier, allSchemas);
@@ -59,9 +57,9 @@ export function createTableCommand(resolveFetcher: () => IntoFetcher): Command {
     .description("Set current table context")
     .option("--base <id>", "Base ID or name (uses context if not provided)")
     .action(async (identifier: string, options: any) => {
-      const fetcher = resolveFetcher();
+      const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await fetchAllSchemas({ fetcher });
+      const allSchemas = await airtable.bases.listSchemas();
 
       const baseId = options.base || config.getBaseId();
       if (!baseId) {
@@ -82,9 +80,9 @@ export function createTableCommand(resolveFetcher: () => IntoFetcher): Command {
     .option("--description <text>", "Table description")
     .option("--from-file <path>", "JSON file with table schema")
     .action(async (name: string, options: any) => {
-      const fetcher = resolveFetcher();
+      const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await fetchAllSchemas({ fetcher });
+      const allSchemas = await airtable.bases.listSchemas();
 
       const baseId = options.base || config.getBaseId();
       const baseResolved = resolveBase(baseId || null, allSchemas);
@@ -96,10 +94,9 @@ export function createTableCommand(resolveFetcher: () => IntoFetcher): Command {
         fields: [],
       };
 
-      const result = await createTable({
+      const result = await airtable.tables.create({
         baseId: base.id,
         table: tableSchema,
-        fetcher,
       });
 
       console.log(formatTable(result));
@@ -113,15 +110,15 @@ export function createTableCommand(resolveFetcher: () => IntoFetcher): Command {
     .option("--name <name>", "New table name")
     .option("--description <text>", "New description")
     .action(async (identifier: string, options: any) => {
-      const fetcher = resolveFetcher();
+      const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await fetchAllSchemas({ fetcher });
+      const allSchemas = await airtable.bases.listSchemas();
 
       const baseId = options.base || config.getBaseId();
       const tableResolved = resolveTable(baseId || null, identifier, allSchemas);
       const { base, table } = ensureOneMatch(tableResolved, "table", identifier, baseId ? `in base ${baseId}` : undefined);
 
-      const updated = await updateTable({
+      const updated = await airtable.tables.update({
         baseId: base.id,
         table: {
           ...table,
@@ -129,7 +126,6 @@ export function createTableCommand(resolveFetcher: () => IntoFetcher): Command {
           name: options.name || table.name,
           description: options.description !== undefined ? options.description : table.description,
         },
-        fetcher,
       });
 
       console.log(formatTable(updated));

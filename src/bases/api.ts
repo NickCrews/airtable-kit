@@ -1,4 +1,4 @@
-import { doFetch, type IntoFetcher } from "../fetcher.ts";
+import type { Requester } from "../request.ts";
 import { TableSchemaCreate } from "../tables/api.ts";
 import { URLSearchParams } from "../url.ts";
 import { BaseId, BaseSchema } from "./types.ts";
@@ -12,162 +12,95 @@ export interface BaseSchemaCreate {
   tables: Array<TableSchemaCreate>
 }
 
-export interface CreateBaseOptions {
+export interface CreateBaseParams {
   /** The ID of the workspace where the base should be created */
   workspaceId: WorkspaceId,
   /** The schema of the base to create */
-  baseSchema: BaseSchemaCreate,
-  /** Optional fetcher to use for the API requests */
-  fetcher?: IntoFetcher,
+  schema: BaseSchemaCreate,
 }
 
-/**
- * Create a new Airtable base with the given schema.
- *
- * @param options Options for creating the base
- * @returns The created base schema with all table and field IDs
- */
-export async function createBase(
-  {
-    workspaceId,
-    baseSchema,
-    fetcher,
-  }: CreateBaseOptions,
-): Promise<BaseSchema> {
+export type PermissionLevel = "none" | "read" | "comment" | "edit" | "create";
 
-  interface ApiResponseSuccess {
-    id: BaseId
-    tables: Array<TableSchema>
-  }
-  interface ApiResponseError {
-    error: {
-      type: string
-      message?: string
-    }
-  }
-  const response = await doFetch<ApiResponseSuccess | ApiResponseError>({
-    fetcher,
-    path: "/meta/bases",
-    method: "POST",
-    data: {
-      workspaceId,
-      name: baseSchema.name,
-      tables: baseSchema.tables,
-    },
-  });
-  if ('error' in response) {
-    throw new Error(`Error creating base: ${JSON.stringify(response.error, null, 2)}`)
-  }
-  return {
-    id: response.id,
-    name: baseSchema.name,
-    tables: response.tables,
-  }
-}
-
-export interface GetBaseSchemaParams {
-  /** The ID of the base to fetch the schema for */
-  baseId: BaseId,
-  /** Optional fetcher to use for the API requests */
-  fetcher?: IntoFetcher,
-}
-
-/**
- * Fetch the schema of a base by its ID.
- * 
- * @param params.baseId The ID of the base to fetch the schema for, eg 'appXXXXXXXXXXXXXX'.
- * @param params.fetcher The {@link IntoFetcher} to use for making API requests.
- * @returns A promise that resolves to the {@link BaseSchema} of the specified base.
- */
-export async function getBaseSchema({
-  baseId, fetcher,
-}: GetBaseSchemaParams
-): Promise<BaseSchema> {
-  const path = `/meta/bases/${baseId}/tables`;
-  const response = await doFetch<{ tables: TableSchema[] }>({ fetcher, path });
-  const allBases = await listBasesRaw(fetcher);
-  const baseName = allBases.find((b) => b.id === baseId)?.name;
-  if (!baseName) {
-    throw new Error(`Could not find base name for base ID ${baseId}`);
-  }
-
-  return {
-    id: baseId,
-    name: baseName,
-    tables: response.tables,
-  };
-}
-
-/**
- * Fetch the schemas of all bases accessible with the provided fetcher.
- * 
- * @param params.fetcher The {@link IntoFetcher} to use for making API requests.
- * @returns A promise that resolves to an array of {@link BaseSchema} objects.
- */
-export async function fetchAllSchemas(
-  { fetcher }: { fetcher?: IntoFetcher } = {},
-): Promise<BaseSchema[]> {
-  // https://airtable.com/developers/web/api/list-bases
-  const bases = await listBasesRaw(fetcher);
-
-  // now fetch all the base schemas in parallel
-  const baseSchemas = await Promise.all(
-    bases.map(async (base) => {
-      const schema = await getBaseRaw({
-        baseId: base.id,
-        fetcher,
-      });
-      return {
-        id: base.id,
-        name: base.name,
-        tables: schema.tables,
-      };
-    })
-  );
-  return baseSchemas;
-}
-
-async function getBaseRaw({
-  baseId, fetcher,
-}: {
-  baseId: BaseId, fetcher: IntoFetcher,
-}
-) {
-  const path = `/meta/bases/${baseId}/tables`;
-  const response = await doFetch<{ tables: TableSchema[] }>({ fetcher, path });
-  return {
-    id: baseId,
-    tables: response.tables,
-  };
-}
-
-
-async function listBasesRaw(fetcher: IntoFetcher): Promise<Array<{
+/** A base as returned by {@link BasesApi.list} */
+export interface BaseSummary {
   id: BaseId;
   name: string;
-  permissionLevel: "none" | "read" | "comment" | "edit" | "create";
-}>> {
-  type ApiResponse = {
-    bases: {
-      id: BaseId;
-      name: string;
-      permissionLevel: "none" | "read" | "comment" | "edit" | "create";
-    }[];
-    offset?: string;
+  permissionLevel: PermissionLevel;
+}
+
+/** Methods for the Airtable bases API, available as `airtable.bases`. */
+export interface BasesApi {
+  /** List all bases the API key can access. Pagination is handled automatically. */
+  list(): Promise<BaseSummary[]>;
+  /** Get the {@link BaseSchema} of a base, including all of its tables and fields. */
+  get(baseId: BaseId): Promise<BaseSchema>;
+  /** Get the {@link BaseSchema} of every base the API key can access. */
+  listSchemas(): Promise<BaseSchema[]>;
+  /** Create a new base, returning its schema with all table and field IDs. */
+  create(params: CreateBaseParams): Promise<BaseSchema>;
+}
+
+export function makeBasesApi(request: Requester): BasesApi {
+  // https://airtable.com/developers/web/api/get-base-schema
+  async function getTables(baseId: BaseId): Promise<TableSchema[]> {
+    const response = await request<{ tables: TableSchema[] }>({ path: `/meta/bases/${baseId}/tables` });
+    return response.tables;
+  }
+
+  // https://airtable.com/developers/web/api/list-bases
+  async function list(): Promise<BaseSummary[]> {
+    const result: BaseSummary[] = [];
+    let offset: string | undefined = undefined;
+    do {
+      const queryParams = new URLSearchParams();
+      if (offset) {
+        queryParams.append("offset", offset);
+      }
+      const response: { bases: BaseSummary[]; offset?: string } = await request({
+        path: `/meta/bases?${queryParams.toString()}`,
+      });
+      result.push(...response.bases);
+      offset = response.offset;
+    } while (offset);
+    return result;
+  }
+
+  return {
+    list,
+    async get(baseId) {
+      const [tables, bases] = await Promise.all([getTables(baseId), list()]);
+      const name = bases.find((b) => b.id === baseId)?.name;
+      if (!name) {
+        throw new Error(`Could not find base name for base ID ${baseId}`);
+      }
+      return { id: baseId, name, tables };
+    },
+    async listSchemas() {
+      const bases = await list();
+      return Promise.all(
+        bases.map(async (base) => ({
+          id: base.id,
+          name: base.name,
+          tables: await getTables(base.id),
+        })),
+      );
+    },
+    // https://airtable.com/developers/web/api/create-base
+    async create({ workspaceId, schema }) {
+      const response = await request<{ id: BaseId; tables: TableSchema[] }>({
+        path: "/meta/bases",
+        method: "POST",
+        data: {
+          workspaceId,
+          name: schema.name,
+          tables: schema.tables,
+        },
+      });
+      return {
+        id: response.id,
+        name: schema.name,
+        tables: response.tables,
+      };
+    },
   };
-  const result = [];
-  let offset: string | undefined = undefined;
-  do {
-    const queryParams = new URLSearchParams();
-    if (offset) {
-      queryParams.append("offset", offset);
-    }
-    const response = await doFetch<ApiResponse>({
-      fetcher,
-      path: `/meta/bases?${queryParams.toString()}`
-    });
-    result.push(...response.bases);
-    offset = response.offset;
-  } while (offset);
-  return result;
 }

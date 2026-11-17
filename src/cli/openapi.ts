@@ -2,21 +2,20 @@ import { Command } from "commander";
 import fs from "node:fs";
 import path from "node:path";
 
-import { fetchAllSchemas } from "../bases/api.ts";
 import { ConfigManager } from "./config.ts";
 import { resolveBase, ensureOneMatch } from "./resolvers.ts";
-import { IntoFetcher } from "../fetcher.ts";
+import { type Airtable } from "../client.ts";
 import { baseToOpenApi } from "../openapi/index.ts";
 
 /**
  * Build the action for the `openapi` command, shared between the top-level
  * `airtable-kit openapi` and `airtable-kit base openapi`.
  */
-function makeOpenApiAction(resolveFetcher: () => IntoFetcher) {
+function makeOpenApiAction(resolveAirtable: () => Airtable) {
   return async (identifier: string | undefined, options: { out?: string }) => {
-    const fetcher = resolveFetcher();
+    const airtable = resolveAirtable();
     const config = ConfigManager.getDefault();
-    const schemas = await fetchAllSchemas({ fetcher });
+    const schemas = await airtable.bases.listSchemas();
 
     const resolvedId = identifier || config.getBaseId();
     const resolved = resolveBase(resolvedId || null, schemas);
@@ -42,11 +41,11 @@ function makeOpenApiAction(resolveFetcher: () => IntoFetcher) {
  * Create a fresh `openapi` {@link Command}. Returns a new instance each call so
  * it can be registered under both the program root and the `base` command.
  */
-export function makeOpenApiCommand(resolveFetcher: () => IntoFetcher): Command {
+export function makeOpenApiCommand(resolveAirtable: () => Airtable): Command {
   return new Command("openapi")
     .description("Generate an OpenAPI 3 spec for a base")
     .argument("[baseId]", "Base ID or name (uses context if not provided)")
     .option("--api-key <key>", "Airtable API key")
     .option("--out <file>", "Write the spec to a file instead of stdout")
-    .action(makeOpenApiAction(resolveFetcher));
+    .action(makeOpenApiAction(resolveAirtable));
 }

@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { prepTestBaseClient } from "../src/tests/test-utils.ts";
-import { makeBaseClient } from "../src/bases/base-client.ts";
+import { getTestAirtable, prepTestBaseClient } from "../src/tests/test-utils.ts";
+import { createBaseClient } from "airtable-kit/typed";
 
 import testBaseSchema from "../src/tests/test-base-schema.generated.ts";
-const baseClient = makeBaseClient({ baseSchema: testBaseSchema });
+const baseClient = createBaseClient(testBaseSchema, getTestAirtable());
 const { resetBaseData } = prepTestBaseClient(baseClient);
 
 describe("BaseClient", () => {

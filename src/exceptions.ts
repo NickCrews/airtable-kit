@@ -10,14 +10,18 @@ export class AirtableKitError extends Error {
     }
 }
 
-/** A generic error when calling the airtable API */
+/** An error response from the Airtable API */
 export class AirtableKitApiError extends AirtableKitError {
     public readonly message: string;
+    /** The parsed JSON body of the response, or its text if it was not JSON */
     public readonly rawResponse: unknown;
-    constructor(message: string, rawResponse: unknown) {
+    /** The HTTP status code of the response */
+    public readonly status?: number;
+    constructor(message: string, rawResponse: unknown, status?: number) {
         super(message);
         this.message = message;
         this.rawResponse = rawResponse;
+        this.status = status;
         this.name = "AirtableKitApiError";
         // Maintain the correct prototype chain
         Object.setPrototypeOf(this, AirtableKitApiError.prototype);

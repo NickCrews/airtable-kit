@@ -1,13 +1,12 @@
 import { Command } from "commander";
-import { fetchAllSchemas } from "../bases/api.ts";
 import { ConfigManager } from "./config.ts";
 import { mdTable } from "./md.ts";
 import { resolveTable, ensureOneMatch } from "./resolvers.ts";
-import { IntoFetcher } from "../fetcher.ts";
+import { type Airtable } from "../client.ts";
 import { readInput, validateRecordData, validateBatchData } from "./input.ts";
-import { makeTableClient } from "../tables/table-client.ts";
+import { createTableClient } from "../typed/table-client.ts";
 
-export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command {
+export function createRecordCommand(resolveAirtable: () => Airtable): Command {
   const cmd = new Command("record")
     .description("Manage Airtable records");
 
@@ -23,9 +22,9 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
     .option("--fields <list>", "Comma-separated field names to include")
     .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (options: any) => {
-      const fetcher = resolveFetcher();
+      const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await fetchAllSchemas({ fetcher });
+      const allSchemas = await airtable.bases.listSchemas();
 
       const baseId = options.base || config.getBaseId();
       const tableId = options.table || config.getTableId();
@@ -33,11 +32,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
       const tableResolved = resolveTable(baseId || null, tableId || null, allSchemas);
       const { base, table } = ensureOneMatch(tableResolved, "table", tableId || "(no context)", baseId ? `in base ${baseId}` : undefined);
 
-      const client = makeTableClient({
-        baseId: base.id,
-        tableSchema: table,
-        fetcher,
-      });
+      const client = createTableClient(base.id, table, airtable);
 
       const listOptions: any = {};
       if (options.view) listOptions.view = options.view;
@@ -76,9 +71,9 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
     .option("--table <id>", "Table ID or name (uses context if not provided)")
     .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (recordId: string, options: any) => {
-      const fetcher = resolveFetcher();
+      const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await fetchAllSchemas({ fetcher });
+      const allSchemas = await airtable.bases.listSchemas();
 
       const baseId = options.base || config.getBaseId();
       const tableId = options.table || config.getTableId();
@@ -86,11 +81,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
       const tableResolved = resolveTable(baseId || null, tableId || null, allSchemas);
       const { base, table } = ensureOneMatch(tableResolved, "table", tableId || "(no context)", baseId ? `in base ${baseId}` : undefined);
 
-      const client = makeTableClient({
-        baseId: base.id,
-        tableSchema: table,
-        fetcher,
-      });
+      const client = createTableClient(base.id, table, airtable);
 
       const record = await client.getRecord(recordId as any);
       if (options.format === "json") {
@@ -109,9 +100,9 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
     .option("--file <path>", "JSON file with record data")
     .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (options: any) => {
-      const fetcher = resolveFetcher();
+      const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await fetchAllSchemas({ fetcher });
+      const allSchemas = await airtable.bases.listSchemas();
 
       const baseId = options.base || config.getBaseId();
       const tableId = options.table || config.getTableId();
@@ -127,11 +118,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
 
       const records = validateBatchData(data);
 
-      const client = makeTableClient({
-        baseId: base.id,
-        tableSchema: table,
-        fetcher,
-      });
+      const client = createTableClient(base.id, table, airtable);
 
       const results = await client.createRecords(records);
       if (options.format === "json") {
@@ -154,9 +141,9 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
     .option("--typecast", "Enable typecasting for string values")
     .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (recordId: string, options: any) => {
-      const fetcher = resolveFetcher();
+      const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await fetchAllSchemas({ fetcher });
+      const allSchemas = await airtable.bases.listSchemas();
 
       const baseId = options.base || config.getBaseId();
       const tableId = options.table || config.getTableId();
@@ -172,11 +159,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
 
       validateRecordData(data);
 
-      const client = makeTableClient({
-        baseId: base.id,
-        tableSchema: table,
-        fetcher,
-      });
+      const client = createTableClient(base.id, table, airtable);
 
       const result = await client.updateRecords(
         [{ id: recordId as any, fields: data.fields }],
@@ -199,9 +182,9 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
     .option("--base <id>", "Base ID or name (uses context if not provided)")
     .option("--table <id>", "Table ID or name (uses context if not provided)")
     .action(async (recordIds: string[], options: any) => {
-      const fetcher = resolveFetcher();
+      const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await fetchAllSchemas({ fetcher });
+      const allSchemas = await airtable.bases.listSchemas();
 
       const baseId = options.base || config.getBaseId();
       const tableId = options.table || config.getTableId();
@@ -209,11 +192,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
       const tableResolved = resolveTable(baseId || null, tableId || null, allSchemas);
       const { base, table } = ensureOneMatch(tableResolved, "table", tableId || "(no context)", baseId ? `in base ${baseId}` : undefined);
 
-      const client = makeTableClient({
-        baseId: base.id,
-        tableSchema: table,
-        fetcher,
-      });
+      const client = createTableClient(base.id, table, airtable);
 
       await client.deleteRecords(recordIds as any);
       console.log(`✅ Deleted ${recordIds.length} record(s)`);
@@ -229,9 +208,9 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
     .option("--file <path>", "JSON file with record data")
     .option("--format <format>", "Output format (json or markdown)", "markdown")
     .action(async (options: any) => {
-      const fetcher = resolveFetcher();
+      const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await fetchAllSchemas({ fetcher });
+      const allSchemas = await airtable.bases.listSchemas();
 
       const baseId = options.base || config.getBaseId();
       const tableId = options.table || config.getTableId();
@@ -251,11 +230,7 @@ export function createRecordCommand(resolveFetcher: () => IntoFetcher): Command 
 
       const records = validateBatchData(data);
 
-      const client = makeTableClient({
-        baseId: base.id,
-        tableSchema: table,
-        fetcher,
-      });
+      const client = createTableClient(base.id, table, airtable);
 
       const fieldsToMergeOn = options.mergeOn.split(",").map((f: string) => f.trim());
       const results = await client.updateRecords(records, {

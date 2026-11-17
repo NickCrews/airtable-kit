@@ -1,5 +1,5 @@
 import { BaseId } from "../bases/types";
-import { IntoFetcher, doFetch } from "../fetcher";
+import type { Requester } from "../request.ts";
 import { FieldSchemaCreate } from "../fields";
 import { TableId, TableSchema } from "./types";
 
@@ -16,31 +16,6 @@ export interface TableSchemaCreate {
 export interface CreateTableParams {
     baseId: BaseId;
     table: TableSchemaCreate;
-    fetcher?: IntoFetcher;
-}
-
-export async function createTable({
-    baseId,
-    table,
-    fetcher,
-}: CreateTableParams): Promise<TableSchema> {
-    type ErrorResponse = {
-        error: {
-            type: string
-            message?: string
-        }
-    }
-    const response = await doFetch<TableSchema | ErrorResponse>({
-        fetcher,
-        // https://airtable.com/developers/web/api/create-table
-        path: `/meta/bases/${baseId}/tables`,
-        method: "POST",
-        data: table,
-    });
-    if ('error' in response) {
-        throw new Error(`Error creating table: ${JSON.stringify(response.error, null, 2)}`)
-    }
-    return response;
 }
 
 export interface UpdateTableSchema<T extends TableId = TableId> {
@@ -53,24 +28,37 @@ export interface UpdateTableSchema<T extends TableId = TableId> {
 export interface UpdateTableParams {
     baseId: BaseId;
     table: UpdateTableSchema;
-    fetcher?: IntoFetcher;
 }
 
-export async function updateTable({
-    baseId,
-    table,
-    fetcher,
-}: UpdateTableParams): Promise<TableSchema> {
-    const response = await doFetch<TableSchema>({
-        fetcher,
-        // https://airtable.com/developers/web/api/update-table
-        path: `/meta/bases/${baseId}/tables/${table.id}`,
-        method: "PATCH",
-        data: {
-            name: table.name || undefined,
-            description: table.description || undefined,
-            dateDependencySettings: table.dateDependencySettings || undefined,
+/** Methods for the Airtable tables API, available as `airtable.tables`. */
+export interface TablesApi {
+    /** Create a table in a base. */
+    create(params: CreateTableParams): Promise<TableSchema>;
+    /** Update a table's name, description, or date dependency settings. */
+    update(params: UpdateTableParams): Promise<TableSchema>;
+}
+
+export function makeTablesApi(request: Requester): TablesApi {
+    return {
+        // https://airtable.com/developers/web/api/create-table
+        create({ baseId, table }) {
+            return request<TableSchema>({
+                path: `/meta/bases/${baseId}/tables`,
+                method: "POST",
+                data: table,
+            });
         },
-    });
-    return response;
+        // https://airtable.com/developers/web/api/update-table
+        update({ baseId, table }) {
+            return request<TableSchema>({
+                path: `/meta/bases/${baseId}/tables/${table.id}`,
+                method: "PATCH",
+                data: {
+                    name: table.name || undefined,
+                    description: table.description || undefined,
+                    dateDependencySettings: table.dateDependencySettings || undefined,
+                },
+            });
+        },
+    };
 }

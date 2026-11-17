@@ -2,14 +2,14 @@
  * MCP tools for Airtable operations - per-table typed tools
  */
 
-import { type TableClient } from '../tables/table-client.ts';
+import { type TableClient, type ListRecordsOptions, type ListRecordsResponse, type UpdateRecordsOptions, type UpdateRecordsResponse } from '../typed/table-client.ts';
 import { type ValuesFromRead, type ValuesForWrite } from '../records/converters.ts';
 import * as z4 from 'zod/v4';
 import { makeRecordWriteValidator } from '../validators/schema-to-zod.ts';
 import { toIdentifier } from '../codegen/identifiers.ts';
 import { RecordIdSchema } from '../validators/index.ts';
 import { TIMEZONES } from '../fields/timezones.ts';
-import { ListRecordsOptions, ListRecordsResponse, UpdateRecordsOptions, UpdateRecordsResponse, WriteWarning } from '../records/api.ts';
+import { type WriteWarning } from '../records/api.ts';
 import { TableSchema } from '../tables/types.ts';
 import { RecordId } from '../records/types.ts';
 

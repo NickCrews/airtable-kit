@@ -6,9 +6,9 @@
  * @example
  * ```ts
  * import { baseToOpenApi } from "airtable-kit/openapi";
- * import { getBaseSchema } from "airtable-kit/bases";
+ * import { createAirtable } from "airtable-kit";
  *
- * const base = await getBaseSchema({ baseId: "appXXXXXXXXXXXXXX" });
+ * const base = await createAirtable().bases.get("appXXXXXXXXXXXXXX");
  * const spec = baseToOpenApi(base);
  * console.log(JSON.stringify(spec, null, 2));
  * ```
@@ -77,7 +77,7 @@ function makeComponentNamer(base: BaseSchema): (tableId: TableId) => string {
 /**
  * Convert a {@link BaseSchema} into an {@link OpenApiDocument}.
  *
- * @param base    The base schema (e.g. from `getBaseSchema`).
+ * @param base    The base schema (e.g. from `airtable.bases.get()`).
  * @param options See {@link OpenApiOptions}; every API surface is included by default.
  */
 export function baseToOpenApi(base: BaseSchema, options?: OpenApiOptions): OpenApiDocument {
