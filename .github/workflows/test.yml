@@ -11,9 +11,12 @@ on:
 
 # Every run resets records in the same shared Airtable test base,
 # so runs from different branches/PRs must not overlap.
+# `queue: max` keeps every waiting run in line; the default keeps only one
+# pending run and cancels it when another run is queued.
 concurrency:
   group: airtable-test-base
   cancel-in-progress: false
+  queue: max
 
 jobs:
   lint:
