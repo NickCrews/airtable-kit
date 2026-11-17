@@ -1,4 +1,4 @@
-import { type Airtable, type IntoAirtable, toAirtable } from "../client.ts";
+import { type Airtable, type IntoAirtable, createAirtable } from "../client.ts";
 import { type TableClient, type TableClientOptions, createTableClient } from "./table-client.ts";
 import { type TableSchemaCreate, type UpdateTableSchema } from "../tables/api.ts";
 import { TableSchema } from "../tables/types.ts";
@@ -58,7 +58,7 @@ export function createBaseClient<T extends BaseSchema>(
     airtable?: IntoAirtable,
     options?: TableClientOptions,
 ): BaseClient<T> {
-    const client = toAirtable(airtable);
+    const client = createAirtable(airtable);
     const tables = Object.fromEntries(
         baseSchema.tables.map((tableSchema) => [
             tableSchema.name,

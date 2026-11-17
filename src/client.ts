@@ -54,9 +54,15 @@ export type IntoAirtable = Airtable | AirtableOptions;
  * const bases = await airtable.bases.list();
  * ```
  *
+ * Given an existing {@link Airtable} client, returns it unchanged, so
+ * `createAirtable(createAirtable(options))` is the same client as `createAirtable(options)`.
+ *
  * @throws Error if no API key is given or found in the environment, and no custom `fetch` is given.
  */
-export function createAirtable(options: AirtableOptions = {}): Airtable {
+export function createAirtable(options: IntoAirtable = {}): Airtable {
+    if (isAirtable(options)) {
+        return options;
+    }
     const apiKey = options.apiKey ?? readEnvVar(DEFAULT_API_KEY_ENV_VAR);
     if (!apiKey && !options.fetch) {
         throw new Error(
@@ -77,14 +83,6 @@ export function createAirtable(options: AirtableOptions = {}): Airtable {
         records: makeRecordsApi(request),
         request,
     };
-}
-
-/** Return `airtable` if it is already an {@link Airtable} client, otherwise create one from it. */
-export function toAirtable(airtable?: IntoAirtable): Airtable {
-    if (airtable && isAirtable(airtable)) {
-        return airtable;
-    }
-    return createAirtable(airtable);
 }
 
 function isAirtable(value: IntoAirtable): value is Airtable {

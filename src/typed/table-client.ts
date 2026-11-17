@@ -1,4 +1,4 @@
-import { type Airtable, type IntoAirtable, toAirtable } from "../client.ts";
+import { type Airtable, type IntoAirtable, createAirtable } from "../client.ts";
 import type * as raw from "../records/api.ts";
 import { Formula, formulaToString } from "../formula/formula.ts";
 import { FieldSchemaCreate, FieldSchemaRead, type FieldId } from "../fields/types.ts";
@@ -295,7 +295,7 @@ export function createTableClient<T extends TableClientSchema>(
     options?: TableClientOptions,
 ): TableClient<T> {
     type F = FieldType<T>;
-    const client = toAirtable(airtable);
+    const client = createAirtable(airtable);
     const tableId = tableSchema.id;
     const fields: ReadonlyArray<F> = tableSchema.fields;
     const onUnexpectedField = options?.onReadUnexpectedField;
