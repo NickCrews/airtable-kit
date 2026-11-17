@@ -94,7 +94,7 @@ const records = await airtable.records.list({
 
 The available methods are:
 
-- `airtable.bases`: `list`, `get` (the full schema), `listSchemas`, `create`
+- `airtable.bases`: `list`, `get` (the full schema), `create`
 - `airtable.tables`: `create`, `update`
 - `airtable.fields`: `create`, `update`
 - `airtable.records`: `list`, `listPage`, `get`, `create`, `update`, `delete`, `uploadAttachment`

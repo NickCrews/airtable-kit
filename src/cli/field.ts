@@ -6,6 +6,7 @@ import { type Airtable } from "../client.ts";
 import { readInput } from "./input.ts";
 import { FieldSchemaRead } from "../fields/types.ts";
 import { TableSchema } from "../tables/types.ts";
+import { getAllBaseSchemas } from "./schemas.ts";
 
 export function createFieldCommand(resolveAirtable: () => Airtable): Command {
   const cmd = new Command("field")
@@ -20,7 +21,7 @@ export function createFieldCommand(resolveAirtable: () => Airtable): Command {
     .action(async (options: any) => {
       const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await airtable.bases.listSchemas();
+      const allSchemas = await getAllBaseSchemas(airtable);
 
       const baseId = options.base || config.getBaseId();
       const tableId = options.table || config.getTableId();
@@ -44,7 +45,7 @@ export function createFieldCommand(resolveAirtable: () => Airtable): Command {
     .action(async (identifier: string, options: any) => {
       const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await airtable.bases.listSchemas();
+      const allSchemas = await getAllBaseSchemas(airtable);
 
       const baseId = options.base || config.getBaseId();
       const tableId = options.table || config.getTableId();
@@ -71,7 +72,7 @@ export function createFieldCommand(resolveAirtable: () => Airtable): Command {
     .action(async (name: string, options: any) => {
       const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await airtable.bases.listSchemas();
+      const allSchemas = await getAllBaseSchemas(airtable);
 
       const baseId = options.base || config.getBaseId();
       const tableId = options.table || config.getTableId();
@@ -121,7 +122,7 @@ export function createFieldCommand(resolveAirtable: () => Airtable): Command {
     .action(async (identifier: string, options: any) => {
       const airtable = resolveAirtable();
       const config = ConfigManager.getDefault();
-      const allSchemas = await airtable.bases.listSchemas();
+      const allSchemas = await getAllBaseSchemas(airtable);
 
       const baseId = options.base || config.getBaseId();
       const tableId = options.table || config.getTableId();

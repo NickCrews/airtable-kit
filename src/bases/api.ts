@@ -32,10 +32,17 @@ export interface BaseSummary {
 export interface BasesApi {
   /** List all bases the API key can access. Pagination is handled automatically. */
   list(): Promise<BaseSummary[]>;
-  /** Get the {@link BaseSchema} of a base, including all of its tables and fields. */
-  get(baseId: BaseId): Promise<BaseSchema>;
-  /** Get the {@link BaseSchema} of every base the API key can access. */
-  listSchemas(): Promise<BaseSchema[]>;
+  /**
+   * Get the {@link BaseSchema} of a base, including all of its tables and fields.
+   *
+   * Airtable's schema endpoint doesn't return the base's name, so given a base ID this also lists
+   * the bases to find it. Given a {@link BaseSummary} from {@link BasesApi.list}, it uses that name instead:
+   *
+   * ```typescript
+   * const schemas = await Promise.all((await airtable.bases.list()).map((base) => airtable.bases.get(base)));
+   * ```
+   */
+  get(base: BaseId | BaseSummary): Promise<BaseSchema>;
   /** Create a new base, returning its schema with all table and field IDs. */
   create(params: CreateBaseParams): Promise<BaseSchema>;
 }
@@ -67,23 +74,16 @@ export function makeBasesApi(request: Requester): BasesApi {
 
   return {
     list,
-    async get(baseId) {
-      const [tables, bases] = await Promise.all([getTables(baseId), list()]);
-      const name = bases.find((b) => b.id === baseId)?.name;
-      if (!name) {
-        throw new Error(`Could not find base name for base ID ${baseId}`);
+    async get(base) {
+      if (typeof base === "object") {
+        return { id: base.id, name: base.name, tables: await getTables(base.id) };
       }
-      return { id: baseId, name, tables };
-    },
-    async listSchemas() {
-      const bases = await list();
-      return Promise.all(
-        bases.map(async (base) => ({
-          id: base.id,
-          name: base.name,
-          tables: await getTables(base.id),
-        })),
-      );
+      const [tables, bases] = await Promise.all([getTables(base), list()]);
+      const name = bases.find((b) => b.id === base)?.name;
+      if (!name) {
+        throw new Error(`Could not find base name for base ID ${base}`);
+      }
+      return { id: base, name, tables };
     },
     // https://airtable.com/developers/web/api/create-base
     async create({ workspaceId, schema }) {

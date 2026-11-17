@@ -14,6 +14,7 @@ import { createRecordCommand } from "./record.ts";
 import { makeOpenApiCommand } from "./openapi.ts";
 
 import * as packageJson from '../../package.json';
+import { getAllBaseSchemas } from "./schemas.ts";
 
 /**
  * Run the CLI with the given arguments.
@@ -57,7 +58,7 @@ export async function cli(args: string[], airtable?: IntoAirtable): Promise<void
       const outDir = options.outdir ?? '.atk/bases';
 
       console.log("🔍 Fetching all base schemas...");
-      const baseSchemas = await client.bases.listSchemas();
+      const baseSchemas = await getAllBaseSchemas(client);
       console.log(`✓ Found ${baseSchemas.length} bases`);
 
       for (const baseSchema of baseSchemas) {

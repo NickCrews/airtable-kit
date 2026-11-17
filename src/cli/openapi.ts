@@ -6,6 +6,7 @@ import { ConfigManager } from "./config.ts";
 import { resolveBase, ensureOneMatch } from "./resolvers.ts";
 import { type Airtable } from "../client.ts";
 import { baseToOpenApi } from "../openapi/index.ts";
+import { getAllBaseSchemas } from "./schemas.ts";
 
 /**
  * Build the action for the `openapi` command, shared between the top-level
@@ -15,7 +16,7 @@ function makeOpenApiAction(resolveAirtable: () => Airtable) {
   return async (identifier: string | undefined, options: { out?: string }) => {
     const airtable = resolveAirtable();
     const config = ConfigManager.getDefault();
-    const schemas = await airtable.bases.listSchemas();
+    const schemas = await getAllBaseSchemas(airtable);
 
     const resolvedId = identifier || config.getBaseId();
     const resolved = resolveBase(resolvedId || null, schemas);
