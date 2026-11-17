@@ -7,6 +7,7 @@ export {
     type TableClientOptions,
     type OnReadUnexpectedField,
     type TypedRecord,
+    type RecordMetadata,
     type SelectedFields,
     type ListRecordsOptions,
     type ListRecordsResponse,

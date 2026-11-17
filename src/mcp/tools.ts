@@ -2,7 +2,7 @@
  * MCP tools for Airtable operations - per-table typed tools
  */
 
-import { type TableClient, type ListRecordsOptions, type ListRecordsResponse, type UpdateRecordsOptions, type UpdateRecordsResponse } from '../typed/table-client.ts';
+import { type TableClient, type ListRecordsOptions, type RecordMetadata, type TypedRecord, type UpdateRecordsOptions, type UpdateRecordsResponse } from '../typed/table-client.ts';
 import { type ValuesFromRead, type ValuesForWrite } from '../records/converters.ts';
 import * as z4 from 'zod/v4';
 import { makeRecordWriteValidator } from '../validators/schema-to-zod.ts';
@@ -145,11 +145,16 @@ export function makeGetTool<
 }
 
 type ListInput<T extends TableSchema> = {
-  options?: ListRecordsOptions<T["fields"][number]>;
+  options?: ListRecordsOptions<T["fields"][number], T["fields"][number]["name"] | T["fields"][number]["id"], RecordMetadata>;
 };
+type ListToolResult<T extends TableSchema> = Array<TypedRecord<T["fields"][number]> & {
+  /** Present when `recordMetadata` includes "commentCount" */
+  commentCount?: number;
+  url: string;
+}>;
 export function makeListTool<
   T extends TableSchema,
->(client: TableClient<T>): MCPToolDefinition<ListInput<T>, ListRecordsResponse<T["fields"][number]>> {
+>(client: TableClient<T>): MCPToolDefinition<ListInput<T>, ListToolResult<T>> {
   const availableFieldNames = client.tableSchema.fields.map((f) => f.name);
   const zodInputValidator = z4.object({
     options: z4.object({
