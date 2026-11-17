@@ -107,7 +107,73 @@ pnpm add airtable-kit
 
 ## Quick Start
 
-### Use Case 1: Statically Typed Client for a Known Base
+### Use Case 1: The Airtable Client
+
+The Airtable client reads and writes raw records, so it needs no schema.
+
+```typescript
+import { createAirtable } from 'airtable-kit';
+
+// Reads the API key from the AIRTABLE_API_KEY environment variable
+const airtable = createAirtable();
+// Or pass an API key or OAuth access token
+// const airtable = createAirtable({ apiKey: 'YOUR_API_KEY' });
+// Or a function returning one, called before every request, eg to refresh an OAuth token
+// const airtable = createAirtable({ apiKey: async () => getAccessToken() });
+// Or your own fetch, eg to add retries or logging (see Configuration)
+// const airtable = createAirtable({ fetch: myFetch });
+
+await airtable.fields.create({
+  baseId: 'appZZZZZZZZZZZZZZ',
+  tableId: 'tblAAAAAAAAAAAAAA',
+  field: { name: 'newField', type: 'singleLineText' },
+});
+
+await airtable.records.update({
+  baseId: 'appZZZZZZZZZZZZZZ',
+  tableId: 'tblAAAAAAAAAAAAAA',
+  records: [{ id: 'recXXXXXXXXXXXXXX', fields: { fldYYYYYYYYYYYYYY: 47 } }],
+});
+
+const records = await airtable.records.list({
+  baseId: 'appZZZZZZZZZZZZZZ',
+  tableId: 'tblAAAAAAAAAAAAAA',
+  filterByFormula: '{Done} = FALSE()',
+});
+// raw records: records[0].fields is Record<string, unknown>, and empty fields are omitted
+```
+
+The available methods are:
+
+- `airtable.bases`: `list`, `get` (the full schema), `listSchemas`, `create`
+- `airtable.tables`: `create`, `update`
+- `airtable.fields`: `create`, `update`
+- `airtable.records`: `list`, `listPage`, `get`, `create`, `update`, `delete`, `uploadAttachment`
+- `airtable.request`: any other endpoint, with the client's credentials
+
+To get typed records for a few fields without a generated schema,
+describe just those fields in a typed table client.
+Each field needs its `id`, `name`, and `type`. Only select fields need `options` (their `choices`),
+and formula, rollup, and lookup fields need `options.result`:
+
+```typescript
+import { createTableClient } from 'airtable-kit/typed';
+
+// `airtable` from createAirtable(), above
+const tasks = createTableClient('appZZZZZZZZZZZZZZ', {
+  id: 'tblAAAAAAAAAAAAAA',
+  fields: [
+    { id: 'fldDue', name: 'dueDate', type: 'date' },
+    { id: 'fldDone', name: 'done', type: 'checkbox' },
+  ],
+} as const, airtable);
+
+await tasks.updateRecords([{ id: 'recXXXXXXXXXXXXXX', fields: { dueDate: new Date(), done: true } }]);
+const [record] = await tasks.listRecords({ fields: ['dueDate', 'done'] });
+record.fields.done; // boolean
+```
+
+### Use Case 2: Statically Typed Client for a Known Base
 
 **Option A: Use the Web App (No Installation Required)**
 
@@ -184,9 +250,8 @@ Now, use the generated schema to create a type-safe Airtable client:
 import { createBaseClient } from 'airtable-kit/typed';
 import projectTrackerSchema from './schemas/projectTracker.ts';
 
-// Uses the AIRTABLE_API_KEY environment variable,
-// or pass options: createBaseClient(projectTrackerSchema, { apiKey: 'YOUR_API_KEY' })
-const client = createBaseClient(projectTrackerSchema);
+// `airtable` from createAirtable(), see Use Case 1
+const client = createBaseClient(projectTrackerSchema, airtable);
 // if you tried `client.tables.nonExistentTable` you would get a type error here
 client.tables.tasks.createRecords([
   {
@@ -228,29 +293,26 @@ const tasks = await client.tables.tasks.listRecords({
 console.log(tasks);
 ```
 
-To work with several bases, create one `Airtable` client and share it,
+To work with several bases, share one `Airtable` client,
 so that every base uses the same credentials and `fetch`:
 
 ```typescript
-import { createAirtable } from 'airtable-kit';
 import { createBaseClient } from 'airtable-kit/typed';
 import projectTrackerSchema from './schemas/projectTracker.ts';
 import otherBaseSchema from './schemas/otherBase.ts';
 
-const airtable = createAirtable({ apiKey: 'YOUR_API_KEY' });
 const projectTracker = createBaseClient(projectTrackerSchema, airtable);
 const otherBase = createBaseClient(otherBaseSchema, airtable);
 otherBase.tables.someTable.createRecords([ ... ]);
 ```
 
-### Use Case 2: Dynamic Client for Unknown Bases, eg an MCP Tool
+### Use Case 3: Dynamic Client for Unknown Bases, eg an MCP Tool
 
 ```typescript
-import { createAirtable } from 'airtable-kit';
 import { createBaseClient } from 'airtable-kit/typed';
 import { makeListTool } from 'airtable-kit/mcp';
 
-const airtable = createAirtable({ apiKey: 'YOUR_API_KEY' });
+// `airtable` from createAirtable(), see Use Case 1
 const client = createBaseClient(await airtable.bases.get('appXXXXXXXXXXXXXX'), airtable);
 const listTool = makeListTool(client.tables.tasks);
 
@@ -267,64 +329,6 @@ const agent = new ToolLoopAgent({
     })
   },
 });
-```
-
-### Use Case 3: The Airtable Client Without a Schema
-
-The Airtable client reads and writes raw records, so it needs no schema.
-
-```typescript
-import { createAirtable } from 'airtable-kit';
-
-const airtable = createAirtable({ apiKey: 'YOUR_API_KEY' });
-
-await airtable.fields.create({
-  baseId: 'appZZZZZZZZZZZZZZ',
-  tableId: 'tblAAAAAAAAAAAAAA',
-  field: { name: 'newField', type: 'singleLineText' },
-});
-
-await airtable.records.update({
-  baseId: 'appZZZZZZZZZZZZZZ',
-  tableId: 'tblAAAAAAAAAAAAAA',
-  records: [{ id: 'recXXXXXXXXXXXXXX', fields: { fldYYYYYYYYYYYYYY: 47 } }],
-});
-
-const records = await airtable.records.list({
-  baseId: 'appZZZZZZZZZZZZZZ',
-  tableId: 'tblAAAAAAAAAAAAAA',
-  filterByFormula: '{Done} = FALSE()',
-});
-// raw records: records[0].fields is Record<string, unknown>, and empty fields are omitted
-```
-
-The available methods are:
-
-- `airtable.bases`: `list`, `get` (the full schema), `listSchemas`, `create`
-- `airtable.tables`: `create`, `update`
-- `airtable.fields`: `create`, `update`
-- `airtable.records`: `list`, `listPage`, `get`, `create`, `update`, `delete`, `uploadAttachment`
-- `airtable.request`: any other endpoint, with the client's credentials
-
-To get typed records for a few fields without a generated schema,
-describe just those fields in a typed table client.
-Each field needs its `id`, `name`, and `type`. Only select fields need `options` (their `choices`),
-and formula, rollup, and lookup fields need `options.result`:
-
-```typescript
-import { createTableClient } from 'airtable-kit/typed';
-
-const tasks = createTableClient('appZZZZZZZZZZZZZZ', {
-  id: 'tblAAAAAAAAAAAAAA',
-  fields: [
-    { id: 'fldDue', name: 'dueDate', type: 'date' },
-    { id: 'fldDone', name: 'done', type: 'checkbox' },
-  ],
-} as const, airtable);
-
-await tasks.updateRecords([{ id: 'recXXXXXXXXXXXXXX', fields: { dueDate: new Date(), done: true } }]);
-const [record] = await tasks.listRecords({ fields: ['dueDate', 'done'] });
-record.fields.done; // boolean
 ```
 
 ## Configuration
