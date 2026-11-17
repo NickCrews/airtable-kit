@@ -1788,6 +1788,21 @@ describe('CLI', { timeout: 10_000 }, () => {
       `);
     });
 
+    it('should create a record from the fields in --data', async () => {
+      const linkedItems = baseClient.tables.linkedItems;
+      await cliWithApiKey([
+        "record", "create",
+        "--base", baseId,
+        "--table", linkedItems.tableSchema.id,
+        "--data", JSON.stringify({ fields: { name: "Item F", numberValue: 60 } }),
+      ]);
+      expect(mockConsoleLog.mock.calls.at(-1)).toEqual(["\n✅ Created 1 record(s)"]);
+
+      const created = await linkedItems.listRecords({ filterByFormula: '{name} = "Item F"' });
+      expect(created).toHaveLength(1);
+      expect(created[0].fields).toMatchObject({ name: "Item F", numberValue: 60 });
+    });
+
     it('should list records with max limit', async () => {
       const tableId = realSchema.tables[0].id;
       await cliWithApiKey(["record", "list", "--base", baseId, "--table", tableId, "--max", "1"]);
