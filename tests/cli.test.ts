@@ -10,17 +10,24 @@ import { getTestEnv } from '../src/tests/test-utils.ts';
 import realSchema from '../src/tests/test-base-schema.generated.ts';
 
 const baseId = realSchema.id;
+const callCli = (args: string[]) => cli(args, undefined);
+const cliWithApiKey = (args: string[]) => callCli(["--api-key", getTestEnv().AIRTABLE_KIT_TEST_API_KEY, ...args]);
 
 /**
  * Every test starts with no recorded console calls.
  * This is a fixture, not a beforeEach hook, because fixtures run before hooks,
  * and fixtures that log need to run after the clear.
  */
-const test = baseTest.extend<{ freshMocks: void }>({
+const test = baseTest.extend<{ freshMocks: void; currentBase: void }>({
   freshMocks: [async ({ }, use) => {
     vi.clearAllMocks();
     await use();
   }, { auto: true }],
+  /** Runs the test in a tmp dir, with the test base set as the current base */
+  currentBase: async ({ freshMocks, tmpDir }, use) => {
+    await cliWithApiKey(["base", "use", baseId]);
+    await use();
+  },
 });
 const it = test;
 
@@ -85,10 +92,6 @@ function scrubAllCalls(calls: any[][]): any[][] {
 }
 
 describe('CLI', { timeout: 10_000 }, () => {
-  const callCli = (args: string[]) => cli(args, undefined);
-
-  const cliWithApiKey = (args: string[]) => callCli(["--api-key", getTestEnv().AIRTABLE_KIT_TEST_API_KEY, ...args]);
-
   const mockConsoleLog = vi.spyOn(console, 'log').mockImplementation(() => { });
   const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => { });
 
@@ -1541,15 +1544,8 @@ describe('CLI', { timeout: 10_000 }, () => {
   });
 
   describe('field command', () => {
-    /** Runs each test in a tmp dir, with the test base set as the current base */
-    const it = test.extend<{ currentBase: void }>({
-      currentBase: [async ({ freshMocks, tmpDir }, use) => {
-        await cliWithApiKey(["base", "use", baseId]);
-        await use();
-      }, { auto: true }],
-    });
 
-    it('should list fields in a table', async () => {
+    it('should list fields in a table', async ({ currentBase }) => {
       const tableId = realSchema.tables[0].id;
       await cliWithApiKey(["field", "list", "--base", baseId, "--table", tableId]);
       expect(scrubAllCalls(mockConsoleLog.mock.calls)).toMatchInlineSnapshot(`
@@ -1573,7 +1569,7 @@ describe('CLI', { timeout: 10_000 }, () => {
       `);
     });
 
-    it('should list fields as json', async () => {
+    it('should list fields as json', async ({ currentBase }) => {
       const tableId = realSchema.tables[0].id;
       await cliWithApiKey(["field", "list", "--base", baseId, "--table", tableId, "--format", "json"]);
       expect(scrubAllCalls(mockConsoleLog.mock.calls)).toMatchInlineSnapshot(`
@@ -1610,7 +1606,7 @@ describe('CLI', { timeout: 10_000 }, () => {
       `);
     });
 
-    it('should get field details by id', async () => {
+    it('should get field details by id', async ({ currentBase }) => {
       const tableId = realSchema.tables[0].id;
       const fieldId = realSchema.tables[0].fields[2].id;
       await cliWithApiKey(["field", "get", fieldId, "--base", baseId, "--table", tableId]);
@@ -1631,7 +1627,7 @@ describe('CLI', { timeout: 10_000 }, () => {
       `);
     });
 
-    it('should get field details by name', async () => {
+    it('should get field details by name', async ({ currentBase }) => {
       const tableId = realSchema.tables[0].id;
       const fieldName = realSchema.tables[0].fields[2].name;
       await cliWithApiKey(["field", "get", fieldName, "--base", baseId, "--table", tableId]);
@@ -1652,7 +1648,7 @@ describe('CLI', { timeout: 10_000 }, () => {
       `);
     });
 
-    it('should get field details as json', async () => {
+    it('should get field details as json', async ({ currentBase }) => {
       const tableId = realSchema.tables[0].id;
       const fieldId = realSchema.tables[0].fields[2].id;
       await cliWithApiKey(["field", "get", fieldId, "--base", baseId, "--table", tableId, "--format", "json"]);
@@ -1675,15 +1671,8 @@ describe('CLI', { timeout: 10_000 }, () => {
   });
 
   describe('record command', () => {
-    /** Runs each test in a tmp dir, with the seeded test base set as the current base */
-    const it = test.extend<{ currentBase: void }>({
-      currentBase: [async ({ freshMocks, tmpDir, base }, use) => {
-        await cliWithApiKey(["base", "use", baseId]);
-        await use();
-      }, { auto: true }],
-    });
 
-    it('should list records in a table', async () => {
+    it('should list records in a table', async ({ base, currentBase }) => {
       const tableId = realSchema.tables[0].id;
       await cliWithApiKey(["record", "list", "--base", baseId, "--table", tableId, "--max", "5"]);
       expect(scrubAllCalls(mockConsoleLog.mock.calls)).toMatchInlineSnapshot(`
@@ -1706,7 +1695,7 @@ describe('CLI', { timeout: 10_000 }, () => {
       `);
     });
 
-    it('should list records as json', async () => {
+    it('should list records as json', async ({ base, currentBase }) => {
       const tableId = realSchema.tables[0].id;
       await cliWithApiKey(["record", "list", "--base", baseId, "--table", tableId, "--format", "json", "--max", "5", "--sort", "name:asc"]);
       const calls = scrubAllCalls(mockConsoleLog.mock.calls);
@@ -1764,7 +1753,7 @@ describe('CLI', { timeout: 10_000 }, () => {
       `);
     });
 
-    it('should list records with field filter', async () => {
+    it('should list records with field filter', async ({ base, currentBase }) => {
       const tableId = realSchema.tables[0].id;
       const fieldName = realSchema.tables[0].fields[0].name;
       await cliWithApiKey(["record", "list", "--base", baseId, "--table", tableId, "--fields", fieldName, "--max", "5"]);
@@ -1788,7 +1777,7 @@ describe('CLI', { timeout: 10_000 }, () => {
       `);
     });
 
-    it('should create a record from the fields in --data', async ({ base }) => {
+    it('should create a record from the fields in --data', async ({ base, currentBase }) => {
       const linkedItems = base.tables.linkedItems;
       await cliWithApiKey([
         "record", "create",
@@ -1803,7 +1792,7 @@ describe('CLI', { timeout: 10_000 }, () => {
       expect(created[0].fields).toMatchObject({ name: "Item F", numberValue: 60 });
     });
 
-    it('should list records with max limit', async () => {
+    it('should list records with max limit', async ({ base, currentBase }) => {
       const tableId = realSchema.tables[0].id;
       await cliWithApiKey(["record", "list", "--base", baseId, "--table", tableId, "--max", "1"]);
       expect(scrubAllCalls(mockConsoleLog.mock.calls)).toMatchInlineSnapshot(`

@@ -193,6 +193,9 @@ test("lists tasks", async ({ tasks }) => {
 });
 ```
 
+In Vitest 2, `test.extend()` adds its fixtures to the `test` it extends, so extend `test`
+at most once per file. Put every fixture the file needs in that one call.
+
 Other guidelines:
 
 1. **Focus on outcomes**: Test the returned data and side effects, not API call details

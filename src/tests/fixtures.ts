@@ -23,6 +23,10 @@
  * `base` and `emptyBase` are the same Airtable base in different starting
  * states, so a test should use only one of them. Within a test, call
  * `base.reset()` or `base.clear()` to return to either state.
+ *
+ * In Vitest 2, `test.extend()` adds its fixtures to the `test` it extends,
+ * so a second `test.extend()` of the same `test` also gets the first one's fixtures.
+ * Extend `test` at most once per file.
  */
 
 import { test as vitestTest } from "vitest";
