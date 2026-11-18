@@ -7,7 +7,7 @@ import { NUMBER } from "./_example-fields.ts";
 const fields = [NUMBER] as const;
 const CREATED_TIME = "2024-01-01T00:00:00.000Z";
 const tableSchema = { id: "tbl1", name: "Table", primaryFieldId: NUMBER.id, fields } as const;
-const makeTable = (fetch: Fetcher) => createTableClient(tableSchema, { baseId: "app1", airtable: { fetch } });
+const makeTable = (fetch: Fetcher) => createTableClient("app1", tableSchema, { airtable: { fetch } });
 
 type RequestRecord = { id?: RecordId; fields: Record<string, unknown> };
 

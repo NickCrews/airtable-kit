@@ -266,6 +266,7 @@ describe("TableClient", () => {
         it("needs only the table ID, and each field's id, name, type, and the options its values depend on", async () => {
             const { name, completed, dueDate, status } = tasksTableClient.fields;
             const tasks = createTableClient(
+                testBaseSchema.id,
                 {
                     id: tasksTableClient.schema.id,
                     fields: [
@@ -281,7 +282,6 @@ describe("TableClient", () => {
                     ],
                 },
                 {
-                    baseId: testBaseSchema.id,
                     airtable: getTestAirtable(),
                     // The table has other fields; leave them out of the records
                     onReadUnexpectedField: { warn: false, keep: false },

@@ -1,5 +1,5 @@
 import { type Airtable, createAirtable } from "../client.ts";
-import { type TableClient, type TypedClientOptions, createTableClient } from "./table-client.ts";
+import { type TableClient, type TableClientOptions, createTableClient } from "./table-client.ts";
 import { type TableSchemaCreate, type UpdateTableSchema } from "../tables/api.ts";
 import { TableSchema } from "../tables/types.ts";
 import { BaseSchema } from "../bases/types.ts";
@@ -38,7 +38,7 @@ export interface BaseClient<T extends BaseSchema = BaseSchema> {
 }
 
 /** Options for {@link createBaseClient}. */
-export interface BaseClientOptions extends TypedClientOptions { }
+export interface BaseClientOptions extends TableClientOptions { }
 
 /**
  * Create a typed {@link BaseClient}, which converts field values using the base's schema.
@@ -64,7 +64,7 @@ export function createBaseClient<T extends BaseSchema>(
     const tables = Object.fromEntries(
         baseSchema.tables.map((tableSchema) => [
             tableSchema.name,
-            createTableClient(tableSchema, { ...options, baseId: baseSchema.id, airtable: client }),
+            createTableClient(baseSchema.id, tableSchema, { ...options, airtable: client }),
         ]),
     ) as TableClientsByName<T["tables"]>;
     return {

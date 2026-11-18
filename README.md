@@ -238,11 +238,16 @@ for await (const task of client.tables.tasks.listRecords({ fields: ['name'] })) 
 }
 ```
 
-`uploadAttachment` takes a `File`, a `Blob`, bytes, or a base64 string:
+`uploadAttachment` takes a `File`, a `Blob`, bytes, or a base64 string.
+A `File` carries its own filename and content type; for anything else, pass them as options:
 
 ```typescript
-await client.tables.tasks.uploadAttachment({ recordId: 'recXXXXXXXXXXXXXX', field: 'attachments', file });
+await client.tables.tasks.uploadAttachment('recXXXXXXXXXXXXXX', 'attachments', file);
+await client.tables.tasks.uploadAttachment('recXXXXXXXXXXXXXX', 'attachments', bytes, { filename: 'a.png', contentType: 'image/png' });
 ```
+
+Throughout the typed clients, required arguments are positional,
+and optional ones go in an options object at the end.
 
 To work with several bases, share one `Airtable` client,
 so that every base uses the same credentials and `fetch`:
@@ -266,13 +271,13 @@ and formula, rollup, and lookup fields need `options.result`:
 import { createTableClient } from 'airtable-kit/typed';
 
 // `airtable` from createAirtable(), see Use Case 1
-const tasks = createTableClient({
+const tasks = createTableClient('appZZZZZZZZZZZZZZ', {
   id: 'tblAAAAAAAAAAAAAA',
   fields: [
     { id: 'fldDue', name: 'dueDate', type: 'date' },
     { id: 'fldDone', name: 'done', type: 'checkbox' },
   ],
-} as const, { baseId: 'appZZZZZZZZZZZZZZ', airtable });
+} as const, { airtable });
 
 await tasks.updateRecord({ id: 'recXXXXXXXXXXXXXX', fields: { dueDate: new Date(), done: true } });
 const [record] = await tasks.listRecords({ fields: ['dueDate', 'done'] });

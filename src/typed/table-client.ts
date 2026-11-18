@@ -7,6 +7,7 @@ import { TableSchema } from "../tables/types.ts";
 import { BaseId } from "../bases/types.ts";
 import { RecordId } from "../records/types.ts";
 import { type ListResult, makeListResult } from "../list-result.ts";
+import { bytesToBase64 } from "../base64.ts";
 import { convertValuesForWrite, convertValuesFromRead, type ConvertibleFieldSchema, type ValuesForWrite, type ValuesFromRead } from "../records/converters.ts";
 
 type FieldsByName<T extends ReadonlyArray<ConvertibleFieldSchema>> = {
@@ -154,24 +155,15 @@ export interface UpdateRecordsResponse<F extends ConvertibleFieldSchema> {
 }
 
 /**
- * Parameters for {@link TableClient.uploadAttachment}.
- *
- * `file` is a `Blob` (including a `File`), binary data, or a base64 encoded string.
+ * Options for {@link TableClient.uploadAttachment}.
  * `filename` defaults to the name of a `File`, and `contentType` to the type of a `Blob`.
  */
-export type UploadAttachmentParams<F extends string = string> = {
-    /** The record to attach the file to */
-    recordId: RecordId;
-    /** The attachment field's name or ID */
-    field: F;
+export interface UploadAttachmentOptions {
     /** Filename (e.g., "photo.jpg") */
     filename?: string;
     /** Content type (e.g., "image/jpeg") */
     contentType?: string;
-} & (
-    | { file: Blob }
-    | { file: ArrayBuffer | ArrayBufferView | string; filename: string; contentType: string }
-);
+}
 
 /**
  * A typed client for one table, which converts field values using the table's schema.
@@ -312,29 +304,38 @@ export interface TableClient<T extends TableClientSchema = TableSchema> {
     /**
      * Upload a file to a record's attachment field.
      *
+     * `file` is a `Blob` (including a `File`), binary data, or a base64 encoded string.
+     * For a `File`, the filename and content type are taken from it.
+     * Otherwise, give them in `options`.
+     *
      * ```typescript
-     * await tasks.uploadAttachment({ recordId, field: "attachments", file: fileFromInput });
-     * await tasks.uploadAttachment({ recordId, field: "attachments", file: bytes, filename: "a.png", contentType: "image/png" });
+     * await tasks.uploadAttachment(recordId, "attachments", fileFromInput);
+     * await tasks.uploadAttachment(recordId, "attachments", bytes, { filename: "a.png", contentType: "image/png" });
      * ```
      */
-    uploadAttachment(params: UploadAttachmentParams<FieldNameOrIdInTable<T>>): Promise<raw.UploadAttachmentResponse>;
+    uploadAttachment(
+        recordId: RecordId,
+        field: FieldNameOrIdInTable<T>,
+        file: Blob,
+        options?: UploadAttachmentOptions,
+    ): Promise<raw.UploadAttachmentResponse>;
+    uploadAttachment(
+        recordId: RecordId,
+        field: FieldNameOrIdInTable<T>,
+        file: ArrayBuffer | ArrayBufferView | string,
+        options: Required<UploadAttachmentOptions>,
+    ): Promise<raw.UploadAttachmentResponse>;
 
     /** Convert a {@link Formula} object for this table to a string */
     formulaToString(formula: Formula<FieldType<T>>): string;
 }
 
-/** Options shared by {@link createTableClient} and `createBaseClient`. */
-export interface TypedClientOptions {
+/** Options for {@link createTableClient}. */
+export interface TableClientOptions {
     /** An {@link Airtable} client, or options to create one. Defaults to `createAirtable()`. */
     airtable?: IntoAirtable;
     /** When reading from the Airtable API, behavior when encountering a field in a record that is not described by the table schema. */
     onReadUnexpectedField?: OnReadUnexpectedField;
-}
-
-/** Options for {@link createTableClient}. */
-export interface TableClientOptions extends TypedClientOptions {
-    /** The ID of the base the table belongs to */
-    baseId: BaseId;
 }
 
 /**
@@ -344,19 +345,22 @@ export interface TableClientOptions extends TypedClientOptions {
  * import { createTableClient } from 'airtable-kit/typed';
  * import myBaseSchema from './schemas/myBase';
  *
- * const tasks = createTableClient(myBaseSchema.tables[0], { baseId: myBaseSchema.id });
+ * const tasks = createTableClient(myBaseSchema.id, myBaseSchema.tables[0]); // reads AIRTABLE_API_KEY
+ * const tasks = createTableClient(myBaseSchema.id, myBaseSchema.tables[0], { airtable });
  * const records = await tasks.listRecords();
  * ```
  *
+ * @param baseId - The ID of the base the table belongs to
  * @param tableSchema - The table's ID and the fields to read and write, eg a {@link TableSchema}. The client only reads and writes the fields it lists.
- * @param options - The base ID, and optionally the {@link Airtable} client to use. See {@link TableClientOptions}.
+ * @param options - See {@link TableClientOptions}
  */
 export function createTableClient<T extends TableClientSchema>(
+    baseId: BaseId,
     tableSchema: T,
-    options: TableClientOptions,
+    options: TableClientOptions = {},
 ): TableClient<T> {
     type F = FieldType<T>;
-    const { baseId, onReadUnexpectedField: onUnexpectedField } = options;
+    const onUnexpectedField = options.onReadUnexpectedField;
     const client = createAirtable(options.airtable);
     const tableId = tableSchema.id;
     const fields: ReadonlyArray<F> = tableSchema.fields;
@@ -523,11 +527,15 @@ export function createTableClient<T extends TableClientSchema>(
             const [deleted] = await deleteRecords([recordId]);
             return deleted;
         },
-        async uploadAttachment(params) {
-            const { recordId, field, file } = params;
+        async uploadAttachment(
+            recordId: RecordId,
+            field: FieldNameOrId<F>,
+            file: Blob | ArrayBuffer | ArrayBufferView | string,
+            uploadOptions?: UploadAttachmentOptions,
+        ) {
             const blob = isBlobLike(file) ? file : undefined;
-            const filename = params.filename ?? (typeof blob?.name === "string" ? blob.name : undefined);
-            const contentType = params.contentType || blob?.type;
+            const filename = uploadOptions?.filename ?? (typeof blob?.name === "string" ? blob.name : undefined);
+            const contentType = uploadOptions?.contentType || blob?.type;
             if (!filename) {
                 throw new Error("uploadAttachment: `filename` is required unless `file` is a File.");
             }
@@ -570,21 +578,4 @@ async function toBase64(file: Blob | ArrayBuffer | ArrayBufferView | string): Pr
         bytes = new Uint8Array(file as ArrayBuffer);
     }
     return bytesToBase64(bytes);
-}
-
-const BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-/** Base64 encode bytes, without relying on `btoa` or `Buffer`, which some runtimes lack. */
-function bytesToBase64(bytes: Uint8Array): string {
-    const parts: string[] = [];
-    for (let i = 0; i < bytes.length; i += 3) {
-        const n = (bytes[i] << 16) | ((bytes[i + 1] ?? 0) << 8) | (bytes[i + 2] ?? 0);
-        parts.push(
-            BASE64_ALPHABET[(n >> 18) & 63],
-            BASE64_ALPHABET[(n >> 12) & 63],
-            i + 1 < bytes.length ? BASE64_ALPHABET[(n >> 6) & 63] : "=",
-            i + 2 < bytes.length ? BASE64_ALPHABET[n & 63] : "=",
-        );
-    }
-    return parts.join("");
 }

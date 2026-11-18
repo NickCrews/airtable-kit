@@ -8,8 +8,8 @@ const airtable = getTestAirtable();
 describe("Records API", () => {
     const tasksTable = testBaseSchema.tables.find((t) => t.name === "tasks")!;
     const linkedItemsTable = testBaseSchema.tables.find((t) => t.name === "linkedItems")!;
-    const tasks = createTableClient(tasksTable, { baseId: testBaseSchema.id, airtable });
-    const linkedItems = createTableClient(linkedItemsTable, { baseId: testBaseSchema.id, airtable });
+    const tasks = createTableClient(testBaseSchema.id, tasksTable, { airtable });
+    const linkedItems = createTableClient(testBaseSchema.id, linkedItemsTable, { airtable });
 
     beforeEach(() => deleteAllRecords(tasks));
 
@@ -490,11 +490,8 @@ describe("Records API", () => {
             it(`can upload an attachment to a record with attachmentFieldIdOrName=${attachmentFieldIdOrName}`, async () => {
                 const { records: [created] } = await tasks.createRecords([{ name: "Attachment Test" }]);
                 const base64File = Buffer.from("test file content").toString("base64");
-                await tasks.uploadAttachment({
-                    recordId: created.id,
-                    field: attachmentFieldIdOrName,
+                await tasks.uploadAttachment(created.id, attachmentFieldIdOrName, base64File, {
                     contentType: "text/plain",
-                    file: base64File,
                     filename: "test.txt",
                 });
                 const updatedRecord = await tasks.getRecord(created.id);

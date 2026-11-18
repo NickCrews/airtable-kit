@@ -6,7 +6,6 @@ export {
 export {
     type TableClient,
     type TableClientOptions,
-    type TypedClientOptions,
     type TableClientSchema,
     type OnReadUnexpectedField,
     type TypedRecord,
@@ -20,7 +19,7 @@ export {
     type UpdateRecordsOptions,
     type UpdateRecordsResponse,
     type CreateRecordsOptions,
-    type UploadAttachmentParams,
+    type UploadAttachmentOptions,
     createTableClient,
 } from "./table-client.ts";
 export {

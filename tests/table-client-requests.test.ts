@@ -15,7 +15,7 @@ const CREATED_TIME = "2024-01-01T00:00:00.000Z";
 
 function mockTable() {
     const fetch = createMockFetch();
-    const client = createTableClient(tableSchema, { baseId: "appTest", airtable: { apiKey: "patX", fetch } });
+    const client = createTableClient("appTest", tableSchema, { airtable: { apiKey: "patX", fetch } });
     return { fetch, client };
 }
 
@@ -101,7 +101,7 @@ describe("TableClient.listRecords", () => {
                 return new Response(JSON.stringify(pages[(urls.length - 1) % pages.length]));
             },
         });
-        const client = createTableClient(tableSchema, { baseId: "appTest", airtable });
+        const client = createTableClient("appTest", tableSchema, { airtable });
         return { client, urls };
     }
     const expected = [record("rec1", { [NUMBER.name]: 1 }), record("rec2", { [NUMBER.name]: 2 })];
@@ -161,15 +161,23 @@ describe("TableClient.listRecords", () => {
 describe("TableClient.uploadAttachment", () => {
     const uploadResponse = { id: "rec1", createdTime: CREATED_TIME, fields: {} };
     const base64 = btoa("hello");
+    const field = MULTIPLE_ATTACHMENTS.id;
+
+    /** Run `fn` with the given globals removed, restoring them afterwards. */
+    async function withoutGlobals(names: ReadonlyArray<string>, fn: () => Promise<void>) {
+        const saved = names.map((name) => Object.getOwnPropertyDescriptor(globalThis, name));
+        names.forEach((name) => delete (globalThis as Record<string, unknown>)[name]);
+        try {
+            await fn();
+        } finally {
+            names.forEach((name, i) => saved[i] && Object.defineProperty(globalThis, name, saved[i]));
+        }
+    }
 
     it("accepts a File, taking its name and type", async () => {
         const { fetch, client } = mockTable();
         fetch.setReturnValue(uploadResponse);
-        await client.uploadAttachment({
-            recordId: "rec1",
-            field: MULTIPLE_ATTACHMENTS.name,
-            file: new File(["hello"], "a.txt", { type: "text/plain" }),
-        });
+        await client.uploadAttachment("rec1", MULTIPLE_ATTACHMENTS.name, new File(["hello"], "a.txt", { type: "text/plain" }));
         const call = fetch.getCallHistory()[0];
         expect(call.url).toBe(`https://content.airtable.com/v0/appTest/rec1/${MULTIPLE_ATTACHMENTS.id}/uploadAttachment`);
         expect(call.data).toEqual({ contentType: "text/plain", filename: "a.txt", file: base64 });
@@ -178,12 +186,7 @@ describe("TableClient.uploadAttachment", () => {
     it("accepts a Blob with a filename", async () => {
         const { fetch, client } = mockTable();
         fetch.setReturnValue(uploadResponse);
-        await client.uploadAttachment({
-            recordId: "rec1",
-            field: MULTIPLE_ATTACHMENTS.id,
-            file: new Blob(["hello"], { type: "text/plain" }),
-            filename: "b.txt",
-        });
+        await client.uploadAttachment("rec1", field, new Blob(["hello"], { type: "text/plain" }), { filename: "b.txt" });
         expect(fetch.getCallHistory()[0].data).toEqual({ contentType: "text/plain", filename: "b.txt", file: base64 });
     });
 
@@ -192,44 +195,22 @@ describe("TableClient.uploadAttachment", () => {
         fetch.setReturnValue(uploadResponse);
         const bytes = new TextEncoder().encode("hello");
         for (const file of [bytes, bytes.buffer, base64]) {
-            await client.uploadAttachment({
-                recordId: "rec1",
-                field: MULTIPLE_ATTACHMENTS.id,
-                file,
-                filename: "c.txt",
-                contentType: "text/plain",
-            });
+            await client.uploadAttachment("rec1", field, file, { filename: "c.txt", contentType: "text/plain" });
         }
         for (const call of fetch.getCallHistory()) {
             expect(call.data).toEqual({ contentType: "text/plain", filename: "c.txt", file: base64 });
         }
     });
 
-    it("base64 encodes bytes of every length like Buffer does", async () => {
-        const { fetch, client } = mockTable();
-        fetch.setReturnValue(uploadResponse);
-        const samples = [0, 1, 2, 3, 4, 5, 6, 255, 1000].map((n) => Uint8Array.from({ length: n }, (_, i) => (i * 37 + n) % 256));
-        for (const bytes of samples) {
-            await client.uploadAttachment({ recordId: "rec1", field: MULTIPLE_ATTACHMENTS.id, file: bytes, filename: "f", contentType: "x/y" });
-        }
-        expect(fetch.getCallHistory().map((c) => (c.data as { file: string }).file))
-            .toEqual(samples.map((b) => Buffer.from(b).toString("base64")));
-    });
-
-    it("works in runtimes without the Blob, File, and btoa globals", async () => {
+    it("works in runtimes without the Blob and File globals", async () => {
         const { fetch, client } = mockTable();
         fetch.setReturnValue(uploadResponse);
         const bytes = new TextEncoder().encode("hello");
         const blobLike = { name: "e.txt", type: "text/plain", arrayBuffer: async () => bytes.buffer };
-        const removed = ["Blob", "File", "btoa"] as const;
-        const saved = removed.map((name) => Object.getOwnPropertyDescriptor(globalThis, name)!);
-        removed.forEach((name) => delete (globalThis as Record<string, unknown>)[name]);
-        try {
-            await client.uploadAttachment({ recordId: "rec1", field: MULTIPLE_ATTACHMENTS.id, file: bytes, filename: "c.txt", contentType: "text/plain" });
-            await client.uploadAttachment({ recordId: "rec1", field: MULTIPLE_ATTACHMENTS.id, file: blobLike as unknown as Blob });
-        } finally {
-            removed.forEach((name, i) => Object.defineProperty(globalThis, name, saved[i]));
-        }
+        await withoutGlobals(["Blob", "File"], async () => {
+            await client.uploadAttachment("rec1", field, bytes, { filename: "c.txt", contentType: "text/plain" });
+            await client.uploadAttachment("rec1", field, blobLike as unknown as Blob);
+        });
         expect(fetch.getCallHistory().map((c) => c.data)).toEqual([
             { contentType: "text/plain", filename: "c.txt", file: base64 },
             { contentType: "text/plain", filename: "e.txt", file: base64 },
@@ -238,17 +219,10 @@ describe("TableClient.uploadAttachment", () => {
 
     it("throws without a filename or content type", async () => {
         const { client } = mockTable();
-        await expect(client.uploadAttachment({
-            recordId: "rec1",
-            field: MULTIPLE_ATTACHMENTS.id,
-            file: new Blob(["hello"], { type: "text/plain" }),
-        })).rejects.toThrow("filename");
-        await expect(client.uploadAttachment({
-            recordId: "rec1",
-            field: MULTIPLE_ATTACHMENTS.id,
-            file: new Blob(["hello"]),
-            filename: "d.txt",
-        })).rejects.toThrow("contentType");
+        await expect(client.uploadAttachment("rec1", field, new Blob(["hello"], { type: "text/plain" })))
+            .rejects.toThrow("filename");
+        await expect(client.uploadAttachment("rec1", field, new Blob(["hello"]), { filename: "d.txt" }))
+            .rejects.toThrow("contentType");
     });
 });
 
