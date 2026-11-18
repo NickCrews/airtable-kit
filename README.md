@@ -430,8 +430,33 @@ const airtable = createAirtable({
 });
 ```
 
-Failed requests throw an `AirtableKitApiError` (from `airtable-kit/exceptions`)
-with the HTTP `status` and the parsed response body as `rawResponse`.
+### Handling errors
+
+Every response with a non-2xx status throws an `AirtableKitApiError` (from `airtable-kit/exceptions`) with:
+
+- `status`: the HTTP status, eg `404`
+- `type`: Airtable's error type, eg `"NOT_FOUND"` or `"INVALID_FILTER_BY_FORMULA"`
+  (undefined if the body was not an Airtable error, eg an HTML page from a proxy)
+- `airtableMessage`: Airtable's description of the problem
+- `method` and `path`: the request that failed
+- `rawResponse`: the parsed response body, or its text if it was not JSON
+
+Network failures are not wrapped; they surface as the error thrown by `fetch`.
+
+```typescript
+import { AirtableKitApiError } from 'airtable-kit/exceptions';
+
+async function findTask(recordId: string) {
+  try {
+    return await airtable.records.get({ baseId, tableId, recordId });
+  } catch (e) {
+    if (e instanceof AirtableKitApiError && e.type === 'NOT_FOUND') {
+      return null;
+    }
+    throw e;
+  }
+}
+```
 
 For tests, `createMockFetch()` returns a `fetch` that responds with a fixed JSON body and records each request:
 
