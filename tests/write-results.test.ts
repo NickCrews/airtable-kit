@@ -48,10 +48,10 @@ describe("updateRecords results", () => {
             ...(i % 2 === 0 ? { id: `rec${i}` } : {}),
             fields: { [NUMBER.name]: i },
         }));
-        const result = await makeTable(fetch).updateRecords({
+        const result = await makeTable(fetch).updateRecords(
             records,
-            performUpsert: { fieldsToMergeOn: [NUMBER.name] },
-        });
+            { performUpsert: { fieldsToMergeOn: [NUMBER.name] } },
+        );
         expect(calls).toHaveLength(3);
         expect(result.records).toHaveLength(25);
         expect(result.records.map((r) => r.operation)).toEqual(
@@ -123,7 +123,7 @@ describe("TableClient.createRecord results", () => {
             details: { message: "partialSuccess", reasons: ["attachmentsFailedUploading"] },
         }));
         const client = makeTable(fetch);
-        const result = await client.createRecord({ record: { [NUMBER.name]: 1 } });
+        const result = await client.createRecord({ [NUMBER.name]: 1 });
         expect(result.record).toMatchObject({ id: "recNew0x0", createdTime: CREATED_TIME });
         expect(result.record.fields[NUMBER.name]).toBe(1);
         expect(result.warnings).toEqual(["attachmentsFailedUploading"]);

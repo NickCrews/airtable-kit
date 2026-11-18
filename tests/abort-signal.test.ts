@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { type Fetcher, createAirtable } from "airtable-kit";
-import { createTableClient } from "airtable-kit/typed";
+import { createBaseClient, createTableClient } from "airtable-kit/typed";
 import { makeListTool } from "airtable-kit/mcp";
-import { NUMBER } from "./_example-fields.ts";
+import { MULTIPLE_ATTACHMENTS, NUMBER } from "./_example-fields.ts";
 
 type Call = { url: string; init: RequestInit };
 
@@ -103,10 +103,10 @@ describe("API methods pass the signal to every request", () => {
     it("bases.get with a BaseSummary", async () => {
         const { fetch, calls } = recordingFetch(() => ({ tables: [] }));
         const { signal } = new AbortController();
-        const schema = await createAirtable({ apiKey: "key", fetch }).bases.get({
-            base: { id: "app1", name: "Base", permissionLevel: "create" },
-            signal,
-        });
+        const schema = await createAirtable({ apiKey: "key", fetch }).bases.get(
+            { id: "app1", name: "Base", permissionLevel: "create" },
+            { signal },
+        );
         expect(schema).toEqual({ id: "app1", name: "Base", tables: [] });
         expect(calls).toHaveLength(1);
         expect(calls[0].init.signal).toBe(signal);
@@ -119,28 +119,75 @@ describe("API methods pass the signal to every request", () => {
                 : { bases: [{ id: "app1", name: "Base", permissionLevel: "create" }] },
         );
         const { signal } = new AbortController();
-        await createAirtable({ apiKey: "key", fetch }).bases.get({ base: "app1", signal });
+        await createAirtable({ apiKey: "key", fetch }).bases.get("app1", { signal });
         expect(calls).toHaveLength(2);
         expect(calls.every((c) => c.init.signal === signal)).toBe(true);
     });
 });
 
 describe("typed clients pass the signal", () => {
-    it("TableClient.listRecords", async () => {
-        const { fetch, calls } = recordingFetch();
-        const client = createTableClient("app1", tableSchema, { apiKey: "key", fetch });
+    const CREATED_TIME = "2024-01-01T00:00:00.000Z";
+    const schema = {
+        id: "tbl1",
+        name: "Table",
+        primaryFieldId: NUMBER.id,
+        fields: [NUMBER, MULTIPLE_ATTACHMENTS],
+    } as const;
+    const fieldResponse = { id: "fld1", name: "f", type: "number", options: { precision: 0 } };
+
+    /** Answers each request like Airtable would, and records the signal it was sent with. */
+    function setup() {
+        const { fetch, calls } = recordingFetch((url, init) => {
+            const path = new URL(url).pathname;
+            const method = init.method ?? "GET";
+            if (path.includes("/fields")) return fieldResponse;
+            if (path.includes("/meta/")) return { id: "tbl1", name: "t", fields: [] };
+            if (path.endsWith("/uploadAttachment")) return { id: "rec1", createdTime: CREATED_TIME, fields: {} };
+            if (method === "DELETE") return { records: [{ id: "rec1", deleted: true }] };
+            if (method !== "GET") {
+                const records = (JSON.parse(init.body as string) as { records: Array<{ id?: string; fields: object }> }).records;
+                return { records: records.map((r, i) => ({ id: r.id ?? `rec${i}`, createdTime: CREATED_TIME, fields: r.fields })) };
+            }
+            if (/\/rec[^/]+$/.test(path)) return { id: "rec1", createdTime: CREATED_TIME, fields: {} };
+            return { records: [] };
+        });
+        const airtable = createAirtable({ apiKey: "key", fetch });
+        const table = createTableClient("app1", schema, airtable);
+        const base = createBaseClient({ id: "app1", name: "Base", tables: [{ ...schema, description: undefined, views: [] }] } as any, airtable);
         const { signal } = new AbortController();
-        await client.listRecords({ signal });
-        expect(calls).toHaveLength(1);
-        expect(calls[0].init.signal).toBe(signal);
+        return { table, base, calls, signal };
+    }
+
+    type Setup = ReturnType<typeof setup>;
+    const cases: Array<[string, (s: Setup) => Promise<unknown>]> = [
+        ["createField", ({ table, signal }) => table.createField({ name: "n", type: "number", options: { precision: 0 } }, { signal })],
+        ["updateField", ({ table, signal }) => table.updateField({ id: NUMBER.id, name: "n" }, { signal })],
+        ["TableClient.updateTable", ({ table, signal }) => table.updateTable({ name: "n" }, { signal })],
+        ["createRecord", ({ table, signal }) => table.createRecord({ [NUMBER.name]: 1 }, { signal })],
+        ["createRecords", ({ table, signal }) => table.createRecords([{ [NUMBER.name]: 1 }], { signal })],
+        ["listRecords", ({ table, signal }) => table.listRecords({ maxRecords: 1, signal })],
+        ["listRecordsPage", ({ table, signal }) => table.listRecordsPage({ pageSize: 1, signal })],
+        ["getRecord", ({ table, signal }) => table.getRecord("rec1", { cellFormat: "json", signal })],
+        ["updateRecords", ({ table, signal }) => table.updateRecords([{ id: "rec1", fields: { [NUMBER.name]: 2 } }], { typecast: true, signal })],
+        ["deleteRecords", ({ table, signal }) => table.deleteRecords(["rec1"], { signal })],
+        ["uploadAttachment", ({ table, signal }) =>
+            table.uploadAttachment("rec1", MULTIPLE_ATTACHMENTS.name, { contentType: "text/plain", file: "eA==", filename: "x.txt", signal })],
+        ["BaseClient.createTable", ({ base, signal }) => base.createTable({ name: "t", fields: [] } as any, { signal })],
+        ["BaseClient.updateTable", ({ base, signal }) => base.updateTable({ id: "tbl1", name: "n" }, { signal })],
+        ["MCP list tool execute", ({ table, signal }) => makeListTool(table).execute({}, { signal })],
+    ];
+
+    it.each(cases)("%s", async (_name, call) => {
+        const s = setup();
+        await call(s);
+        expect(s.calls).toHaveLength(1);
+        expect(s.calls[0].init.signal).toBe(s.signal);
     });
 
-    it("MCP list tool execute", async () => {
-        const { fetch, calls } = recordingFetch();
-        const client = createTableClient("app1", tableSchema, { apiKey: "key", fetch });
-        const { signal } = new AbortController();
-        await makeListTool(client).execute({}, { signal });
-        expect(calls).toHaveLength(1);
-        expect(calls[0].init.signal).toBe(signal);
+    it("updateRecords still sends its options alongside the signal", async () => {
+        const s = setup();
+        await s.table.updateRecords([{ id: "rec1", fields: { [NUMBER.name]: 2 } }], { destructive: true, typecast: true, signal: s.signal });
+        expect(s.calls[0].init.method).toBe("PUT");
+        expect(JSON.parse(s.calls[0].init.body as string)).toMatchObject({ typecast: true });
     });
 });

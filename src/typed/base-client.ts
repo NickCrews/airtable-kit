@@ -22,19 +22,21 @@ export interface BaseClient<T extends BaseSchema = BaseSchema> {
     /** The {@link Airtable} client used to make requests */
     airtable: Airtable;
 
-    /** Create a table in the base, given its schema or `{ table, signal }`
-     *
+    /** Create a table in the base
+     * 
+     * @param tableSchema The schema of the table to create
+     * @param requestOptions eg `{ signal }` to cancel the request
      * @returns The created table's schema
      */
-    createTable(params: TableSchemaCreate | ({ table: TableSchemaCreate } & RequestOptions)): Promise<TableSchema>;
+    createTable(tableSchema: TableSchemaCreate, requestOptions?: RequestOptions): Promise<TableSchema>;
 
-    /** Update a table's name, description, or date dependency settings, given the changes or `{ table, signal }`
-     *
+    /** Update a table's name, description, or date dependency settings
+     * 
+     * @param tableSchema The updated schema of the table
+     * @param requestOptions eg `{ signal }` to cancel the request
      * @returns The updated table's schema
      */
-    updateTable(
-        params: UpdateTableSchema<TableIdInBase<T>> | ({ table: UpdateTableSchema<TableIdInBase<T>> } & RequestOptions),
-    ): Promise<TableSchema>;
+    updateTable(tableSchema: UpdateTableSchema<TableIdInBase<T>>, requestOptions?: RequestOptions): Promise<TableSchema>;
 }
 
 /**
@@ -70,13 +72,11 @@ export function createBaseClient<T extends BaseSchema>(
         baseSchema,
         tables,
         airtable: client,
-        createTable(params) {
-            const { table, signal } = "table" in params ? params : { table: params, signal: undefined };
-            return client.tables.create({ baseId: baseSchema.id, table, signal });
+        createTable(tableSchema, requestOptions) {
+            return client.tables.create({ baseId: baseSchema.id, table: tableSchema, signal: requestOptions?.signal });
         },
-        updateTable(params) {
-            const { table, signal } = "table" in params ? params : { table: params, signal: undefined };
-            return client.tables.update({ baseId: baseSchema.id, table, signal });
+        updateTable(tableSchema, requestOptions) {
+            return client.tables.update({ baseId: baseSchema.id, table: tableSchema, signal: requestOptions?.signal });
         },
     };
 }

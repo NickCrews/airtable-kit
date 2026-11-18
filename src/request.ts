@@ -17,7 +17,7 @@ export type Fetcher = (url: string, init: RequestInit) => Promise<Response>;
 export type ApiKey = string | (() => string | Promise<string>);
 
 /** Arguments for a single request to the Airtable API. */
-export interface RequestArgs {
+export interface RequestArgs extends RequestOptions {
     /** Path relative to the base URL, eg '/appXXX/tblXXX' */
     path: string;
     /** HTTP method, defaults to GET */
@@ -26,13 +26,14 @@ export interface RequestArgs {
     data?: unknown;
     /** Overrides the client's base URL for this request */
     baseUrl?: string;
-    /** Aborts the request. If already aborted, the request is not sent and the signal's reason is thrown. */
-    signal?: AbortSignal;
 }
 
-/** Per-call options accepted by the typed clients' methods. */
+/** Per-call options for a method that makes requests. */
 export interface RequestOptions {
-    /** Aborts the request(s) made by the call. */
+    /**
+     * Aborts the request(s) made by the call.
+     * A request is not sent if the signal has already aborted, and the call rejects with the signal's `reason`.
+     */
     signal?: AbortSignal;
 }
 

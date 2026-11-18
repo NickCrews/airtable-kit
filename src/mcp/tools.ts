@@ -43,7 +43,7 @@ export function makeCreateTool<
   const zodInputValidator = z4.object({ records: z4.array(recordSchema) });
   async function execute(input: CreateInput<T>, requestOptions?: RequestOptions) {
     const validated = zodInputValidator.parse(input);
-    const created = await client.createRecords({ records: validated.records as ValuesForWrite<T["fields"][number]>[], signal: requestOptions?.signal });
+    const created = await client.createRecords(validated.records as ValuesForWrite<T["fields"][number]>[], requestOptions);
     return {
       records: created.records.map((r) => ({
         ...r,
@@ -100,7 +100,7 @@ export function makeUpdateTool<
   });
   async function execute(input: UpdateInput<T>, requestOptions?: RequestOptions) {
     const validated = zodInputValidator.parse(input);
-    const result = await client.updateRecords({ records: validated.records as any, ...validated.options, signal: requestOptions?.signal });
+    const result = await client.updateRecords(validated.records as any, { ...validated.options, signal: requestOptions?.signal });
     return result;
   }
   return {
@@ -131,7 +131,7 @@ export function makeGetTool<
 >(client: TableClient<T>): MCPToolDefinition<GetInput, GetToolResult<T>> {
   async function execute(input: GetInput, requestOptions?: RequestOptions) {
     const validated = GetInput.parse(input);
-    const raw = await client.getRecord({ recordId: validated.recordId, ...validated.options, signal: requestOptions?.signal });
+    const raw = await client.getRecord(validated.recordId, { ...validated.options, signal: requestOptions?.signal });
     return {
       ...raw,
       url: `https://airtable.com/${client.baseId}/${client.tableSchema.id}/${raw.id}`,
@@ -203,7 +203,7 @@ export function makeDeleteTool<
 >(client: TableClient<T>): MCPToolDefinition<DeleteInput, DeleteToolResult> {
   async function execute(input: DeleteInput, requestOptions?: RequestOptions) {
     const validated = DeleteInput.parse(input);
-    const raw = await client.deleteRecords({ recordIds: validated.recordIds, signal: requestOptions?.signal });
+    const raw = await client.deleteRecords(validated.recordIds, requestOptions);
     return raw.records.map((r) => r.id);
   }
   return {

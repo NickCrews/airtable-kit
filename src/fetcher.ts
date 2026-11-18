@@ -169,6 +169,7 @@ export function withRetry(fetcher: Fetcher, options: RetryOptions = {}): Fetcher
  * `1000 / requestsPerSecond` milliseconds apart. Each call has its own limit.
  *
  * If `init.signal` aborts while waiting for a slot, the call rejects with the signal's `reason` without sending.
+ * Its slot is released unless a later request for the same key has already been scheduled after it.
  */
 export function withThrottle(fetcher: Fetcher, options: ThrottleOptions = {}): Fetcher {
     const {
@@ -186,10 +187,19 @@ export function withThrottle(fetcher: Fetcher, options: ThrottleOptions = {}): F
         const k = key(url);
         const now = Date.now();
         const start = Math.max(now, nextSlot.get(k) ?? now);
-        nextSlot.set(k, start + intervalMs);
+        const end = start + intervalMs;
+        nextSlot.set(k, end);
         if (start > now) {
-            await sleep(start - now, init.signal ?? undefined);
-            init.signal?.throwIfAborted();
+            try {
+                await sleep(start - now, init.signal ?? undefined);
+                init.signal?.throwIfAborted();
+            } catch (error) {
+                // Give the slot back if no later request has reserved one after it.
+                if (nextSlot.get(k) === end) {
+                    nextSlot.set(k, start);
+                }
+                throw error;
+            }
         }
         return fetcher(url, init);
     };

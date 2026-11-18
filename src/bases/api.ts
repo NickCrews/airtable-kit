@@ -28,12 +28,6 @@ export interface BaseSummary {
   permissionLevel: PermissionLevel;
 }
 
-/** Params for {@link BasesApi.get}. */
-export interface GetBaseParams extends RequestOptions {
-  /** The base's ID, or its {@link BaseSummary} from {@link BasesApi.list} */
-  base: BaseId | BaseSummary;
-}
-
 /** Methods for the Airtable bases API, available as `airtable.bases`. */
 export interface BasesApi {
   /** List all bases the API key can access. Pagination is handled automatically. */
@@ -46,10 +40,10 @@ export interface BasesApi {
    *
    * ```typescript
    * const schemas = await Promise.all((await airtable.bases.list()).map((base) => airtable.bases.get(base)));
-   * const schema = await airtable.bases.get({ base: "appXXX", signal });
+   * const schema = await airtable.bases.get("appXXX", { signal });
    * ```
    */
-  get(params: BaseId | BaseSummary | GetBaseParams): Promise<BaseSchema>;
+  get(base: BaseId | BaseSummary, requestOptions?: RequestOptions): Promise<BaseSchema>;
   /** Create a new base, returning its schema with all table and field IDs. */
   create(params: CreateBaseParams): Promise<BaseSchema>;
 }
@@ -99,8 +93,8 @@ export function makeBasesApi(request: Requester): BasesApi {
 
   return {
     list,
-    async get(params) {
-      const { base, signal }: GetBaseParams = typeof params === "object" && "base" in params ? params : { base: params };
+    async get(base, requestOptions) {
+      const signal = requestOptions?.signal;
       if (typeof base === "object") {
         return { id: base.id, name: base.name, tables: await getTables(base.id, signal) };
       }

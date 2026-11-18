@@ -20,7 +20,6 @@ export {
     type BaseSummary,
     type BaseSchemaCreate,
     type CreateBaseParams,
-    type GetBaseParams,
     type PermissionLevel,
 } from "./bases/api.ts";
 export {

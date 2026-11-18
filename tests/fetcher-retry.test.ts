@@ -144,4 +144,27 @@ describe("abort signal", () => {
         await expect(waiting).rejects.toBe(reason);
         expect(inner.calls).toBe(1);
     });
+
+    it("withThrottle releases the slot of a request whose signal aborts while it waits", async () => {
+        const controller = new AbortController();
+        const delays: number[] = [];
+        const sleep = async (ms: number) => {
+            delays.push(ms);
+            controller.abort();
+        };
+        const inner = seq(new Response("ok"), new Response("ok"));
+        const now = 1_000_000;
+        const spy = vi.spyOn(Date, "now").mockImplementation(() => now);
+        try {
+            const f = withThrottle(inner, { requestsPerSecond: 1, sleep });
+            await f(URL_, GET);
+            await expect(f(URL_, { ...GET, signal: controller.signal })).rejects.toThrow();
+            // Without the release, this request would wait 2000 ms, behind the aborted one.
+            await f(URL_, GET);
+            expect(delays).toEqual([1000, 1000]);
+            expect(inner.calls).toBe(2);
+        } finally {
+            spy.mockRestore();
+        }
+    });
 });
