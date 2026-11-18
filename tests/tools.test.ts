@@ -10,7 +10,7 @@ import { createBaseClient } from "airtable-kit/typed";
 import { getTestAirtable, prepTestBaseClient } from '../src/tests/test-utils.ts';
 
 import testBaseSchema from "../src/tests/test-base-schema.generated.ts";
-const baseClient = createBaseClient(testBaseSchema, getTestAirtable());
+const baseClient = createBaseClient({ schema: testBaseSchema, airtable: getTestAirtable() });
 const tasksTableClient = baseClient.tables.tasks;
 const { resetBaseData } = prepTestBaseClient(baseClient);
 
@@ -64,14 +64,16 @@ describe('MCP Tool - Update Tool', () => {
     const updateTool = makeUpdateTool(tasksTableClient);
 
     // Create a record first
-    const { records: [created] } = await tasksTableClient.createRecords([
-      {
-        name: "My new task",
-        completed: false,
-        notes: "a note",
-        dueDate: "2025-01-01",
-      },
-    ]);
+    const { records: [created] } = await tasksTableClient.createRecords({
+        records: [
+          {
+            name: "My new task",
+            completed: false,
+            notes: "a note",
+            dueDate: "2025-01-01",
+          },
+        ],
+    });
 
     const validInput = {
       records: [
@@ -116,11 +118,13 @@ describe('MCP Tool - Get Tool', () => {
 
   it('should work for valid input', async () => {
     const getTool = makeGetTool(tasksTableClient);
-    const { records: [created] } = await tasksTableClient.createRecords([
-      {
-        name: "my task"
-      },
-    ]);
+    const { records: [created] } = await tasksTableClient.createRecords({
+        records: [
+          {
+            name: "my task"
+          },
+        ],
+    });
     const result = await getTool.execute({ recordId: created.id });
 
     expect(result).toMatchObject({
@@ -186,10 +190,12 @@ describe('MCP Tool - Delete Tool', () => {
     const deleteTool = makeDeleteTool(tasksTableClient);
     const nRecordsBefore = (await tasksTableClient.listRecords({ fields: ["name"] })).length
 
-    const { records: created } = await tasksTableClient.createRecords([
-      { name: "Delete Me 1" },
-      { name: "Delete Me 2" },
-    ]);
+    const { records: created } = await tasksTableClient.createRecords({
+        records: [
+          { name: "Delete Me 1" },
+          { name: "Delete Me 2" },
+        ],
+    });
     const recordIds = created.map((r) => r.id);
     const result = await deleteTool.execute({ recordIds });
 

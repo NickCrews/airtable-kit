@@ -27,7 +27,7 @@ This has several advantages:
   `formulaToString(tableSchema, ["<=", { field: "Due Date" }, ["DATEADD", ["TODAY"], 7, "days"]])`
   yields
   `{fld123xyz} <= DATEADD(TODAY(), 7, "days")`.
-- **Two Layers**: The Airtable client, `createAirtable()`, maps 1:1 to the Airtable REST API. Typed clients from `airtable-kit/typed`, with methods like `base.tables.myTable.createRecords(records)`, are built on top of it. See [Concepts](#concepts).
+- **Two Layers**: The Airtable client, `createAirtable()`, maps 1:1 to the Airtable REST API. Typed clients from `airtable-kit/typed`, with methods like `base.tables.myTable.createRecords({ records })`, are built on top of it. See [Concepts](#concepts).
 - **Bring Your Own `fetch`**: Pass any `fetch`-shaped function for retries, logging, proxies, or mocking in tests.
 - **Zero-Dependencies**: No required dependencies! `zod` is optional if you want runtime validation (eg for MCP tools).
 - **Portable**: Works in Node.js, Deno, and the browser, including in sandboxed environments, e.g. where `process.env` and `os.homedir()` are not available.
@@ -178,23 +178,25 @@ import { createBaseClient } from 'airtable-kit/typed';
 import projectTrackerSchema from './schemas/projectTracker.ts';
 
 // `airtable` from createAirtable(), see Use Case 1
-const client = createBaseClient(projectTrackerSchema, airtable);
+const client = createBaseClient({ schema: projectTrackerSchema, airtable });
 // if you tried `client.tables.nonExistentTable` you would get a type error here
-client.tables.tasks.createRecords([
-  {
-    // You can use either the field IDs or names as keys
-    fldXXXXXXXXXXXXXX: "Finish report",
-    status: "In Progress",
-    // This would give a type error because its not a valid select option
-    // status: "in progress",
-    // You can either provide a Date object or an ISO string
-    dueDate: new Date("2024-12-31"), // or "2024-12-31" works too
-    // This would give a type error because 42 is not a valid date
-    // dueDate: 42
-    // This would give a type error because dueBy is not a field
-    // dueBy: "2024-12-31"
-  },
-]);
+client.tables.tasks.createRecords({
+  records: [
+    {
+      // You can use either the field IDs or names as keys
+      fldXXXXXXXXXXXXXX: "Finish report",
+      status: "In Progress",
+      // This would give a type error because its not a valid select option
+      // status: "in progress",
+      // You can either provide a Date object or an ISO string
+      dueDate: new Date("2024-12-31"), // or "2024-12-31" works too
+      // This would give a type error because 42 is not a valid date
+      // dueDate: 42
+      // This would give a type error because dueBy is not a field
+      // dueBy: "2024-12-31"
+    },
+  ],
+});
 const tasks = await client.tables.tasks.listRecords({
   // You can build formulas programmatically with type-safety
   // All tasks due in the next 7 days that are not done.
@@ -220,6 +222,40 @@ const tasks = await client.tables.tasks.listRecords({
 console.log(tasks);
 ```
 
+A typed table client has these methods:
+
+- Records: `listRecords`, `listRecordsPage`, `getRecord`,
+  `createRecords`, `createRecord`, `updateRecords`, `updateRecord`, `deleteRecords`, `deleteRecord`,
+  `uploadAttachment`
+- Schema: `createField`, `updateField`, `updateTable`
+- `formulaToString`, to build a formula for this table
+
+Every list method, including `airtable.bases.list` and `airtable.records.list`, can be awaited for an array,
+or iterated with `for await` to fetch one page at a time, for tables too large to hold in memory.
+Read each result once: call the method again to fetch again.
+
+```typescript
+for await (const task of client.tables.tasks.listRecords({ fields: ['name'] })) {
+  console.log(task.fields.name);
+}
+```
+
+`uploadAttachment` takes a `File`, a `Blob`, bytes, or a base64 string.
+A `File` carries its own filename and content type; for anything else, pass them too:
+
+```typescript
+await client.tables.tasks.uploadAttachment({ recordId: 'recXXXXXXXXXXXXXX', field: 'attachments', file });
+await client.tables.tasks.uploadAttachment({
+  recordId: 'recXXXXXXXXXXXXXX',
+  field: 'attachments',
+  file: bytes,
+  filename: 'a.png',
+  contentType: 'image/png',
+});
+```
+
+Every typed client function and method, like every `airtable.*` method, takes a single object of named parameters.
+
 To work with several bases, share one `Airtable` client,
 so that every base uses the same credentials and `fetch`:
 
@@ -228,9 +264,9 @@ import { createBaseClient } from 'airtable-kit/typed';
 import projectTrackerSchema from './schemas/projectTracker.ts';
 import otherBaseSchema from './schemas/otherBase.ts';
 
-const projectTracker = createBaseClient(projectTrackerSchema, airtable);
-const otherBase = createBaseClient(otherBaseSchema, airtable);
-otherBase.tables.someTable.createRecords([ ... ]);
+const projectTracker = createBaseClient({ schema: projectTrackerSchema, airtable });
+const otherBase = createBaseClient({ schema: otherBaseSchema, airtable });
+otherBase.tables.someTable.createRecords({ records: [ ... ] });
 ```
 
 Without a generated schema, you can still get typed records for a few fields
@@ -242,15 +278,19 @@ and formula, rollup, and lookup fields need `options.result`:
 import { createTableClient } from 'airtable-kit/typed';
 
 // `airtable` from createAirtable(), see Use Case 1
-const tasks = createTableClient('appZZZZZZZZZZZZZZ', {
-  id: 'tblAAAAAAAAAAAAAA',
-  fields: [
-    { id: 'fldDue', name: 'dueDate', type: 'date' },
-    { id: 'fldDone', name: 'done', type: 'checkbox' },
-  ],
-} as const, airtable);
+const tasks = createTableClient({
+  baseId: 'appZZZZZZZZZZZZZZ',
+  schema: {
+    id: 'tblAAAAAAAAAAAAAA',
+    fields: [
+      { id: 'fldDue', name: 'dueDate', type: 'date' },
+      { id: 'fldDone', name: 'done', type: 'checkbox' },
+    ],
+  } as const,
+  airtable,
+});
 
-await tasks.updateRecords([{ id: 'recXXXXXXXXXXXXXX', fields: { dueDate: new Date(), done: true } }]);
+await tasks.updateRecord({ record: { id: 'recXXXXXXXXXXXXXX', fields: { dueDate: new Date(), done: true } } });
 const [record] = await tasks.listRecords({ fields: ['dueDate', 'done'] });
 record.fields.done; // boolean
 ```
@@ -357,7 +397,7 @@ import { createBaseClient } from 'airtable-kit/typed';
 import { makeListTool } from 'airtable-kit/mcp';
 
 // `airtable` from createAirtable(), see Use Case 1
-const client = createBaseClient(await airtable.bases.get('appXXXXXXXXXXXXXX'), airtable);
+const client = createBaseClient({ schema: await airtable.bases.get('appXXXXXXXXXXXXXX'), airtable });
 const listTool = makeListTool(client.tables.tasks);
 
 // Now you can pass this off to an AI agent framework, eg Vercel's AI SDK (https://github.com/vercel/ai)
@@ -409,24 +449,33 @@ console.log(JSON.stringify(spec, null, 2));
   Defaults to the `AIRTABLE_API_KEY` environment variable, read before every request,
   so a client can be created before the variable is set.
 - `fetch`: any function with the shape `(url: string, init: RequestInit) => Promise<Response>`.
-  Defaults to `globalThis.fetch`. If you pass a custom `fetch` and no API key is found,
+  Defaults to `globalThis.fetch`, throttled to Airtable's limit of 5 requests per second per base,
+  and retried on rate limits (HTTP 429) and transient errors.
+  A custom `fetch` is used as given, without throttling or retries; wrap it with
+  `withThrottle` and `withRetry` to keep them.
+  If you pass a custom `fetch` and no API key is found,
   requests are sent without an `Authorization` header, so your `fetch` can add its own.
 - `baseUrl`: defaults to `https://api.airtable.com/v0`.
 - `contentBaseUrl`: the base URL for attachment uploads. Defaults to `baseUrl` if given,
   otherwise `https://content.airtable.com/v0`.
 
-Anywhere a typed client takes an `airtable` argument, you can pass either an `Airtable`
+The typed clients take an `airtable` option, which is either an `Airtable`
 client or these options. If you omit it, `createAirtable()` is used.
 
+To add logging to a custom `fetch`, while keeping the default throttling and retries:
+
 ```typescript
+import { createAirtable, withRetry, withThrottle } from 'airtable-kit';
+
+const loggingFetch = async (url: string, init: RequestInit) => {
+  const response = await fetch(url, init);
+  console.log(init.method, url, response.status);
+  return response;
+};
 const airtable = createAirtable({
-  fetch: async (url, init) => {
-    for (let attempt = 0; ; attempt++) {
-      const response = await fetch(url, init);
-      if (response.status !== 429 || attempt === 3) return response;
-      await new Promise((resolve) => setTimeout(resolve, 30_000));
-    }
-  },
+  fetch: withRetry(withThrottle(loggingFetch), {
+    onRetry: ({ attempt, delayMs }) => console.log(`retry ${attempt} in ${delayMs}ms`),
+  }),
 });
 ```
 

@@ -3,7 +3,7 @@ import { getTestAirtable, prepTestBaseClient } from "../src/tests/test-utils.ts"
 import { createBaseClient } from "airtable-kit/typed";
 
 import testBaseSchema from "../src/tests/test-base-schema.generated.ts";
-const baseClient = createBaseClient(testBaseSchema, getTestAirtable());
+const baseClient = createBaseClient({ schema: testBaseSchema, airtable: getTestAirtable() });
 const { resetBaseData } = prepTestBaseClient(baseClient);
 
 describe("BaseClient", () => {
@@ -16,13 +16,15 @@ describe("BaseClient", () => {
     });
 
     it("can create records via table clients", async () => {
-        const { records: result } = await baseClient.tables.tasks.createRecords([
-            {
-                name: "do laundry",
-                dueDate: "1990-01-01",
-                tags: ["Urgent", "Important"],
-            },
-        ]);
+        const { records: result } = await baseClient.tables.tasks.createRecords({
+            records: [
+                {
+                    name: "do laundry",
+                    dueDate: "1990-01-01",
+                    tags: ["Urgent", "Important"],
+                },
+            ],
+        });
 
         expect(result).toHaveLength(1);
         const { id, fields, createdTime } = result[0];

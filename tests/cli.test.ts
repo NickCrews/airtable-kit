@@ -10,7 +10,7 @@ import { getTestEnv, getTestAirtable, prepTestBaseClient } from '../src/tests/te
 import { createBaseClient } from "airtable-kit/typed";
 import realSchema from '../src/tests/test-base-schema.generated.ts';
 
-const baseClient = createBaseClient(realSchema, getTestAirtable());
+const baseClient = createBaseClient({ schema: realSchema, airtable: getTestAirtable() });
 const { resetBaseData } = prepTestBaseClient(baseClient);
 
 const {
@@ -1793,7 +1793,7 @@ describe('CLI', { timeout: 10_000 }, () => {
       await cliWithApiKey([
         "record", "create",
         "--base", baseId,
-        "--table", linkedItems.tableSchema.id,
+        "--table", linkedItems.schema.id,
         "--data", JSON.stringify({ fields: { name: "Item F", numberValue: 60 } }),
       ]);
       expect(mockConsoleLog.mock.calls.at(-1)).toEqual(["\n✅ Created 1 record(s)"]);

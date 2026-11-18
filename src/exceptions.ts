@@ -41,7 +41,7 @@ export class ReadValueConversionError extends AirtableKitError {
         this.value = value;
         this.fieldSchema = fieldSchema;
         this.originalError = originalError;
-        this.name = "ReadValueNotConvertibleError";
+        this.name = "ReadValueConversionError";
         // Maintain the correct prototype chain
         Object.setPrototypeOf(this, ReadValueConversionError.prototype);
     }
@@ -59,7 +59,7 @@ export class WriteValueConversionError extends AirtableKitError {
         this.value = value;
         this.fieldSchema = fieldSchema;
         this.originalError = originalError;
-        this.name = "WriteValueNotConvertibleError";
+        this.name = "WriteValueConversionError";
         // Maintain the correct prototype chain
         Object.setPrototypeOf(this, WriteValueConversionError.prototype);
     }
@@ -142,5 +142,14 @@ export class RecordReadError extends AirtableKitError {
         this.name = "RecordReadError";
         // Maintain the correct prototype chain
         Object.setPrototypeOf(this, RecordReadError.prototype);
+    }
+}
+/** Thrown when a `ListResult` is read again after it was iterated, or iterated after it was awaited. */
+export class ListResultConsumedError extends AirtableKitError {
+    constructor(message: string) {
+        super(message);
+        this.name = "ListResultConsumedError";
+        // Maintain the correct prototype chain
+        Object.setPrototypeOf(this, ListResultConsumedError.prototype);
     }
 }

@@ -20,6 +20,21 @@ function seq(...outcomes: Array<Response | Error>): Fetcher & { calls: number } 
 const noSleep = { sleep: async () => {} };
 
 describe("withRetry", () => {
+    it("works in runtimes without a Response global, given response-shaped objects", async () => {
+        const make = (status: number) => ({ status, ok: status < 400, headers: { get: () => null } }) as unknown as Response;
+        const responses = [make(429), make(200)];
+        let calls = 0;
+        const inner: Fetcher = async () => responses[calls++];
+        const saved = Object.getOwnPropertyDescriptor(globalThis, "Response")!;
+        delete (globalThis as Record<string, unknown>).Response;
+        try {
+            expect((await withRetry(inner, noSleep)(URL_, GET)).status).toBe(200);
+        } finally {
+            Object.defineProperty(globalThis, "Response", saved);
+        }
+        expect(calls).toBe(2);
+    });
+
     it("retries a 429 and returns the next response", async () => {
         const inner = seq(new Response("", { status: 429 }), new Response("ok", { status: 200 }));
         const res = await withRetry(inner, noSleep)(URL_, GET);
