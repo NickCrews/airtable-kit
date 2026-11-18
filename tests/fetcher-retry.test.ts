@@ -8,13 +8,12 @@ const POST: RequestInit = { method: "POST" };
 
 function seq(...outcomes: Array<Response | Error>): Fetcher & { calls: number } {
     let i = 0;
-    const f = (async () => {
+    const f: Fetcher & { calls: number } = Object.assign(async () => {
         f.calls++;
         const o = outcomes[Math.min(i++, outcomes.length - 1)];
         if (o instanceof Error) throw o;
         return o.clone();
-    }) as Fetcher & { calls: number };
-    f.calls = 0;
+    }, { calls: 0 });
     return f;
 }
 
