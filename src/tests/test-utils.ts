@@ -13,6 +13,7 @@ import { TableSchema } from "../tables/types.ts";
 import { BaseId, BaseSchema } from "../bases/types.ts";
 import { WorkspaceId } from "../workspaces/types.ts";
 import { RecordId } from "../records/types.ts";
+import { AirtableKitApiError } from "../exceptions.ts";
 
 type TestBaseClient = BaseClient<typeof testBaseSchema>;
 export interface TestEnv {
@@ -322,25 +323,41 @@ async function populateSeedData(
  * Reset all data in the test base to the initial seed state.
  * This deletes all records from all tables and recreates the seed data.
  */
+type ClearableTableClient = {
+    listRecords(): Promise<Array<{ id: RecordId }>>;
+    deleteRecords(recordIds: ReadonlyArray<RecordId>): Promise<unknown>;
+};
+
+/**
+ * Delete every record in a table.
+ *
+ * A test that timed out keeps running in the background and may delete records
+ * between our list and our delete, so Airtable answers 404 for those IDs.
+ * When that happens, list again and retry.
+ */
+export async function deleteAllRecords(tableClient: ClearableTableClient, maxAttempts = 5): Promise<void> {
+    for (let attempt = 1; ; attempt++) {
+        const records = await tableClient.listRecords();
+        if (records.length === 0) {
+            return;
+        }
+        try {
+            await tableClient.deleteRecords(records.map((r) => r.id));
+            return;
+        } catch (error) {
+            if (!(error instanceof AirtableKitApiError && error.status === 404) || attempt >= maxAttempts) {
+                throw error;
+            }
+        }
+    }
+}
+
 export async function resetBaseData(baseClient: TestBaseClient): Promise<void> {
     // listRecords() is generic, so it isn't callable on a union of table clients.
     // We only need the record IDs, so view each client through this minimal shape.
-    type ResettableTableClient = {
-        listRecords(): Promise<Array<{ id: RecordId }>>;
-        deleteRecords(recordIds: ReadonlyArray<RecordId>): Promise<unknown>;
-    };
-    const tableClients: ResettableTableClient[] = Object.values(baseClient.tables);
+    const tableClients: ClearableTableClient[] = Object.values(baseClient.tables);
     for (const tableClient of tableClients) {
-        const records = await tableClient.listRecords();
-
-        if (records.length > 0) {
-            const recordIds = records.map((r: any) => r.id);
-            // Delete in batches of 10 (Airtable API limit)
-            for (let i = 0; i < recordIds.length; i += 10) {
-                const batch = recordIds.slice(i, i + 10);
-                await tableClient.deleteRecords(batch);
-            }
-        }
+        await deleteAllRecords(tableClient);
     }
     await populateSeedData(baseClient);
 }

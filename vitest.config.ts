@@ -16,5 +16,8 @@ export default defineConfig({
     // But our tests all share the same real Airtable test base.
     // So they clobber each other, with one test deleting records as another is reading them, etc.
     fileParallelism: false,
+    // Most tests make several sequential requests to the real Airtable API,
+    // each of which can take up to a second.
+    testTimeout: 20_000,
   },
 });
