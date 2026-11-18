@@ -3,13 +3,26 @@
  */
 
 import fs from 'node:fs';
-import { describe, expect, beforeEach, vi, afterAll } from 'vitest';
+import { describe, expect, vi, afterAll } from 'vitest';
 import { cli } from '../src/cli/cli.ts';
-import { it, test } from '../src/tests/fixtures.ts';
+import { test as baseTest } from '../src/tests/fixtures.ts';
 import { getTestEnv } from '../src/tests/test-utils.ts';
 import realSchema from '../src/tests/test-base-schema.generated.ts';
 
 const baseId = realSchema.id;
+
+/**
+ * Every test starts with no recorded console calls.
+ * This is a fixture, not a beforeEach hook, because fixtures run before hooks,
+ * and fixtures that log need to run after the clear.
+ */
+const test = baseTest.extend<{ freshMocks: void }>({
+  freshMocks: [async ({ }, use) => {
+    vi.clearAllMocks();
+    await use();
+  }, { auto: true }],
+});
+const it = test;
 
 const importTsJs = (p: string) => import(p).then((mod) => mod.default || mod);
 
@@ -78,10 +91,6 @@ describe('CLI', { timeout: 10_000 }, () => {
 
   const mockConsoleLog = vi.spyOn(console, 'log').mockImplementation(() => { });
   const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => { });
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   describe('version and help', () => {
     const spiedFetch = vi.spyOn(globalThis, 'fetch');
@@ -1534,7 +1543,7 @@ describe('CLI', { timeout: 10_000 }, () => {
   describe('field command', () => {
     /** Runs each test in a tmp dir, with the test base set as the current base */
     const it = test.extend<{ currentBase: void }>({
-      currentBase: [async ({ tmpDir }, use) => {
+      currentBase: [async ({ freshMocks, tmpDir }, use) => {
         await cliWithApiKey(["base", "use", baseId]);
         await use();
       }, { auto: true }],
@@ -1668,7 +1677,7 @@ describe('CLI', { timeout: 10_000 }, () => {
   describe('record command', () => {
     /** Runs each test in a tmp dir, with the seeded test base set as the current base */
     const it = test.extend<{ currentBase: void }>({
-      currentBase: [async ({ tmpDir, base }, use) => {
+      currentBase: [async ({ freshMocks, tmpDir, base }, use) => {
         await cliWithApiKey(["base", "use", baseId]);
         await use();
       }, { auto: true }],
