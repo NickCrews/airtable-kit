@@ -1,22 +1,16 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { getTestAirtable, prepTestBaseClient } from "../src/tests/test-utils.ts";
-import { createBaseClient } from "airtable-kit/typed";
-
-import testBaseSchema from "../src/tests/test-base-schema.generated.ts";
-const baseClient = createBaseClient(testBaseSchema, getTestAirtable());
-const { resetBaseData } = prepTestBaseClient(baseClient);
+import { describe, expect } from "vitest";
+import { test } from "../src/tests/fixtures.ts";
+import { offlineTestBase } from "../src/tests/test-utils.ts";
 
 describe("BaseClient", () => {
-    beforeEach(resetBaseData);
-
-    it("can access table clients", () => {
-        expect(baseClient.tables.tasks).toBeDefined();
-        expect(baseClient.tables.linkedItems).toBeDefined();
-        expect(baseClient.tables.allTypes).toBeDefined();
+    test("can access table clients", () => {
+        expect(offlineTestBase.tables.tasks).toBeDefined();
+        expect(offlineTestBase.tables.linkedItems).toBeDefined();
+        expect(offlineTestBase.tables.allTypes).toBeDefined();
     });
 
-    it("can create records via table clients", async () => {
-        const { records: result } = await baseClient.tables.tasks.createRecords([
+    test("can create records via table clients", async ({ emptyBase }) => {
+        const { records: result } = await emptyBase.tables.tasks.createRecords([
             {
                 name: "do laundry",
                 dueDate: "1990-01-01",

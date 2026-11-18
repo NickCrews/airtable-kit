@@ -1,20 +1,20 @@
-import { beforeEach, describe, expect, expectTypeOf, it } from "vitest";
-import { createTableClient } from "airtable-kit/typed";
+import { describe, expect, expectTypeOf } from "vitest";
+import { test as baseTest } from "../src/tests/fixtures.ts";
+import { type TestBase } from "../src/tests/test-utils.ts";
 import testBaseSchema from "../src/tests/test-base-schema.generated.ts";
-import { deleteAllRecords, getTestAirtable } from "../src/tests/test-utils.ts";
 
-const airtable = getTestAirtable();
+const tasksTable = testBaseSchema.tables.find((t) => t.name === "tasks")!;
+
+/** Every test that uses `tasks` starts with an empty base. */
+const test = baseTest.extend<{ tasks: TestBase["tables"]["tasks"] }>({
+    tasks: async ({ emptyBase }, use) => {
+        await use(emptyBase.tables.tasks);
+    },
+});
 
 describe("Records API", () => {
-    const tasksTable = testBaseSchema.tables.find((t) => t.name === "tasks")!;
-    const linkedItemsTable = testBaseSchema.tables.find((t) => t.name === "linkedItems")!;
-    const tasks = createTableClient(testBaseSchema.id, tasksTable, airtable);
-    const linkedItems = createTableClient(testBaseSchema.id, linkedItemsTable, airtable);
-
-    beforeEach(() => deleteAllRecords(tasks));
-
     describe("createRecords", () => {
-        it("can create a single record", async () => {
+        test("can create a single record", async ({ tasks }) => {
             const { records: result } = await tasks.createRecords([
                 {
                     name: "Single Task",
@@ -33,7 +33,7 @@ describe("Records API", () => {
             expect(result[0].createdTime).toBeDefined();
         });
 
-        it("can create more than 25 records (batches requests to Airtable)", async () => {
+        test("can create more than 25 records (batches requests to Airtable)", async ({ tasks }) => {
             const n = 100;
             const records = Array.from({ length: n }, (_, i) => ({
                 name: `Task ${i + 1}`,
@@ -50,13 +50,13 @@ describe("Records API", () => {
             });
         });
 
-        it("can handle empty record list", async () => {
+        test("can handle empty record list", async ({ tasks }) => {
             const { records: result } = await tasks.createRecords([]);
 
             expect(result).toEqual([]);
         });
 
-        it("removes undefined and null fields before sending", async () => {
+        test("removes undefined and null fields before sending", async ({ tasks }) => {
             const { records: result } = await tasks.createRecords([
                 {
                     name: "Test Task",
@@ -74,7 +74,7 @@ describe("Records API", () => {
     });
 
     describe("airtable.records.list", () => {
-        it("returns commentCount only when recordMetadata requests it", async () => {
+        test("returns commentCount only when recordMetadata requests it", async ({ tasks, airtable }) => {
             await tasks.createRecords([{ name: "Task" }]);
             const withCount = await airtable.records.list({
                 baseId: testBaseSchema.id,
@@ -94,8 +94,8 @@ describe("Records API", () => {
     });
 
     describe("airtable.records.create", () => {
-        it("sends and returns values as Airtable's JSON, keyed by field name", async () => {
-            const { records: result } = await airtable.records.create({
+        test("sends and returns values as Airtable's JSON, keyed by field name", async ({ emptyBase }) => {
+            const { records: result } = await emptyBase.airtable.records.create({
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
                 records: [{ fields: { name: "Raw Create Task", priority: 2 } }],
@@ -107,7 +107,7 @@ describe("Records API", () => {
             expect(result[0].fields).not.toHaveProperty("completed");
         });
 
-        it("handles empty list", async () => {
+        test("handles empty list", async ({ airtable }) => {
             const result = await airtable.records.create({
                 baseId: testBaseSchema.id,
                 tableId: tasksTable.id,
@@ -119,7 +119,7 @@ describe("Records API", () => {
     });
 
     describe("listRecords", () => {
-        it("can list all records", async () => {
+        test("can list all records", async ({ tasks }) => {
             await tasks.createRecords([
                 { name: "Task 1", completed: true },
                 { name: "Task 2", completed: false },
@@ -135,7 +135,7 @@ describe("Records API", () => {
             expect(result[0]).not.toHaveProperty("commentCount");
         }, 10_000);
 
-        it("can filter records by formula string", async () => {
+        test("can filter records by formula string", async ({ tasks }) => {
             await tasks.createRecords([
                 { name: "Done Task", status: "Done", completed: true },
                 { name: "Todo Task", status: "Todo", completed: false },
@@ -150,7 +150,7 @@ describe("Records API", () => {
             expect(result.every((r) => r.fields.completed === true)).toBe(true);
         });
 
-        it("can sort records", async () => {
+        test("can sort records", async ({ tasks }) => {
             await tasks.createRecords([
                 { name: "Task C", priority: 3 },
                 { name: "Task A", priority: 1 },
@@ -164,7 +164,7 @@ describe("Records API", () => {
             expect(result.length).toBeGreaterThan(2);
         });
 
-        it("can limit max records", async () => {
+        test("can limit max records", async ({ tasks }) => {
             const result = await tasks.listRecords({
                 maxRecords: 2,
             });
@@ -172,7 +172,7 @@ describe("Records API", () => {
             expect(result.length).toBeLessThanOrEqual(2);
         });
 
-        it("can select specific fields", async () => {
+        test("can select specific fields", async ({ tasks }) => {
             const result = await tasks.listRecords({
                 fields: ["name", "status"],
                 maxRecords: 1,
@@ -181,7 +181,7 @@ describe("Records API", () => {
             expect(Array.isArray(result)).toBe(true);
         });
 
-        it("handles pagination automatically", async () => {
+        test("handles pagination automatically", async ({ tasks }) => {
             const records = Array.from({ length: 35 }, (_, i) => ({
                 name: `Task ${i + 1}`,
             }));
@@ -195,7 +195,7 @@ describe("Records API", () => {
     });
 
     describe("listRecordsPage", () => {
-        it("can list records with page size", async () => {
+        test("can list records with page size", async ({ tasks }) => {
             const result = await tasks.listRecordsPage({
                 pageSize: 5,
             });
@@ -204,7 +204,7 @@ describe("Records API", () => {
             expect(result).toHaveProperty("offset");
         });
 
-        it("throws error on invalid filter formula", async () => {
+        test("throws error on invalid filter formula", async ({ tasks }) => {
             await expect(
                 tasks.listRecordsPage({
                     filterByFormula: "{invalidfield} = TRUE()",
@@ -212,7 +212,7 @@ describe("Records API", () => {
             ).rejects.toThrow();
         });
 
-        it("omits commentCount from the records and their type unless requested", async () => {
+        test("omits commentCount from the records and their type unless requested", async ({ tasks }) => {
             await tasks.createRecords([{ name: "Task" }]);
             const result = await tasks.listRecordsPage({
                 maxRecords: 1,
@@ -225,7 +225,7 @@ describe("Records API", () => {
             result.records[0].commentCount;
         });
 
-        it("adds commentCount to the records and their type when requested", async () => {
+        test("adds commentCount to the records and their type when requested", async ({ tasks }) => {
             await tasks.createRecords([{ name: "Task" }]);
             const result = await tasks.listRecordsPage({
                 recordMetadata: ["commentCount"],
@@ -239,7 +239,7 @@ describe("Records API", () => {
             expectTypeOf(result.records[0].fields).toEqualTypeOf<{ name: string }>();
         });
 
-        it("resolves field names to IDs", async () => {
+        test("resolves field names to IDs", async ({ tasks }) => {
             const result = await tasks.listRecordsPage({
                 sort: [{ field: "name", direction: "asc" }],
                 maxRecords: 1,
@@ -248,7 +248,7 @@ describe("Records API", () => {
             expect(result.records).toBeDefined();
         });
 
-        it("throws error when field not found", async () => {
+        test("throws error when field not found", async ({ tasks }) => {
             await expect(
                 tasks.listRecordsPage({
                     sort: [{ field: "nonexistentfield" as any, direction: "asc" }],
@@ -258,7 +258,7 @@ describe("Records API", () => {
     });
 
     describe("getRecord", () => {
-        it("can get a single record by ID", async () => {
+        test("can get a single record by ID", async ({ tasks }) => {
             const { records: [created] } = await tasks.createRecords([{ name: "Get Test Task" }]);
 
             const result = await tasks.getRecord(created.id);
@@ -272,7 +272,7 @@ describe("Records API", () => {
             expect(result.createdTime).toBeDefined();
         });
 
-        it("returns all fields with default values", async () => {
+        test("returns all fields with default values", async ({ tasks }) => {
             const { records: [created] } = await tasks.createRecords([{ name: "Minimal Task" }]);
 
             const result = await tasks.getRecord(created.id);
@@ -283,7 +283,7 @@ describe("Records API", () => {
             expect(result.fields).toHaveProperty("priority");
         });
 
-        it("can use string cell format", async () => {
+        test("can use string cell format", async ({ tasks }) => {
             const { records: [created] } = await tasks.createRecords([
                 {
                     name: "Date Task",
@@ -298,7 +298,7 @@ describe("Records API", () => {
     });
 
     describe("updateRecords", () => {
-        it("can update a single record", async () => {
+        test("can update a single record", async ({ tasks }) => {
             const { records: [created] } = await tasks.createRecords([{ name: "Original Name" }]);
 
             const result = await tasks.updateRecords([
@@ -323,7 +323,7 @@ describe("Records API", () => {
             expect(result.warnings).toEqual([]);
         });
 
-        it("reports which records an upsert created and which it updated", async () => {
+        test("reports which records an upsert created and which it updated", async ({ tasks }) => {
             const { records: [existing] } = await tasks.createRecords([{ name: "Upsert Existing" }]);
 
             const result = await tasks.updateRecords([
@@ -338,7 +338,7 @@ describe("Records API", () => {
             expect(result.warnings).toEqual([]);
         });
 
-        it("can update multiple records in batches", async () => {
+        test("can update multiple records in batches", async ({ tasks }) => {
             const { records: created } = await tasks.createRecords(Array.from({ length: 25 }, (_, i) => ({
                 name: `Task ${i}`,
             })));
@@ -354,7 +354,7 @@ describe("Records API", () => {
             expect(result.records.every((r) => r.fields.completed === true)).toBe(true);
         });
 
-        it("can use non-destructive update (PATCH)", async () => {
+        test("can use non-destructive update (PATCH)", async ({ tasks }) => {
             const { records: [created] } = await tasks.createRecords([
                 {
                     name: "Original Task",
@@ -381,7 +381,7 @@ describe("Records API", () => {
             expect(retrieved.fields.priority).toBe(1);
         });
 
-        it("can use destructive update (PUT)", async () => {
+        test("can use destructive update (PUT)", async ({ tasks }) => {
             const { records: [created] } = await tasks.createRecords([
                 {
                     name: "Original Task",
@@ -408,7 +408,7 @@ describe("Records API", () => {
             expect(retrieved.fields.priority).toBeNull();
         });
 
-        it("can enable typecast", async () => {
+        test("can enable typecast", async ({ tasks }) => {
             const { records: [created] } = await tasks.createRecords([{ name: "Typecast Task" }]);
 
             const result = await tasks.updateRecords([
@@ -425,13 +425,13 @@ describe("Records API", () => {
             expect(result.records[0].fields.priority).toBe(2);
         });
 
-        it("handles empty update list", async () => {
+        test("handles empty update list", async ({ tasks }) => {
             const result = await tasks.updateRecords([]);
 
             expect(result).toEqual({ records: [], warnings: [] });
         });
 
-        it("removes undefined fields but keeps null fields", async () => {
+        test("removes undefined fields but keeps null fields", async ({ tasks }) => {
             const { records: [created] } = await tasks.createRecords([
                 {
                     name: "Test Task",
@@ -459,7 +459,7 @@ describe("Records API", () => {
     });
 
     describe("deleteRecords", () => {
-        it("can delete a single record", async () => {
+        test("can delete a single record", async ({ tasks }) => {
             const { records: [created] } = await tasks.createRecords([{ name: "Delete Me" }]);
 
             const result = await tasks.deleteRecords([created.id]);
@@ -471,7 +471,7 @@ describe("Records API", () => {
             });
         });
 
-        it("can delete multiple records in batches", async () => {
+        test("can delete multiple records in batches", async ({ tasks }) => {
             const { records: created } = await tasks.createRecords(Array.from({ length: 25 }, (_, i) => ({
                 name: `Delete Task ${i}`,
             })));
@@ -482,7 +482,7 @@ describe("Records API", () => {
             expect(result.records.every((r) => r.deleted === true)).toBe(true);
         });
 
-        it("handles empty record list", async () => {
+        test("handles empty record list", async ({ tasks }) => {
             const result = await tasks.deleteRecords([]);
 
             expect(result).toEqual({ records: [] });
@@ -492,7 +492,7 @@ describe("Records API", () => {
     describe("uploadAttachment", () => {
         const fieldId = tasksTable.fields.find((f) => f.name === "attachments")?.id!;
         for (const attachmentFieldIdOrName of [fieldId, "attachments"] as const) {
-            it(`can upload an attachment to a record with attachmentFieldIdOrName=${attachmentFieldIdOrName}`, async () => {
+            test(`can upload an attachment to a record with attachmentFieldIdOrName=${attachmentFieldIdOrName}`, async ({ tasks }) => {
                 const { records: [created] } = await tasks.createRecords([{ name: "Attachment Test" }]);
                 const base64File = Buffer.from("test file content").toString("base64");
                 await tasks.uploadAttachment(created.id, attachmentFieldIdOrName, {
