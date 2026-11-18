@@ -4,6 +4,7 @@ import { URLSearchParams } from "../url.ts";
 import { BaseId, BaseSchema } from "./types.ts";
 import { TableSchema } from "../tables/types.ts";
 import { WorkspaceId } from "../workspaces/types.ts";
+import { type ListResult, makeListResult } from "../list-result.ts";
 
 export interface BaseSchemaCreate {
   /** The name of the base to create */
@@ -30,8 +31,11 @@ export interface BaseSummary {
 
 /** Methods for the Airtable bases API, available as `airtable.bases`. */
 export interface BasesApi {
-  /** List all bases the API key can access. Pagination is handled automatically. */
-  list(): Promise<BaseSummary[]>;
+  /**
+   * List all bases the API key can access. Pagination is handled automatically.
+   * Await the result for an array, or iterate it with `for await` to fetch one page at a time. See {@link ListResult}.
+   */
+  list(): ListResult<BaseSummary>;
   /**
    * Get the {@link BaseSchema} of a base, including all of its tables and fields.
    *
@@ -70,12 +74,12 @@ export function makeBasesApi(request: Requester): BasesApi {
     } while (offset);
   }
 
-  async function list(): Promise<BaseSummary[]> {
-    const result: BaseSummary[] = [];
-    for await (const page of listPages()) {
-      result.push(...page);
-    }
-    return result;
+  function list(): ListResult<BaseSummary> {
+    return makeListResult(async function* () {
+      for await (const page of listPages()) {
+        yield* page;
+      }
+    }, "bases.list");
   }
 
   /** Find a base's name by listing bases, stopping at the page that contains it. */

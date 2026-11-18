@@ -97,7 +97,7 @@ The available methods are:
 - `airtable.bases`: `list`, `get` (the full schema), `create`
 - `airtable.tables`: `create`, `update`
 - `airtable.fields`: `create`, `update`
-- `airtable.records`: `list`, `iterate`, `listPage`, `get`, `create`, `update`, `delete`, `uploadAttachment`
+- `airtable.records`: `list`, `listPage`, `get`, `create`, `update`, `delete`, `uploadAttachment`
 - `airtable.request`: any other endpoint, with the client's credentials
 
 ### Use Case 2: Statically Typed Client for a Known Base
@@ -222,16 +222,18 @@ console.log(tasks);
 
 A typed table client has these methods:
 
-- Records: `listRecords`, `iterateRecords`, `listRecordsPage`, `getRecord`,
+- Records: `listRecords`, `listRecordsPage`, `getRecord`,
   `createRecords`, `createRecord`, `updateRecords`, `updateRecord`, `deleteRecords`, `deleteRecord`,
   `uploadAttachment`
 - Schema: `createField`, `updateField`, `updateTable`
 - `formulaToString`, to build a formula for this table
 
-`iterateRecords` fetches one page at a time as you go, for tables too large to hold in memory:
+Every list method, including `airtable.bases.list` and `airtable.records.list`, can be awaited for an array,
+or iterated with `for await` to fetch one page at a time, for tables too large to hold in memory.
+Read each result once: call the method again to fetch again.
 
 ```typescript
-for await (const task of client.tables.tasks.iterateRecords({ fields: ['name'] })) {
+for await (const task of client.tables.tasks.listRecords({ fields: ['name'] })) {
   console.log(task.fields.name);
 }
 ```

@@ -326,7 +326,7 @@ export async function resetBaseData(baseClient: TestBaseClient): Promise<void> {
     // listRecords() is generic, so it isn't callable on a union of table clients.
     // We only need the record IDs, so view each client through this minimal shape.
     type ResettableTableClient = {
-        listRecords(): Promise<Array<{ id: RecordId }>>;
+        listRecords(): PromiseLike<Array<{ id: RecordId }>>;
         deleteRecords(recordIds: ReadonlyArray<RecordId>): Promise<unknown>;
     };
     const tableClients: ResettableTableClient[] = Object.values(baseClient.tables);

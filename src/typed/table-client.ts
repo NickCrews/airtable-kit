@@ -6,6 +6,7 @@ import { Timezone } from "../fields/timezones.ts";
 import { TableSchema } from "../tables/types.ts";
 import { BaseId } from "../bases/types.ts";
 import { RecordId } from "../records/types.ts";
+import { type ListResult, makeListResult } from "../list-result.ts";
 import { convertValuesForWrite, convertValuesFromRead, type ConvertibleFieldSchema, type ValuesForWrite, type ValuesFromRead } from "../records/converters.ts";
 
 type FieldsByName<T extends ReadonlyArray<ConvertibleFieldSchema>> = {
@@ -84,7 +85,6 @@ export interface ListRecordsOptions<
      */
     recordMetadata?: ReadonlyArray<M>;
 }
-export type ListRecordsResponse<F extends ConvertibleFieldSchema, M extends RecordMetadata = never> = Array<TypedRecord<F, M>>;
 
 /** Options for {@link TableClient.listRecordsPage}. */
 export type ListRecordsPageOptions<
@@ -236,6 +236,16 @@ export interface TableClient<T extends TableClientSchema = TableSchema> {
     /**
      * List records from the table with optional filtering. Pagination is handled automatically.
      *
+     * Await the result for an array of every record, or iterate it with `for await`
+     * to fetch one page at a time. See {@link ListResult}.
+     *
+     * ```typescript
+     * const done = await tasks.listRecords({ filterByFormula: "{Done}" });
+     * for await (const task of tasks.listRecords()) {
+     *     console.log(task.fields.name);
+     * }
+     * ```
+     *
      * If `options.fields` is given, only those fields are returned, and the record type is narrowed to them.
      * If `options.recordMetadata` is given, the record type includes the requested metadata, eg `commentCount`.
      */
@@ -244,24 +254,7 @@ export interface TableClient<T extends TableClientSchema = TableSchema> {
         M extends RecordMetadata = never,
     >(
         options?: ListRecordsOptions<FieldType<T>, K, M>
-    ): Promise<ListRecordsResponse<SelectedFields<FieldType<T>, K>, M>>;
-
-    /**
-     * Iterate over records, fetching one page at a time as the iteration proceeds.
-     * Takes the same options as {@link TableClient.listRecords}.
-     *
-     * ```typescript
-     * for await (const record of tasks.iterateRecords({ filterByFormula: "{Done}" })) {
-     *     console.log(record.fields.name);
-     * }
-     * ```
-     */
-    iterateRecords<
-        K extends FieldNameOrIdInTable<T> = FieldNameOrIdInTable<T>,
-        M extends RecordMetadata = never,
-    >(
-        options?: ListRecordsOptions<FieldType<T>, K, M>
-    ): AsyncIterable<TypedRecord<SelectedFields<FieldType<T>, K>, M>>;
+    ): ListResult<TypedRecord<SelectedFields<FieldType<T>, K>, M>>;
 
     /** List a single page of records. Pass the returned `offset` to get the next page. */
     listRecordsPage<
@@ -489,16 +482,13 @@ export function createTableClient<T extends TableClientSchema>(
             const response = await createRecords([record], createOptions);
             return { record: response.records[0], warnings: response.warnings };
         },
-        async listRecords(listOptions) {
+        listRecords(listOptions) {
             const { rawOptions, toRecord } = toRawListOptions(listOptions);
-            const records = await client.records.list({ baseId, tableId, ...rawOptions });
-            return records.map(toRecord);
-        },
-        async *iterateRecords(listOptions) {
-            const { rawOptions, toRecord } = toRawListOptions(listOptions);
-            for await (const record of client.records.iterate({ baseId, tableId, ...rawOptions })) {
-                yield toRecord(record);
-            }
+            return makeListResult(async function* () {
+                for await (const record of client.records.list({ baseId, tableId, ...rawOptions })) {
+                    yield toRecord(record);
+                }
+            }, "listRecords");
         },
         async listRecordsPage(listOptions) {
             const { rawOptions, toRecord } = toRawListOptions(listOptions);

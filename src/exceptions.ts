@@ -144,3 +144,12 @@ export class RecordReadError extends AirtableKitError {
         Object.setPrototypeOf(this, RecordReadError.prototype);
     }
 }
+/** Thrown when a `ListResult` is read again after it was iterated, or iterated after it was awaited. */
+export class ListResultConsumedError extends AirtableKitError {
+    constructor(message: string) {
+        super(message);
+        this.name = "ListResultConsumedError";
+        // Maintain the correct prototype chain
+        Object.setPrototypeOf(this, ListResultConsumedError.prototype);
+    }
+}

@@ -5,6 +5,7 @@ import { URLSearchParams } from "../url.ts";
 import { BaseId } from "../bases/types.ts";
 import { TableId } from "../tables/types.ts";
 import { RecordId } from "./types.ts";
+import { type ListResult, makeListResult } from "../list-result.ts";
 
 /** ISO 8601 format in UTC, eg `2024-01-01T12:00:00.000Z` */
 export type Timestamp = string;
@@ -190,10 +191,11 @@ export type UploadAttachmentResponse = {
  * For typed records, use a typed table client from `airtable-kit/typed`.
  */
 export interface RecordsApi {
-    /** List records. Pagination is handled automatically. */
-    list(params: ListRecordsParams): Promise<RawRecord[]>;
-    /** Iterate over records, fetching one page at a time as the iteration proceeds. */
-    iterate(params: ListRecordsParams): AsyncIterable<RawRecord>;
+    /**
+     * List records. Pagination is handled automatically.
+     * Await the result for an array, or iterate it with `for await` to fetch one page at a time. See {@link ListResult}.
+     */
+    list(params: ListRecordsParams): ListResult<RawRecord>;
     /** List a single page of records. */
     listPage(params: ListRecordsPageParams): Promise<ListRecordsPageResponse>;
     /** Get a single record. */
@@ -245,24 +247,17 @@ export function makeRecordsApi(request: Requester, { contentBaseUrl }: { content
         });
     }
 
-    async function* iterate(params: ListRecordsParams): AsyncGenerator<RawRecord> {
-        let offset: string | undefined = undefined;
-        do {
-            const page: ListRecordsPageResponse = await listPage({ ...params, offset });
-            yield* page.records;
-            offset = page.offset;
-        } while (offset);
-    }
-
     return {
         listPage,
-        iterate,
-        async list(params) {
-            const records: RawRecord[] = [];
-            for await (const record of iterate(params)) {
-                records.push(record);
-            }
-            return records;
+        list(params) {
+            return makeListResult(async function* () {
+                let offset: string | undefined = undefined;
+                do {
+                    const page: ListRecordsPageResponse = await listPage({ ...params, offset });
+                    yield* page.records;
+                    offset = page.offset;
+                } while (offset);
+            }, "records.list");
         },
         // https://airtable.com/developers/web/api/get-record
         get({ baseId, tableId, recordId, cellFormat, returnFieldsByFieldId }) {

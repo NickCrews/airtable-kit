@@ -13,7 +13,6 @@ export {
     type RecordMetadata,
     type SelectedFields,
     type ListRecordsOptions,
-    type ListRecordsResponse,
     type ListRecordsPageOptions,
     type ListRecordsPageResponse,
     type GetRecordOptions,
@@ -24,3 +23,6 @@ export {
     type UploadAttachmentParams,
     createTableClient,
 } from "./table-client.ts";
+export {
+    type ListResult,
+} from "../list-result.ts";

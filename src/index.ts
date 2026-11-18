@@ -58,6 +58,10 @@ export {
 } from "./records/api.ts";
 
 export {
+    type ListResult,
+} from "./list-result.ts";
+
+export {
     withRetry,
     withThrottle,
     defaultShouldRetry,

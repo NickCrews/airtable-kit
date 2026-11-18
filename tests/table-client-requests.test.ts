@@ -4,6 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 import { createAirtable, createMockFetch } from "airtable-kit";
+import { ListResultConsumedError } from "airtable-kit/exceptions";
 import { createBaseClient, createTableClient } from "airtable-kit/typed";
 import { makeDeleteTool, makeGetTool, makeUpdateTool } from "airtable-kit/mcp";
 import { MULTIPLE_ATTACHMENTS, NUMBER, SINGLE_LINE_TEXT } from "./_example-fields.ts";
@@ -86,8 +87,8 @@ describe("TableClient.deleteRecords", () => {
     });
 });
 
-describe("TableClient.iterateRecords", () => {
-    it("fetches pages as the iteration proceeds", async () => {
+describe("TableClient.listRecords", () => {
+    function pagedTable() {
         const pages = [
             { records: [record("rec1", { [NUMBER.id]: 1 })], offset: "itr1" },
             { records: [record("rec2", { [NUMBER.id]: 2 })] },
@@ -97,11 +98,52 @@ describe("TableClient.iterateRecords", () => {
             apiKey: "patX",
             fetch: async (url) => {
                 urls.push(url);
-                return new Response(JSON.stringify(pages[urls.length - 1]));
+                return new Response(JSON.stringify(pages[(urls.length - 1) % pages.length]));
             },
         });
         const client = createTableClient(tableSchema, { baseId: "appTest", airtable });
-        const iterator = client.iterateRecords({ fields: [NUMBER.name] })[Symbol.asyncIterator]();
+        return { client, urls };
+    }
+    const expected = [record("rec1", { [NUMBER.name]: 1 }), record("rec2", { [NUMBER.name]: 2 })];
+
+    it("fetches nothing until read", async () => {
+        const { client, urls } = pagedTable();
+        client.listRecords();
+        await Promise.resolve();
+        expect(urls).toHaveLength(0);
+    });
+
+    it("awaits to every page, fetched once however many times it is awaited", async () => {
+        const { client, urls } = pagedTable();
+        const result = client.listRecords({ fields: [NUMBER.name] });
+        expect(await result).toEqual(expected);
+        expect(await result).toEqual(expected);
+        expect(await Promise.all([result, result.then((r) => r.length)])).toEqual([expected, 2]);
+        expect(urls).toHaveLength(2);
+    });
+
+    it("throws when iterated twice", async () => {
+        const { client } = pagedTable();
+        const result = client.listRecords();
+        for await (const _ of result) { }
+        expect(() => result[Symbol.asyncIterator]()).toThrow(ListResultConsumedError);
+    });
+
+    it("throws when iterated after being awaited, and awaited after being iterated", async () => {
+        const { client } = pagedTable();
+        const awaited = client.listRecords();
+        await awaited;
+        expect(() => awaited[Symbol.asyncIterator]()).toThrow("already awaited. Call listRecords() again");
+
+        const iterated = client.listRecords();
+        iterated[Symbol.asyncIterator]();
+        await expect(iterated).rejects.toThrow(ListResultConsumedError);
+        await expect(iterated.catch(() => "caught")).resolves.toBe("caught");
+    });
+
+    it("fetches pages as the iteration proceeds", async () => {
+        const { client, urls } = pagedTable();
+        const iterator = client.listRecords({ fields: [NUMBER.name] })[Symbol.asyncIterator]();
 
         const first = await iterator.next();
         expect(first.value).toEqual(record("rec1", { [NUMBER.name]: 1 }));
