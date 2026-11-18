@@ -13,7 +13,7 @@ function seq(...outcomes: Array<Response | Error>): Fetcher & { calls: number } 
         const o = outcomes[Math.min(i++, outcomes.length - 1)];
         if (o instanceof Error) throw o;
         return o.clone();
-    }) as Fetcher & { calls: number };
+    }) as unknown as Fetcher & { calls: number };
     f.calls = 0;
     return f;
 }
@@ -80,6 +80,28 @@ describe("withRetry", () => {
         expect(onRetry).toHaveBeenCalledOnce();
     });
 
+    it("cancels the body of a retried response", async () => {
+        const first = new Response("rate limited", { status: 429 });
+        const inner: Fetcher = vi.fn<Fetcher>()
+            .mockResolvedValueOnce(first)
+            .mockResolvedValueOnce(new Response("ok"));
+        await withRetry(inner, noSleep)(URL_, GET);
+        expect(first.bodyUsed).toBe(true);
+    });
+
+    it("recognizes responses that are not instances of the global Response", async () => {
+        const foreign = { status: 429, ok: false, headers: new Headers({ "Retry-After": "1" }), body: null };
+        const delays: number[] = [];
+        const sleep = async (ms: number) => { delays.push(ms); };
+        const inner: Fetcher = vi.fn<Fetcher>()
+            .mockResolvedValueOnce(foreign as unknown as Response)
+            .mockResolvedValueOnce(new Response("ok"));
+        const res = await withRetry(inner, { sleep })(URL_, GET);
+        expect(res.status).toBe(200);
+        expect(delays).toEqual([1000]);
+        expect(defaultShouldRetry(foreign, 0, "POST")).toBe(true);
+    });
+
     it("defaultShouldRetry matches the documented policy", () => {
         expect(defaultShouldRetry(new Response("", { status: 429 }), 0, "POST")).toBe(true);
         expect(defaultShouldRetry(new Response("", { status: 500 }), 0, "POST")).toBe(false);
@@ -98,6 +120,14 @@ describe("withThrottle", () => {
         expect(inner.calls).toBe(3);
         expect(delays.length).toBe(2);
         expect(delays[1]).toBeGreaterThan(delays[0]);
+    });
+
+    it("defaults to fewer than 5 requests per second", async () => {
+        const delays: number[] = [];
+        const sleep = async (ms: number) => { delays.push(ms); };
+        const f = withThrottle(seq(new Response("ok")), { sleep });
+        await Promise.all([f(URL_, GET), f(URL_, GET)]);
+        expect(delays[0]).toBeGreaterThan(200);
     });
 
     it("keys requests by base ID by default", () => {

@@ -27,9 +27,18 @@ export interface RetryOptions {
     sleep?: (ms: number) => Promise<void>;
 }
 
+/**
+ * Default rate of {@link withThrottle}: below {@link AIRTABLE_REQUESTS_PER_SECOND}, since requests
+ * that start evenly spaced can reach Airtable closer together because of network jitter.
+ */
+const DEFAULT_THROTTLE_REQUESTS_PER_SECOND = 4.5;
+
 /** Options for {@link withThrottle}. */
 export interface ThrottleOptions {
-    /** Maximum requests per second for each key. Defaults to {@link AIRTABLE_REQUESTS_PER_SECOND}. */
+    /**
+     * Maximum requests per second for each key. Defaults to 4.5, below Airtable's limit of
+     * {@link AIRTABLE_REQUESTS_PER_SECOND}, to leave room for network jitter.
+     */
     requestsPerSecond?: number;
     /**
      * Group requests that share a rate limit. Defaults to the base ID at the start of the
@@ -42,6 +51,38 @@ export interface ThrottleOptions {
 
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+/**
+ * Whether `value` is a fetch `Response`. Checks its shape rather than `instanceof Response`,
+ * so responses from other fetch implementations (eg node-fetch, polyfills) are recognized.
+ */
+function isResponse(value: unknown): value is Response {
+    return (
+        typeof value === "object" &&
+        value !== null &&
+        typeof (value as Response).status === "number" &&
+        typeof (value as Response).headers?.get === "function"
+    );
+}
+
+/** Whether `value` is the error `fetch` throws for a network failure: a `TypeError`, possibly from another realm. */
+function isNetworkError(value: unknown): boolean {
+    return value instanceof Error && value.name === "TypeError";
+}
+
+/**
+ * Release the connection held by a response that will not be read.
+ * The cancellation is not awaited, since it does not settle for a stream that was teed by
+ * `response.clone()` until every branch is cancelled. Errors are ignored, eg from a body
+ * that is not a web `ReadableStream`.
+ */
+function discardBody(response: Response): void {
+    try {
+        response.body?.cancel().catch(() => {});
+    } catch {
+        // nothing to release
+    }
+}
+
 /** HTTP methods that are retried after server errors and network errors by {@link defaultShouldRetry}. */
 const IDEMPOTENT_METHODS = new Set(["GET", "PUT", "PATCH", "DELETE"]);
 
@@ -53,13 +94,13 @@ const IDEMPOTENT_METHODS = new Set(["GET", "PUT", "PATCH", "DELETE"]);
  * - Anything else (eg 401, 422): not retried.
  */
 export function defaultShouldRetry(outcome: Response | unknown, _attempt: number, method: string): boolean {
-    if (outcome instanceof Response) {
+    if (isResponse(outcome)) {
         if (outcome.status === 429) {
             return true;
         }
         return outcome.status >= 500 && IDEMPOTENT_METHODS.has(method);
     }
-    return outcome instanceof TypeError && IDEMPOTENT_METHODS.has(method);
+    return isNetworkError(outcome) && IDEMPOTENT_METHODS.has(method);
 }
 
 /**
@@ -91,6 +132,7 @@ export function parseRetryAfter(value: string | null): number | undefined {
  *    `min(maxDelayMs, initialDelayMs * 2 ** attempt)`.
  *
  * After `maxRetries` retries, the last response is returned, or the last error thrown.
+ * The body of each response that is retried is cancelled, to release its connection.
  */
 export function withRetry(fetcher: Fetcher, options: RetryOptions = {}): Fetcher {
     const {
@@ -103,7 +145,7 @@ export function withRetry(fetcher: Fetcher, options: RetryOptions = {}): Fetcher
         sleep = defaultSleep,
     } = options;
     const delayFor = (outcome: Response | unknown, attempt: number): number => {
-        if (outcome instanceof Response) {
+        if (isResponse(outcome)) {
             const retryAfter = parseRetryAfter(outcome.headers.get("retry-after"));
             if (retryAfter !== undefined) {
                 return retryAfter;
@@ -124,6 +166,7 @@ export function withRetry(fetcher: Fetcher, options: RetryOptions = {}): Fetcher
                 if (!shouldRetry(response, attempt, method) || attempt >= maxRetries) {
                     return response;
                 }
+                discardBody(response);
                 outcome = response;
             } catch (error) {
                 if (attempt >= maxRetries || !shouldRetry(error, attempt, method)) {
@@ -144,7 +187,7 @@ export function withRetry(fetcher: Fetcher, options: RetryOptions = {}): Fetcher
  */
 export function withThrottle(fetcher: Fetcher, options: ThrottleOptions = {}): Fetcher {
     const {
-        requestsPerSecond = AIRTABLE_REQUESTS_PER_SECOND,
+        requestsPerSecond = DEFAULT_THROTTLE_REQUESTS_PER_SECOND,
         key = baseIdKey,
         sleep = defaultSleep,
     } = options;
@@ -173,13 +216,13 @@ export function baseIdKey(url: string): string {
 }
 
 /** Shared by every client created without a custom `fetch`, so clients in one process share the limit. */
-const defaultThrottle = { current: undefined as Fetcher | undefined };
+let defaultFetcher: Fetcher | undefined;
 
 /**
- * The default fetcher used by `createAirtable`: `globalThis.fetch`, throttled to
- * {@link AIRTABLE_REQUESTS_PER_SECOND} per base, and retried on rate limits and transient errors.
+ * The default fetcher used by `createAirtable`: `globalThis.fetch` wrapped with {@link withThrottle}
+ * and {@link withRetry}, both with their default options.
  */
 export function makeDefaultFetcher(): Fetcher {
-    defaultThrottle.current ??= withRetry(withThrottle((url, init) => globalThis.fetch(url, init)));
-    return defaultThrottle.current;
+    defaultFetcher ??= withRetry(withThrottle((url, init) => globalThis.fetch(url, init)));
+    return defaultFetcher;
 }

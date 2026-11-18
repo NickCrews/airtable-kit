@@ -26,9 +26,22 @@ export interface AirtableOptions {
      */
     contentBaseUrl?: string;
     /**
-     * The {@link Fetcher} used to send requests. Defaults to `globalThis.fetch`, throttled to
-     * 5 requests per second per base and retried on rate limits and transient errors (see `airtable-kit/fetcher`).
-     * A custom fetcher is used unchanged.
+     * The {@link Fetcher} used to send requests. A custom fetcher is used unchanged.
+     *
+     * Defaults to `globalThis.fetch`, throttled to 4.5 requests per second per base and retried on
+     * rate limits and transient errors (see `airtable-kit/fetcher`). The throttle is shared by all
+     * clients that use the default. A request that keeps getting HTTP 429 is retried 5 times,
+     * 30 seconds apart, so a call can wait several minutes before it fails.
+     *
+     * To change the retry options, or to log retries, build the fetcher yourself:
+     * ```ts
+     * import { withRetry, withThrottle } from "airtable-kit/fetcher";
+     * const fetch = withRetry(withThrottle(globalThis.fetch), {
+     *     onRetry: ({ attempt, delayMs }) => console.warn(`retry ${attempt + 1} in ${delayMs}ms`),
+     * });
+     * const airtable = createAirtable({ fetch });
+     * ```
+     * A fetcher built this way has its own throttle, not shared with the default.
      */
     fetch?: Fetcher;
 }

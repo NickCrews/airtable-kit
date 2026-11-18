@@ -69,6 +69,11 @@
       "import": "./dist/src/formula/index.js",
       "require": "./dist/src/formula/index.cjs"
     },
+    "./fetcher": {
+      "types": "./dist/src/fetcher.d.cts",
+      "import": "./dist/src/fetcher.js",
+      "require": "./dist/src/fetcher.cjs"
+    },
     "./exceptions": {
       "types": "./dist/src/exceptions.d.cts",
       "import": "./dist/src/exceptions.js",
@@ -122,6 +127,7 @@
       "./codegen": "./src/codegen/index.ts",
       "./openapi": "./src/openapi/index.ts",
       "./formula": "./src/formula/index.ts",
+      "./fetcher": "./src/fetcher.ts",
       "./exceptions": "./src/exceptions.ts",
       "./validators": "./src/validators/index.ts"
     }

@@ -61,6 +61,8 @@ export {
     withRetry,
     withThrottle,
     defaultShouldRetry,
+    parseRetryAfter,
+    baseIdKey,
     AIRTABLE_REQUESTS_PER_SECOND,
     type RetryOptions,
     type ThrottleOptions,
