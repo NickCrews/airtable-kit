@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, expect } from 'vitest';
 import {
   makeCreateTool,
   makeUpdateTool,
@@ -6,27 +6,29 @@ import {
   makeListTool,
   makeDeleteTool,
 } from '../src/mcp/index.ts';
-import { createBaseClient } from "airtable-kit/typed";
-import { getTestAirtable, prepTestBaseClient } from '../src/tests/test-utils.ts';
+import { test as baseTest } from '../src/tests/fixtures.ts';
+import { type TestBase, offlineTestBase } from '../src/tests/test-utils.ts';
 
-import testBaseSchema from "../src/tests/test-base-schema.generated.ts";
-const baseClient = createBaseClient(testBaseSchema, getTestAirtable());
-const tasksTableClient = baseClient.tables.tasks;
-const { resetBaseData } = prepTestBaseClient(baseClient);
+const offlineTasks = offlineTestBase.tables.tasks;
+
+/** Every test that uses `tasks` starts with the seed data. */
+const test = baseTest.extend<{ tasks: TestBase["tables"]["tasks"] }>({
+  tasks: async ({ base }, use) => {
+    await use(base.tables.tasks);
+  },
+});
 
 describe('MCP Tool - Create Tool', () => {
-  beforeEach(resetBaseData);
-
-  it('should create a create tool with the correct metadata', () => {
-    const createTool = makeCreateTool(tasksTableClient);
+  test('should create a create tool with the correct metadata', () => {
+    const createTool = makeCreateTool(offlineTasks);
     expect(createTool.name).toBe("create-records-in-tasks-table");
     expect(createTool.description).toContain("Insert new records into the tasks table");
     expect(createTool.inputJsonSchema).toHaveProperty("properties");
     expect((createTool.inputJsonSchema as any).properties).toHaveProperty("records");
   });
 
-  it('should work for valid input', async () => {
-    const createTool = makeCreateTool(tasksTableClient);
+  test('should work for valid input', async ({ tasks }) => {
+    const createTool = makeCreateTool(tasks);
     const { records: result } = await createTool.execute({
       records: [
         {
@@ -50,21 +52,19 @@ describe('MCP Tool - Create Tool', () => {
 });
 
 describe('MCP Tool - Update Tool', () => {
-  beforeEach(resetBaseData);
-
-  it('should create an update tool with the correct metadata', () => {
-    const updateTool = makeUpdateTool(tasksTableClient);
+  test('should create an update tool with the correct metadata', () => {
+    const updateTool = makeUpdateTool(offlineTasks);
     expect(updateTool.name).toBe("update-records-in-tasks-table");
     expect(updateTool.description).toBe('Update existing records in the tasks table.');
     expect(updateTool.inputJsonSchema).toHaveProperty("properties");
     expect((updateTool.inputJsonSchema as any).properties).toHaveProperty("records");
   });
 
-  it('should work for valid input', async () => {
-    const updateTool = makeUpdateTool(tasksTableClient);
+  test('should work for valid input', async ({ tasks }) => {
+    const updateTool = makeUpdateTool(tasks);
 
     // Create a record first
-    const { records: [created] } = await tasksTableClient.createRecords([
+    const { records: [created] } = await tasks.createRecords([
       {
         name: "My new task",
         completed: false,
@@ -104,19 +104,17 @@ describe('MCP Tool - Update Tool', () => {
 });
 
 describe('MCP Tool - Get Tool', () => {
-  beforeEach(resetBaseData);
-
-  it('should create a get tool with the correct metadata', () => {
-    const getTool = makeGetTool(tasksTableClient);
+  test('should create a get tool with the correct metadata', () => {
+    const getTool = makeGetTool(offlineTasks);
     expect(getTool.name).toBe("get-record-from-tasks-table");
     expect(getTool.description).toBe('Get a single record by ID from the tasks table.');
     expect(getTool.inputJsonSchema).toHaveProperty("properties");
     expect((getTool.inputJsonSchema as any).properties).toHaveProperty("recordId");
   });
 
-  it('should work for valid input', async () => {
-    const getTool = makeGetTool(tasksTableClient);
-    const { records: [created] } = await tasksTableClient.createRecords([
+  test('should work for valid input', async ({ tasks }) => {
+    const getTool = makeGetTool(tasks);
+    const { records: [created] } = await tasks.createRecords([
       {
         name: "my task"
       },
@@ -134,17 +132,15 @@ describe('MCP Tool - Get Tool', () => {
 });
 
 describe('MCP Tool - List Tool', () => {
-  beforeEach(resetBaseData);
-
-  it('should create a list tool with the correct metadata', () => {
-    const listTool = makeListTool(tasksTableClient);
+  test('should create a list tool with the correct metadata', () => {
+    const listTool = makeListTool(offlineTasks);
     expect(listTool.name).toBe("list-records-from-tasks-table");
     expect(listTool.description).toBe('List records from the tasks table with optional filtering and pagination.');
     expect(listTool.inputJsonSchema).toHaveProperty("properties");
   });
 
-  it('should work for valid input with no options', async () => {
-    const listTool = makeListTool(tasksTableClient);
+  test('should work for valid input with no options', async ({ tasks }) => {
+    const listTool = makeListTool(tasks);
     const validInput = {};
     const result = await listTool.execute(validInput);
 
@@ -154,8 +150,8 @@ describe('MCP Tool - List Tool', () => {
     expect(result[0]).toHaveProperty("createdTime");
   });
 
-  it('should work with filtering options', async () => {
-    const listTool = makeListTool(tasksTableClient);
+  test('should work with filtering options', async ({ tasks }) => {
+    const listTool = makeListTool(tasks);
 
     const validInput = {
       options: {
@@ -172,21 +168,19 @@ describe('MCP Tool - List Tool', () => {
 });
 
 describe('MCP Tool - Delete Tool', () => {
-  beforeEach(resetBaseData);
-
-  it('should create a delete tool with the correct metadata', () => {
-    const deleteTool = makeDeleteTool(tasksTableClient);
+  test('should create a delete tool with the correct metadata', () => {
+    const deleteTool = makeDeleteTool(offlineTasks);
     expect(deleteTool.name).toBe("delete-records-from-tasks-table");
     expect(deleteTool.description).toContain("Delete records by ID from the tasks table");
     expect(deleteTool.inputJsonSchema).toHaveProperty("properties");
     expect((deleteTool.inputJsonSchema as any).properties).toHaveProperty("recordIds");
   });
 
-  it('should work for valid input', async () => {
-    const deleteTool = makeDeleteTool(tasksTableClient);
-    const nRecordsBefore = (await tasksTableClient.listRecords({ fields: ["name"] })).length
+  test('should work for valid input', async ({ tasks }) => {
+    const deleteTool = makeDeleteTool(tasks);
+    const nRecordsBefore = (await tasks.listRecords({ fields: ["name"] })).length
 
-    const { records: created } = await tasksTableClient.createRecords([
+    const { records: created } = await tasks.createRecords([
       { name: "Delete Me 1" },
       { name: "Delete Me 2" },
     ]);
@@ -195,7 +189,7 @@ describe('MCP Tool - Delete Tool', () => {
 
     expect(result).toEqual(recordIds);
 
-    const nRecordsAfter = (await tasksTableClient.listRecords({ fields: ["name"] })).length
+    const nRecordsAfter = (await tasks.listRecords({ fields: ["name"] })).length
     expect(nRecordsAfter).toBe(nRecordsBefore);
   });
 });

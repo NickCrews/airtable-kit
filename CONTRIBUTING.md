@@ -4,7 +4,7 @@ Thank you for your interest in contributing to airtable-kit! This guide will hel
 
 ## Prerequisites
 
-- Node.js >= 20
+- Node.js >= 22
 - pnpm package manager
 - An Airtable account with API access
 - A personal access token (PAT) from Airtable
@@ -30,13 +30,13 @@ Thank you for your interest in contributing to airtable-kit! This guide will hel
 
    ```bash
    # Your Airtable personal access token
-   export AIRTABLE_KIT_TEST_API_KEY=patXXXXXXXXXXXXXX
+   AIRTABLE_KIT_TEST_API_KEY=patXXXXXXXXXXXXXX
 
-   # The workspace ID where the test base will be created
-   export AIRTABLE_WORKSPACE_ID=wspXXXXXXXXXXXXXX
+   # The workspace the test base lives in
+   AIRTABLE_KIT_TEST_WORKSPACE_ID=wspXXXXXXXXXXXXXX
 
-   # This will be set by the setup script
-   export AIRTABLE_TEST_BASE_ID=appXXXXXXXXXXXXXX
+   # The test base. See "Setting Up the Test Base" below.
+   AIRTABLE_KIT_TEST_BASE_ID=appXXXXXXXXXXXXXX
    ```
 
    **How to get these values:**
@@ -46,39 +46,29 @@ Thank you for your interest in contributing to airtable-kit! This guide will hel
 
 ## Setting Up the Test Base
 
-The test suite uses a real Airtable base for integration tests. You need to create this test base once before running tests:
+The integration tests run against a real Airtable base. Before running them, run:
 
 ```bash
-pnpm run create-test-base
+pnpm run ensure-test-base
 ```
 
-This script will:
-1. Create a new test base in your specified workspace via the Airtable Meta API
-2. Create 4 tables: `Tasks`, `Users`, `LinkedItems`, and `AllTypes`
-3. Populate the tables with seed data
-4. Generate a TypeScript schema file at `src/tests/test-base-schema.generated.ts`
-5. Output the base ID that you need to add to your environment variables
+This script:
+1. Uses the base in `AIRTABLE_KIT_TEST_BASE_ID`, or creates one in your workspace if it isn't set and there is no generated schema yet
+2. Creates any missing tables and fields from the schema in `src/tests/test-base.ts`
+3. Writes the base's schema to `src/tests/test-base-schema.generated.ts` (gitignored), which the tests import
 
-After running the setup script, **add the generated base ID to your environment**:
+If it created a new base, put that base's ID in `AIRTABLE_KIT_TEST_BASE_ID`.
+Run it again whenever the schema in `src/tests/test-base.ts` changes.
 
-```bash
-export AIRTABLE_TEST_BASE_ID=appXXXXXXXXXXXXXX
-```
+The base has three tables:
 
-Or add it to your `.env` file.
+- **tasks**: Task tracking with status, priority, due dates, tags, and attachments
+- **linkedItems**: Simple table for testing record links, rollups, and lookups
+- **allTypes**: A field of every writable type
 
-### Test Base Structure
-
-The test base contains:
-
-- **Tasks**: Task tracking with status, priority, due dates, and assignments
-- **Users**: User records with name, email, and phone
-- **LinkedItems**: Simple table for testing record links, rollups, and lookups
-- **AllTypes**: Comprehensive table with all 33 Airtable field types
+The seed data that tests start from is in `src/tests/seed-data.ts`.
 
 ## Running Tests
-
-Once the test base is set up, you can run the test suite:
 
 ```bash
 # Run all tests
@@ -88,15 +78,11 @@ pnpm test
 pnpm test:watch
 
 # Run specific test file
-pnpm test src/client/table-client.test.ts
+pnpm test tests/table-client.test.ts
 ```
 
-### Test Isolation
-
-- Tests use real API calls to the test base
-- Each test suite resets the base data to seed state using `resetBaseData()`
-- Tests can create additional records during execution
-- The test base persists between test runs (it's not deleted)
+Tests that don't use the test base run without any environment variables.
+All test files share one base, so they run one at a time (see `vitest.config.ts`).
 
 ## Development Workflow
 
@@ -131,14 +117,14 @@ pnpm test src/client/table-client.test.ts
 ### Test Base Persistence
 
 - The test base is **not automatically deleted**
-- If you need to recreate the test base (e.g., after schema changes), manually delete the old base in Airtable and run `pnpm run create-test-base` again
+- After changing the schema in `src/tests/test-base.ts`, run `pnpm run ensure-test-base` to update the base
 - You can view your test base in Airtable at: `https://airtable.com/[YOUR_BASE_ID]`
 
 ### Rate Limits
 
 - Airtable has API rate limits (5 requests per second per base)
 - Tests may be slower than mock-based tests due to real API calls
-- If you hit rate limits, tests will fail with a 429 error
+- The client throttles requests and retries on 429 responses
 
 ### Sensitive Data
 
@@ -146,49 +132,78 @@ pnpm test src/client/table-client.test.ts
 - The generated schema file (`src/tests/test-base-schema.generated.ts`) is gitignored
 - Test data should not contain real personal information
 
-## Testing Best Practices
+## Writing Tests
 
-When writing new tests:
+Import `test` (or its alias `it`) from `src/tests/fixtures.ts` instead of from vitest,
+and destructure the fixtures a test needs:
 
-1. **Use the test utilities**: Import `testBaseClient()` from `src/tests/test-utils.ts`
-2. **Reset data when needed**: Call `await resetBaseData()` in `beforeEach` for test isolation
-3. **Focus on outcomes**: Test the returned data and side effects, not API call details
-4. **Use real data**: Create records in tests rather than mocking API responses
-5. **Clean assertions**: Use `toMatchObject()` for partial matches, check specific fields
+| Fixture     | Value                                                                         |
+| ----------- | ----------------------------------------------------------------------------- |
+| `base`      | The test base, with every table holding exactly the seed data                 |
+| `emptyBase` | The test base, with every table empty                                         |
+| `airtable`  | An `Airtable` client using the test API key                                   |
+| `env`       | The test environment variables                                                |
+| `tmpDir`    | A fresh directory that is the cwd for the test, left on disk for inspection   |
 
-Example test structure:
+`base` and `emptyBase` are typed `BaseClient`s for the test base, plus two methods:
+`reset()` returns it to the seed data, and `clear()` empties every table.
+Call them mid-test when a test needs to start over.
+
+A fixture is set up only for tests that destructure it, so a test that doesn't use
+`base` or `emptyBase` makes no requests. For tests that only need the schema,
+use `offlineTestBase` from `src/tests/test-utils.ts`.
 
 ```typescript
-import { beforeEach, describe, expect, it } from "vitest";
-import { testBaseClient } from "../tests/test-utils.ts";
+import { describe, expect } from "vitest";
+import { test } from "../src/tests/fixtures.ts";
+import { offlineTestBase } from "../src/tests/test-utils.ts";
 
 describe("My Feature", () => {
-  let tasksTableClient: Awaited<ReturnType<typeof testBaseClient>>["tasksTableClient"];
-  let resetBaseData: Awaited<ReturnType<typeof testBaseClient>>["resetBaseData"];
-
-  beforeEach(async () => {
-    const testClient = await testBaseClient();
-    tasksTableClient = testClient.tasksTableClient;
-    resetBaseData = testClient.resetBaseData;
-    await resetBaseData(); // Optional: only if test isolation is needed
+  test("reads the schema", () => {
+    expect(offlineTestBase.tables.tasks.fields.dueDate.type).toBe("date");
   });
 
-  it("should do something", async () => {
-    const result = await tasksTableClient.createMany([...]);
-    expect(result).toMatchObject([...]);
+  test("reads the seed data", async ({ base }) => {
+    const records = await base.tables.tasks.listRecords();
+    expect(records).toHaveLength(8);
+  });
+
+  test("starts from nothing", async ({ emptyBase }) => {
+    await emptyBase.tables.tasks.createRecords([{ name: "Only task" }]);
+    expect(await emptyBase.tables.tasks.listRecords()).toHaveLength(1);
   });
 });
 ```
 
+To give every test in a file the same starting point under a shorter name,
+extend `test` with a fixture built on `base` or `emptyBase`:
+
+```typescript
+import { test as baseTest } from "../src/tests/fixtures.ts";
+import { type TestBase } from "../src/tests/test-utils.ts";
+
+const test = baseTest.extend<{ tasks: TestBase["tables"]["tasks"] }>({
+  tasks: async ({ base }, use) => {
+    await use(base.tables.tasks);
+  },
+});
+
+test("lists tasks", async ({ tasks }) => {
+  expect(await tasks.listRecords()).toHaveLength(8);
+});
+```
+
+Other guidelines:
+
+1. **Focus on outcomes**: Test the returned data and side effects, not API call details
+2. **Use real data**: Create records in tests rather than mocking API responses
+3. **Clean assertions**: Use `toMatchObject()` for partial matches, check specific fields
+
 ## Troubleshooting
 
-### "AIRTABLE_TEST_BASE_ID environment variable not set"
+### "Missing required environment variables"
 
-Run `pnpm run create-test-base` to create the test base and get the base ID.
-
-### "AIRTABLE_API_KEY environment variable not set"
-
-Set your Airtable personal access token in your environment or `.env` file.
+Set `AIRTABLE_KIT_TEST_API_KEY`, `AIRTABLE_KIT_TEST_BASE_ID`, and `AIRTABLE_KIT_TEST_WORKSPACE_ID` in your environment or `.env` file.
 
 ### Tests are failing with 401 Unauthorized
 
@@ -196,11 +211,11 @@ Check that your API key is valid and has the necessary permissions (read/write a
 
 ### Tests are failing with 404 Not Found
 
-The test base may have been deleted. Delete the `AIRTABLE_TEST_BASE_ID` from your environment and run `pnpm run create-test-base` again.
+The test base may have been deleted. Unset `AIRTABLE_KIT_TEST_BASE_ID`, delete `src/tests/test-base-schema.generated.ts`, and run `pnpm run ensure-test-base` to create a new one.
 
-### "Required tables not found in schema"
+### Type errors or missing fields in the generated schema
 
-The generated schema file may be out of sync. Delete `src/tests/test-base-schema.generated.ts` and run `pnpm run create-test-base` again.
+Run `pnpm run ensure-test-base` to bring the base and `src/tests/test-base-schema.generated.ts` up to date.
 
 ## Questions or Issues?
 

@@ -3,21 +3,13 @@
  */
 
 import fs from 'node:fs';
-import { describe, it, expect, beforeEach, vi, afterAll } from 'vitest';
+import { describe, expect, beforeEach, vi, afterAll } from 'vitest';
 import { cli } from '../src/cli/cli.ts';
-import { makeInTmpDir } from '../src/tests/inTmpDir.ts';
-import { getTestEnv, getTestAirtable, prepTestBaseClient } from '../src/tests/test-utils.ts';
-import { createBaseClient } from "airtable-kit/typed";
+import { it, test } from '../src/tests/fixtures.ts';
+import { getTestEnv } from '../src/tests/test-utils.ts';
 import realSchema from '../src/tests/test-base-schema.generated.ts';
 
-const baseClient = createBaseClient(realSchema, getTestAirtable());
-const { resetBaseData } = prepTestBaseClient(baseClient);
-
-const {
-  AIRTABLE_KIT_TEST_API_KEY: apiKey,
-  AIRTABLE_KIT_TEST_BASE_ID: baseId,
-  AIRTABLE_KIT_TEST_WORKSPACE_ID: workspaceId,
-} = getTestEnv();
+const baseId = realSchema.id;
 
 const importTsJs = (p: string) => import(p).then((mod) => mod.default || mod);
 
@@ -82,8 +74,7 @@ function scrubAllCalls(calls: any[][]): any[][] {
 describe('CLI', { timeout: 10_000 }, () => {
   const callCli = (args: string[]) => cli(args, undefined);
 
-  const inTmpDir = makeInTmpDir();
-  const cliWithApiKey = (args: string[]) => callCli(["--api-key", apiKey, ...args]);
+  const cliWithApiKey = (args: string[]) => callCli(["--api-key", getTestEnv().AIRTABLE_KIT_TEST_API_KEY, ...args]);
 
   const mockConsoleLog = vi.spyOn(console, 'log').mockImplementation(() => { });
   const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => { });
@@ -123,8 +114,7 @@ describe('CLI', { timeout: 10_000 }, () => {
   });
 
   describe('codegen command', () => {
-    it('should generate all base schemas into outdir', async (ctx) => {
-      const tmpDir = inTmpDir(ctx);
+    it('should generate all base schemas into outdir', async ({ tmpDir }) => {
       await cliWithApiKey(["codegen", "--outdir", "schemas", "--format", "ts"]);
       // That should be the only file in the dir
       expect(fs.readdirSync(`${tmpDir}/schemas`)).toEqual(['airtableKitTestBase.generated.ts']);
@@ -979,23 +969,20 @@ describe('CLI', { timeout: 10_000 }, () => {
       `);
     });
 
-    it('should set base context with use command', async (ctx) => {
-      const tmpDir = inTmpDir(ctx);
+    it('should set base context with use command', async ({ tmpDir }) => {
       await cliWithApiKey(["base", "use", baseId]);
       const calls = mockConsoleLog.mock.calls.map(c => c[0]);
       expect(calls.some(c => typeof c === 'string' && c.includes('✓ Set current base'))).toBe(true);
     });
 
-    it('should generate schema for specific base', async (ctx) => {
-      const tmpDir = inTmpDir(ctx);
+    it('should generate schema for specific base', async ({ tmpDir }) => {
       await cliWithApiKey(["base", "codegen", baseId, "--outdir", "schemas", "--format", "ts"]);
       const files = fs.readdirSync(`${tmpDir}/schemas`);
       expect(files).toHaveLength(1);
       expect(files[0]).toMatch(/\.generated\.ts$/);
     });
 
-    it('should generate schema in javascript format', async (ctx) => {
-      const tmpDir = inTmpDir(ctx);
+    it('should generate schema in javascript format', async ({ tmpDir }) => {
       await cliWithApiKey(["base", "codegen", baseId, "--outdir", "schemas", "--format", "js"]);
       const files = fs.readdirSync(`${tmpDir}/schemas`);
       expect(files).toHaveLength(1);
@@ -1535,8 +1522,7 @@ describe('CLI', { timeout: 10_000 }, () => {
       `);
     });
 
-    it('should set table context with use command', async (ctx) => {
-      const tmpDir = inTmpDir(ctx);
+    it('should set table context with use command', async ({ tmpDir }) => {
       await cliWithApiKey(["base", "use", baseId]);
       const tableId = realSchema.tables[0].id;
       await cliWithApiKey(["table", "use", tableId, "--base", baseId]);
@@ -1546,9 +1532,12 @@ describe('CLI', { timeout: 10_000 }, () => {
   });
 
   describe('field command', () => {
-    beforeEach(async (ctx) => {
-      const tmpDir = inTmpDir(ctx);
-      await cliWithApiKey(["base", "use", baseId]);
+    /** Runs each test in a tmp dir, with the test base set as the current base */
+    const it = test.extend<{ currentBase: void }>({
+      currentBase: [async ({ tmpDir }, use) => {
+        await cliWithApiKey(["base", "use", baseId]);
+        await use();
+      }, { auto: true }],
     });
 
     it('should list fields in a table', async () => {
@@ -1677,10 +1666,12 @@ describe('CLI', { timeout: 10_000 }, () => {
   });
 
   describe('record command', () => {
-    beforeEach(async (ctx) => {
-      await resetBaseData();
-      const tmpDir = inTmpDir(ctx);
-      await cliWithApiKey(["base", "use", baseId]);
+    /** Runs each test in a tmp dir, with the seeded test base set as the current base */
+    const it = test.extend<{ currentBase: void }>({
+      currentBase: [async ({ tmpDir, base }, use) => {
+        await cliWithApiKey(["base", "use", baseId]);
+        await use();
+      }, { auto: true }],
     });
 
     it('should list records in a table', async () => {
@@ -1788,8 +1779,8 @@ describe('CLI', { timeout: 10_000 }, () => {
       `);
     });
 
-    it('should create a record from the fields in --data', async () => {
-      const linkedItems = baseClient.tables.linkedItems;
+    it('should create a record from the fields in --data', async ({ base }) => {
+      const linkedItems = base.tables.linkedItems;
       await cliWithApiKey([
         "record", "create",
         "--base", baseId,
