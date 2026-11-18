@@ -11,18 +11,67 @@ export class AirtableKitError extends Error {
     }
 }
 
-/** An error response from the Airtable API */
+/** Constructor options for {@link AirtableKitApiError}. */
+export interface AirtableKitApiErrorOptions {
+    message: string;
+    /** The HTTP status code of the response */
+    status: number;
+    /** Airtable's error type, eg "INVALID_FILTER_BY_FORMULA" */
+    type?: string;
+    /** Airtable's human-readable error message */
+    airtableMessage?: string;
+    /** The parsed JSON body of the response, or its text if it was not JSON */
+    rawResponse: unknown;
+    /** The HTTP method of the request */
+    method: string;
+    /** The path of the request, relative to the base URL */
+    path: string;
+}
+
+/**
+ * An error response from the Airtable API.
+ *
+ * Thrown for every response with a non-2xx status.
+ * Network failures are not wrapped: they surface as the error thrown by `fetch`, usually a `TypeError`.
+ *
+ * @example
+ * ```ts
+ * try {
+ *     await airtable.records.get({ baseId, tableId, recordId });
+ * } catch (e) {
+ *     if (e instanceof AirtableKitApiError && e.status === 404) {
+ *         return null;
+ *     }
+ *     throw e;
+ * }
+ * ```
+ */
 export class AirtableKitApiError extends AirtableKitError {
     public readonly message: string;
+    /** The HTTP status code of the response */
+    public readonly status: number;
+    /**
+     * Airtable's error type, eg "INVALID_FILTER_BY_FORMULA", "NOT_FOUND", or "INVALID_PERMISSIONS_OR_MODEL_NOT_FOUND".
+     * Undefined when the body was not one of Airtable's error formats, eg an HTML page from a proxy.
+     */
+    public readonly type?: string;
+    /** Airtable's human-readable error message, without the method, path, or status. */
+    public readonly airtableMessage?: string;
     /** The parsed JSON body of the response, or its text if it was not JSON */
     public readonly rawResponse: unknown;
-    /** The HTTP status code of the response */
-    public readonly status?: number;
-    constructor(message: string, rawResponse: unknown, status?: number) {
-        super(message);
-        this.message = message;
-        this.rawResponse = rawResponse;
-        this.status = status;
+    /** The HTTP method of the request, eg "GET" */
+    public readonly method: string;
+    /** The path of the request, relative to the base URL, eg "/appXXX/tblXXX" */
+    public readonly path: string;
+    constructor(options: AirtableKitApiErrorOptions) {
+        super(options.message);
+        this.message = options.message;
+        this.status = options.status;
+        this.type = options.type;
+        this.airtableMessage = options.airtableMessage;
+        this.rawResponse = options.rawResponse;
+        this.method = options.method;
+        this.path = options.path;
         this.name = "AirtableKitApiError";
         // Maintain the correct prototype chain
         Object.setPrototypeOf(this, AirtableKitApiError.prototype);
@@ -41,7 +90,7 @@ export class ReadValueConversionError extends AirtableKitError {
         this.value = value;
         this.fieldSchema = fieldSchema;
         this.originalError = originalError;
-        this.name = "ReadValueNotConvertibleError";
+        this.name = "ReadValueConversionError";
         // Maintain the correct prototype chain
         Object.setPrototypeOf(this, ReadValueConversionError.prototype);
     }
@@ -59,7 +108,7 @@ export class WriteValueConversionError extends AirtableKitError {
         this.value = value;
         this.fieldSchema = fieldSchema;
         this.originalError = originalError;
-        this.name = "WriteValueNotConvertibleError";
+        this.name = "WriteValueConversionError";
         // Maintain the correct prototype chain
         Object.setPrototypeOf(this, WriteValueConversionError.prototype);
     }

@@ -68,14 +68,57 @@ export function makeRequester(
             // keep the text
         }
         if (!response.ok) {
-            throw new AirtableKitApiError(
-                `${method} ${path} failed: ${response.status} ${response.statusText} - ${typeof body === "string" ? body : JSON.stringify(body)}`,
-                body,
-                response.status,
-            );
+            const { type, message: airtableMessage } = parseAirtableError(body);
+            const detail = type
+                ? (airtableMessage ? `${type}: ${airtableMessage}` : type)
+                : truncate(typeof body === "string" ? body : JSON.stringify(body), 500);
+            throw new AirtableKitApiError({
+                message: `${method} ${path} failed: ${response.status} ${response.statusText}${detail ? ` - ${detail}` : ""}`,
+                status: response.status,
+                type,
+                airtableMessage,
+                rawResponse: body,
+                method,
+                path,
+            });
         }
         return body as T;
     };
+}
+
+/**
+ * Read the error type and message from an Airtable error body. Airtable uses these formats:
+ * - `{ "error": { "type": "INVALID_FILTER_BY_FORMULA", "message": "..." } }`
+ * - `{ "error": "NOT_FOUND" }`
+ * - `{ "errors": [{ "error": "RATE_LIMIT_REACHED", "message": "..." }] }`
+ */
+function parseAirtableError(body: unknown): { type?: string; message?: string } {
+    if (typeof body !== "object" || body === null) {
+        return {};
+    }
+    const { error, errors } = body as { error?: unknown; errors?: unknown };
+    if (typeof error === "string") {
+        return { type: error };
+    }
+    if (typeof error === "object" && error !== null) {
+        const { type, message } = error as { type?: unknown; message?: unknown };
+        return {
+            type: typeof type === "string" ? type : undefined,
+            message: typeof message === "string" ? message : undefined,
+        };
+    }
+    if (Array.isArray(errors) && typeof errors[0] === "object" && errors[0] !== null) {
+        const { error: type, message } = errors[0] as { error?: unknown; message?: unknown };
+        return {
+            type: typeof type === "string" ? type : undefined,
+            message: typeof message === "string" ? message : undefined,
+        };
+    }
+    return {};
+}
+
+function truncate(text: string, maxLength: number): string {
+    return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
 }
 
 function joinUrl(base: string, path: string): string {
