@@ -3,7 +3,7 @@ import { getTestAirtable, prepTestBaseClient } from '../src/tests/test-utils.ts'
 import { createBaseClient, createTableClient } from "airtable-kit/typed";
 
 import testBaseSchema from "../src/tests/test-base-schema.generated.ts";
-const baseClient = createBaseClient(testBaseSchema, { airtable: getTestAirtable() });
+const baseClient = createBaseClient({ schema: testBaseSchema, airtable: getTestAirtable() });
 const { resetBaseData } = prepTestBaseClient(baseClient);
 
 describe("TableClient", () => {
@@ -28,19 +28,21 @@ describe("TableClient", () => {
 
     describe("createRecords", () => {
         it("can handle 0-record creates", async () => {
-            const { records: result } = await tasksTableClient.createRecords([]);
+            const { records: result } = await tasksTableClient.createRecords({ records: [] });
             expect(result).toEqual([]);
         });
 
         it("can create records", async () => {
-            const { records: response } = await tasksTableClient.createRecords([
-                {
-                    name: "Fold Laundry",
-                    completed: false,
-                    notes: undefined, // should be ignored
-                    status: null, // should be ignored
-                },
-            ]);
+            const { records: response } = await tasksTableClient.createRecords({
+                records: [
+                    {
+                        name: "Fold Laundry",
+                        completed: false,
+                        notes: undefined, // should be ignored
+                        status: null, // should be ignored
+                    },
+                ],
+            });
 
             expect(response).toHaveLength(1);
             expect(response[0]).toMatchObject({
@@ -60,12 +62,14 @@ describe("TableClient", () => {
         });
 
         it("can create records with select options by name", async () => {
-            const { records: response } = await tasksTableClient.createRecords([
-                {
-                    name: "Test Task",
-                    status: "In Progress",
-                },
-            ]);
+            const { records: response } = await tasksTableClient.createRecords({
+                records: [
+                    {
+                        name: "Test Task",
+                        status: "In Progress",
+                    },
+                ],
+            });
 
             expect(response).toHaveLength(1);
             expect(response[0].fields.status).toBe("In Progress");
@@ -73,43 +77,49 @@ describe("TableClient", () => {
 
         it("rejects invalid select options", async () => {
             await expect(
-                tasksTableClient.createRecords([
-                    {
-                        name: "Test Task",
-                        status: "InvalidStatus" as any, // invalid select option
-                    },
-                ])
+                tasksTableClient.createRecords({
+                    records: [
+                        {
+                            name: "Test Task",
+                            status: "InvalidStatus" as any, // invalid select option
+                        },
+                    ],
+                })
             ).rejects.toThrow();
         });
     });
 
     describe("update", () => {
         it("can handle 0-record updates", async () => {
-            const result = await tasksTableClient.updateRecords([]);
+            const result = await tasksTableClient.updateRecords({ records: [] });
             expect(result).toEqual({ records: [], warnings: [] });
         });
 
         it("can update records", async () => {
             // First create a record
-            const { records: [created] } = await tasksTableClient.createRecords([
-                {
-                    name: "Task to Update",
-                    completed: false,
-                },
-            ]);
+            const { records: [created] } = await tasksTableClient.createRecords({
+                records: [
+                    {
+                        name: "Task to Update",
+                        completed: false,
+                    },
+                ],
+            });
 
             // Update it
-            const result = await tasksTableClient.updateRecords([
-                {
-                    id: created.id,
-                    fields: {
-                        name: "Updated Task Name",
-                        completed: true,
-                        notes: undefined, // should be ignored
-                        dueDate: null, // should be cleared
+            const result = await tasksTableClient.updateRecords({
+                records: [
+                    {
+                        id: created.id,
+                        fields: {
+                            name: "Updated Task Name",
+                            completed: true,
+                            notes: undefined, // should be ignored
+                            dueDate: null, // should be cleared
+                        },
                     },
-                },
-            ]);
+                ],
+            });
 
             expect(result.records).toHaveLength(1);
             expect(result.records[0]).toMatchObject({
@@ -126,14 +136,16 @@ describe("TableClient", () => {
     describe("delete", () => {
         it("can delete records", async () => {
             // Create a record
-            const { records: [created] } = await tasksTableClient.createRecords([
-                {
-                    name: "Task to Delete",
-                },
-            ]);
+            const { records: [created] } = await tasksTableClient.createRecords({
+                records: [
+                    {
+                        name: "Task to Delete",
+                    },
+                ],
+            });
 
             // Delete it
-            const result = await tasksTableClient.deleteRecords([created.id]);
+            const result = await tasksTableClient.deleteRecords({ recordIds: [created.id] });
 
             expect(result).toEqual([created.id]);
 
@@ -146,13 +158,15 @@ describe("TableClient", () => {
 
     describe("formulaToString", () => {
         it("can convert formula objects to strings", () => {
-            const formulaStr = tasksTableClient.formulaToString([
-                "AND",
-                [">=", { field: "dueDate" }, ["TODAY"]],
-                ["<=", { field: "dueDate" }, ["DATEADD", ["TODAY"], 7, "days"]],
-                ["=", { field: "status" }, "In Progress"],
-                ["!=", { field: "name" }, null],
-            ]);
+            const formulaStr = tasksTableClient.formulaToString({
+                formula: [
+                    "AND",
+                    [">=", { field: "dueDate" }, ["TODAY"]],
+                    ["<=", { field: "dueDate" }, ["DATEADD", ["TODAY"], 7, "days"]],
+                    ["=", { field: "status" }, "In Progress"],
+                    ["!=", { field: "name" }, null],
+                ],
+            });
             expect(formulaStr).toMatchInlineSnapshot(`"AND({fldnICsxPklEeCtbY} >= TODAY(), {fldnICsxPklEeCtbY} <= DATEADD(TODAY(), 7, "days"), {fld5HSoxDVnT7NGZ6} = "In Progress", {fldlwe8DKJGEOB4NB} != BLANK())"`)
         });
     });
@@ -160,10 +174,12 @@ describe("TableClient", () => {
     describe("list", () => {
         it("can list records with filterByFormula as string", async () => {
             // Create some test records
-            await tasksTableClient.createRecords([
-                { name: "Task 1", completed: true },
-                { name: "Task 2", completed: false },
-            ]);
+            await tasksTableClient.createRecords({
+                records: [
+                    { name: "Task 1", completed: true },
+                    { name: "Task 2", completed: false },
+                ],
+            });
 
             // Get the completed field ID from the table schema
             const completedFieldId = tasksTableClient.schema.fields.find(
@@ -181,10 +197,12 @@ describe("TableClient", () => {
 
         it("can list records with filterByFormula as Formula object", async () => {
             // Create test records
-            await tasksTableClient.createRecords([
-                { name: "Test Done Task", status: "Done", completed: true },
-                { name: "Test Todo Task", status: "Todo", completed: false },
-            ]);
+            await tasksTableClient.createRecords({
+                records: [
+                    { name: "Test Done Task", status: "Done", completed: true },
+                    { name: "Test Todo Task", status: "Todo", completed: false },
+                ],
+            });
 
             const records = await tasksTableClient.listRecords({
                 filterByFormula: [
@@ -215,15 +233,17 @@ describe("TableClient", () => {
     describe("get", () => {
         it("can get a record by ID", async () => {
             // Create a record
-            const { records: [created] } = await tasksTableClient.createRecords([
-                {
-                    name: "Get Test Task",
-                    completed: false,
-                },
-            ]);
+            const { records: [created] } = await tasksTableClient.createRecords({
+                records: [
+                    {
+                        name: "Get Test Task",
+                        completed: false,
+                    },
+                ],
+            });
 
             // Get it
-            const record = await tasksTableClient.getRecord(created.id);
+            const record = await tasksTableClient.getRecord({ recordId: created.id });
 
             expect(record).toMatchObject({
                 id: created.id,
@@ -243,13 +263,15 @@ describe("TableClient", () => {
 
         it("fills in default values for empty fields", async () => {
             // Create a record with minimal fields
-            const { records: [created] } = await tasksTableClient.createRecords([
-                {
-                    name: "Minimal Task",
-                },
-            ]);
+            const { records: [created] } = await tasksTableClient.createRecords({
+                records: [
+                    {
+                        name: "Minimal Task",
+                    },
+                ],
+            });
 
-            const record = await tasksTableClient.getRecord(created.id);
+            const record = await tasksTableClient.getRecord({ recordId: created.id });
 
             // All fields should be present with default values
             expect(record.fields).toHaveProperty("attachments");
@@ -266,36 +288,37 @@ describe("TableClient", () => {
         it("needs only the table ID, and each field's id, name, type, and the options its values depend on", async () => {
             const { name, completed, dueDate, status } = tasksTableClient.fields;
             const tasks = createTableClient(
-                testBaseSchema.id,
                 {
-                    id: tasksTableClient.schema.id,
-                    fields: [
-                        { id: name.id, name: name.name, type: name.type },
-                        { id: completed.id, name: completed.name, type: completed.type },
-                        { id: dueDate.id, name: dueDate.name, type: dueDate.type },
-                        {
-                            id: status.id,
-                            name: status.name,
-                            type: status.type,
-                            options: { choices: status.options.choices.map(({ id, name }) => ({ id, name })) },
-                        },
-                    ],
-                },
-                {
-                    airtable: getTestAirtable(),
-                    // The table has other fields; leave them out of the records
-                    onReadUnexpectedField: { warn: false, keep: false },
-                },
+                baseId: testBaseSchema.id,
+                schema: {
+                        id: tasksTableClient.schema.id,
+                        fields: [
+                            { id: name.id, name: name.name, type: name.type },
+                            { id: completed.id, name: completed.name, type: completed.type },
+                            { id: dueDate.id, name: dueDate.name, type: dueDate.type },
+                            {
+                                id: status.id,
+                                name: status.name,
+                                type: status.type,
+                                options: { choices: status.options.choices.map(({ id, name }) => ({ id, name })) },
+                            },
+                        ],
+                    },
+                airtable: getTestAirtable(),
+                onReadUnexpectedField: { warn: false, keep: false },
+            }
             );
 
-            const { records: [created] } = await tasks.createRecords([
-                { name: "Hand-written schema", dueDate: new Date("2024-12-31"), status: "Done" },
-            ]);
+            const { records: [created] } = await tasks.createRecords({
+                records: [
+                    { name: "Hand-written schema", dueDate: new Date("2024-12-31"), status: "Done" },
+                ],
+            });
             expect(created.fields).toEqual({ name: "Hand-written schema", completed: false, dueDate: "2024-12-31", status: "Done" });
             expectTypeOf(created.fields.completed).toEqualTypeOf<boolean>();
             expectTypeOf(created.fields.status).toEqualTypeOf<"Todo" | "In Progress" | "Done" | null>();
 
-            const fetched = await tasks.getRecord(created.id);
+            const fetched = await tasks.getRecord({ recordId: created.id });
             expect(fetched.fields).toEqual(created.fields);
         });
     });

@@ -310,13 +310,13 @@ export function getAllTypesSeedData(linkedItemRecordIds: string[]) {
 async function populateSeedData(
     baseClient: TestBaseClient
 ): Promise<void> {
-    const linkedItemRecords = await baseClient.tables.linkedItems.createRecords(linkedItemsSeedData);
+    const linkedItemRecords = await baseClient.tables.linkedItems.createRecords({ records: linkedItemsSeedData });
     const linkedItemRecordIds = linkedItemRecords.records.map((r: any) => r.id);
 
     const tasksSeedData = getTasksSeedData();
-    await baseClient.tables.tasks.createRecords(tasksSeedData);
+    await baseClient.tables.tasks.createRecords({ records: tasksSeedData });
     const allTypesSeedData = getAllTypesSeedData(linkedItemRecordIds);
-    await baseClient.tables.allTypes.createRecords(allTypesSeedData);
+    await baseClient.tables.allTypes.createRecords({ records: allTypesSeedData });
 }
 
 /**
@@ -325,7 +325,7 @@ async function populateSeedData(
  */
 type ClearableTableClient = {
     listRecords(): PromiseLike<Array<{ id: RecordId }>>;
-    deleteRecords(recordIds: ReadonlyArray<RecordId>): Promise<unknown>;
+    deleteRecords(params: { recordIds: ReadonlyArray<RecordId> }): Promise<unknown>;
 };
 
 /**
@@ -342,7 +342,7 @@ export async function deleteAllRecords(tableClient: ClearableTableClient, maxAtt
             return;
         }
         try {
-            await tableClient.deleteRecords(records.map((r) => r.id));
+            await tableClient.deleteRecords({ recordIds: records.map((r) => r.id) });
             return;
         } catch (error) {
             if (!(error instanceof AirtableKitApiError && error.status === 404) || attempt >= maxAttempts) {

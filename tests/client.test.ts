@@ -100,7 +100,7 @@ describe("createAirtable with an existing client", () => {
     it("lets typed clients share one Airtable client", () => {
         const airtable = createAirtable({ apiKey: "patABC" });
         const schema = { id: "app1", name: "base", tables: [] } as const;
-        expect(createBaseClient(schema, { airtable }).airtable).toBe(airtable);
+        expect(createBaseClient({ schema, airtable }).airtable).toBe(airtable);
     });
 });
 

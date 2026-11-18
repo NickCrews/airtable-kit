@@ -15,7 +15,7 @@ const CREATED_TIME = "2024-01-01T00:00:00.000Z";
 
 function mockTable() {
     const fetch = createMockFetch();
-    const client = createTableClient("appTest", tableSchema, { airtable: { apiKey: "patX", fetch } });
+    const client = createTableClient({ baseId: "appTest", schema: tableSchema, airtable: { apiKey: "patX", fetch } });
     return { fetch, client };
 }
 
@@ -25,7 +25,7 @@ describe("createBaseClient", () => {
     it("exposes the schema and passes options to every table", () => {
         const airtable = createAirtable({ apiKey: "patX", fetch: createMockFetch() });
         const schema = { id: "appTest", name: "Base", tables: [tableSchema] } as const;
-        const base = createBaseClient(schema, { airtable });
+        const base = createBaseClient({ schema, airtable });
         expect(base.schema).toBe(schema);
         expect(base.tables.Test.schema).toBe(tableSchema);
         expect(base.tables.Test.baseId).toBe("appTest");
@@ -37,8 +37,8 @@ describe("TableClient.createRecords", () => {
     it("sends typecast", async () => {
         const { fetch, client } = mockTable();
         fetch.setReturnValue({ records: [record("rec1", { [NUMBER.id]: 1 })] });
-        await client.createRecords([{ [NUMBER.name]: 1 }], { typecast: true });
-        await client.createRecord({ [NUMBER.name]: 1 }, { typecast: true });
+        await client.createRecords({ records: [{ [NUMBER.name]: 1 }], typecast: true });
+        await client.createRecord({ record: { [NUMBER.name]: 1 }, typecast: true });
         for (const call of fetch.getCallHistory()) {
             expect(call.data).toMatchObject({ typecast: true });
         }
@@ -50,8 +50,10 @@ describe("TableClient.updateRecords", () => {
         const { fetch, client } = mockTable();
         fetch.setReturnValue({ records: [record("rec1")], createdRecords: ["rec1"] });
         await client.updateRecords(
-            [{ fields: { [SINGLE_LINE_TEXT.name]: "a" } }],
-            { performUpsert: { fieldsToMergeOn: [SINGLE_LINE_TEXT.name, NUMBER.id] } },
+            {
+            records: [{ fields: { [SINGLE_LINE_TEXT.name]: "a" } }],
+            performUpsert: { fieldsToMergeOn: [SINGLE_LINE_TEXT.name, NUMBER.id] },
+        }
         );
         expect(fetch.getCallHistory()[0].data).toMatchObject({
             performUpsert: { fieldsToMergeOn: [SINGLE_LINE_TEXT.id, NUMBER.id] },
@@ -61,7 +63,7 @@ describe("TableClient.updateRecords", () => {
     it("updateRecord returns the record without an operation", async () => {
         const { fetch, client } = mockTable();
         fetch.setReturnValue({ records: [record("rec1", { [NUMBER.id]: 2 })] });
-        const result = await client.updateRecord({ id: "rec1", fields: { [NUMBER.name]: 2 } }, { typecast: true });
+        const result = await client.updateRecord({ record: { id: "rec1", fields: { [NUMBER.name]: 2 } }, typecast: true });
         expect(result.record.id).toBe("rec1");
         expect(result.record.fields[NUMBER.name]).toBe(2);
         expect(result.record).not.toHaveProperty("operation");
@@ -76,13 +78,13 @@ describe("TableClient.deleteRecords", () => {
     it("returns the deleted IDs", async () => {
         const { fetch, client } = mockTable();
         fetch.setReturnValue({ records: [{ id: "rec1", deleted: true }, { id: "rec2", deleted: true }] });
-        expect(await client.deleteRecords(["rec1", "rec2"])).toEqual(["rec1", "rec2"]);
+        expect(await client.deleteRecords({ recordIds: ["rec1", "rec2"] })).toEqual(["rec1", "rec2"]);
     });
 
     it("deleteRecord returns the deleted ID", async () => {
         const { fetch, client } = mockTable();
         fetch.setReturnValue({ records: [{ id: "rec1", deleted: true }] });
-        expect(await client.deleteRecord("rec1")).toBe("rec1");
+        expect(await client.deleteRecord({ recordId: "rec1" })).toBe("rec1");
         expect(fetch.getCallHistory()[0].url).toContain("records%5B%5D=rec1");
     });
 });
@@ -101,7 +103,7 @@ describe("TableClient.listRecords", () => {
                 return new Response(JSON.stringify(pages[(urls.length - 1) % pages.length]));
             },
         });
-        const client = createTableClient("appTest", tableSchema, { airtable });
+        const client = createTableClient({ baseId: "appTest", schema: tableSchema, airtable });
         return { client, urls };
     }
     const expected = [record("rec1", { [NUMBER.name]: 1 }), record("rec2", { [NUMBER.name]: 2 })];
@@ -177,7 +179,11 @@ describe("TableClient.uploadAttachment", () => {
     it("accepts a File, taking its name and type", async () => {
         const { fetch, client } = mockTable();
         fetch.setReturnValue(uploadResponse);
-        await client.uploadAttachment("rec1", MULTIPLE_ATTACHMENTS.name, new File(["hello"], "a.txt", { type: "text/plain" }));
+        await client.uploadAttachment({
+            recordId: "rec1",
+            field: MULTIPLE_ATTACHMENTS.name,
+            file: new File(["hello"], "a.txt", { type: "text/plain" }),
+        });
         const call = fetch.getCallHistory()[0];
         expect(call.url).toBe(`https://content.airtable.com/v0/appTest/rec1/${MULTIPLE_ATTACHMENTS.id}/uploadAttachment`);
         expect(call.data).toEqual({ contentType: "text/plain", filename: "a.txt", file: base64 });
@@ -186,7 +192,12 @@ describe("TableClient.uploadAttachment", () => {
     it("accepts a Blob with a filename", async () => {
         const { fetch, client } = mockTable();
         fetch.setReturnValue(uploadResponse);
-        await client.uploadAttachment("rec1", field, new Blob(["hello"], { type: "text/plain" }), { filename: "b.txt" });
+        await client.uploadAttachment({
+            recordId: "rec1",
+            field,
+            file: new Blob(["hello"], { type: "text/plain" }),
+            filename: "b.txt",
+        });
         expect(fetch.getCallHistory()[0].data).toEqual({ contentType: "text/plain", filename: "b.txt", file: base64 });
     });
 
@@ -195,7 +206,7 @@ describe("TableClient.uploadAttachment", () => {
         fetch.setReturnValue(uploadResponse);
         const bytes = new TextEncoder().encode("hello");
         for (const file of [bytes, bytes.buffer, base64]) {
-            await client.uploadAttachment("rec1", field, file, { filename: "c.txt", contentType: "text/plain" });
+            await client.uploadAttachment({ recordId: "rec1", field, file, filename: "c.txt", contentType: "text/plain" });
         }
         for (const call of fetch.getCallHistory()) {
             expect(call.data).toEqual({ contentType: "text/plain", filename: "c.txt", file: base64 });
@@ -208,8 +219,14 @@ describe("TableClient.uploadAttachment", () => {
         const bytes = new TextEncoder().encode("hello");
         const blobLike = { name: "e.txt", type: "text/plain", arrayBuffer: async () => bytes.buffer };
         await withoutGlobals(["Blob", "File"], async () => {
-            await client.uploadAttachment("rec1", field, bytes, { filename: "c.txt", contentType: "text/plain" });
-            await client.uploadAttachment("rec1", field, blobLike as unknown as Blob);
+            await client.uploadAttachment({
+                recordId: "rec1",
+                field,
+                file: bytes,
+                filename: "c.txt",
+                contentType: "text/plain",
+            });
+            await client.uploadAttachment({ recordId: "rec1", field, file: blobLike as unknown as Blob });
         });
         expect(fetch.getCallHistory().map((c) => c.data)).toEqual([
             { contentType: "text/plain", filename: "c.txt", file: base64 },
@@ -219,9 +236,9 @@ describe("TableClient.uploadAttachment", () => {
 
     it("throws without a filename or content type", async () => {
         const { client } = mockTable();
-        await expect(client.uploadAttachment("rec1", field, new Blob(["hello"], { type: "text/plain" })))
+        await expect(client.uploadAttachment({ recordId: "rec1", field, file: new Blob(["hello"], { type: "text/plain" }) }))
             .rejects.toThrow("filename");
-        await expect(client.uploadAttachment("rec1", field, new Blob(["hello"]), { filename: "d.txt" }))
+        await expect(client.uploadAttachment({ recordId: "rec1", field, file: new Blob(["hello"]), filename: "d.txt" }))
             .rejects.toThrow("contentType");
     });
 });
@@ -251,5 +268,32 @@ describe("MCP tools", () => {
         const { fetch, client } = mockTable();
         fetch.setReturnValue({ records: [{ id: "rec00000000000001", deleted: true }] });
         expect(await makeDeleteTool(client).execute({ recordIds: ["rec00000000000001"] })).toEqual(["rec00000000000001"]);
+    });
+});
+
+describe("Schema methods", () => {
+    it("send named parameters to the schema API", async () => {
+        const fetch = createMockFetch();
+        fetch.setReturnValue({});
+        const airtable = createAirtable({ apiKey: "patX", fetch });
+        const base = createBaseClient({ schema: { id: "appTest", name: "Base", tables: [tableSchema] } as const, airtable });
+        const table = base.tables.Test;
+        await table.createField({ field: { name: "notes", type: "multilineText" } });
+        await table.updateField({ field: { id: NUMBER.id, description: "count" } });
+        await table.updateTable({ name: "Renamed" });
+        await base.createTable({ table: { name: "New", fields: [{ name: "title", type: "singleLineText" }] } });
+        await base.updateTable({ table: { id: "tblTest", description: "about" } });
+        expect(fetch.getCallHistory().map(({ method, url, data }) => [method, url.replace("https://api.airtable.com/v0", ""), data])).toEqual([
+            ["POST", "/meta/bases/appTest/tables/tblTest/fields", { name: "notes", type: "multilineText" }],
+            ["PATCH", `/meta/bases/appTest/tables/tblTest/fields/${NUMBER.id}`, { description: "count" }],
+            ["PATCH", "/meta/bases/appTest/tables/tblTest", { name: "Renamed" }],
+            ["POST", "/meta/bases/appTest/tables", { name: "New", fields: [{ name: "title", type: "singleLineText" }] }],
+            ["PATCH", "/meta/bases/appTest/tables/tblTest", { description: "about" }],
+        ]);
+    });
+
+    it("formulaToString takes the formula by name", () => {
+        const { client } = mockTable();
+        expect(client.formulaToString({ formula: [">", { field: NUMBER.name }, 3] })).toBe(`{${NUMBER.id}} > 3`);
     });
 });

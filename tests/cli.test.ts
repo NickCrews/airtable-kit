@@ -10,7 +10,7 @@ import { getTestEnv, getTestAirtable, prepTestBaseClient } from '../src/tests/te
 import { createBaseClient } from "airtable-kit/typed";
 import realSchema from '../src/tests/test-base-schema.generated.ts';
 
-const baseClient = createBaseClient(realSchema, { airtable: getTestAirtable() });
+const baseClient = createBaseClient({ schema: realSchema, airtable: getTestAirtable() });
 const { resetBaseData } = prepTestBaseClient(baseClient);
 
 const {

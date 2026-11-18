@@ -2,7 +2,7 @@
  * MCP tools for Airtable operations - per-table typed tools
  */
 
-import { type TableClient, type ListRecordsOptions, type RecordMetadata, type TypedRecord, type UpdateRecordsOptions, type UpdateRecordsResponse } from '../typed/table-client.ts';
+import { type TableClient, type ListRecordsParams, type RecordMetadata, type TypedRecord, type UpdateRecordsParams, type UpdateRecordsResponse } from '../typed/table-client.ts';
 import { type ValuesFromRead, type ValuesForWrite } from '../records/converters.ts';
 import * as z4 from 'zod/v4';
 import { makeRecordWriteValidator } from '../validators/schema-to-zod.ts';
@@ -41,7 +41,7 @@ export function makeCreateTool<
   const zodInputValidator = z4.object({ records: z4.array(recordSchema) });
   async function execute(input: CreateInput<T>) {
     const validated = zodInputValidator.parse(input);
-    const created = await client.createRecords(validated.records as ValuesForWrite<T["fields"][number]>[]);
+    const created = await client.createRecords({ records: validated.records as ValuesForWrite<T["fields"][number]>[] });
     return {
       records: created.records.map((r) => ({
         ...r,
@@ -75,7 +75,7 @@ type UpdateInput<T extends TableSchema> = {
     id?: string;
     fields: Partial<ValuesForWrite<T["fields"][number]>>;
   }>;
-  options?: UpdateRecordsOptions<T["fields"][number]>;
+  options?: Omit<UpdateRecordsParams<T["fields"][number]>, "records">;
 };
 export function makeUpdateTool<
   T extends TableSchema,
@@ -97,7 +97,7 @@ export function makeUpdateTool<
   });
   async function execute(input: UpdateInput<T>) {
     const validated = zodInputValidator.parse(input);
-    const result = await client.updateRecords(validated.records as any, validated.options);
+    const result = await client.updateRecords({ records: validated.records as any, ...validated.options });
     return result;
   }
   return {
@@ -127,7 +127,7 @@ export function makeGetTool<
 >(client: TableClient<T>): MCPToolDefinition<GetInput, GetToolResult<T>> {
   async function execute(input: GetInput) {
     const validated = GetInput.parse(input);
-    const raw = await client.getRecord(validated.recordId, validated.options);
+    const raw = await client.getRecord({ recordId: validated.recordId, ...validated.options });
     return {
       ...raw,
       url: `https://airtable.com/${client.baseId}/${client.schema.id}/${raw.id}`,
@@ -143,7 +143,7 @@ export function makeGetTool<
 }
 
 type ListInput<T extends TableSchema> = {
-  options?: ListRecordsOptions<T["fields"][number], T["fields"][number]["name"] | T["fields"][number]["id"], RecordMetadata>;
+  options?: ListRecordsParams<T["fields"][number], T["fields"][number]["name"] | T["fields"][number]["id"], RecordMetadata>;
 };
 type ListToolResult<T extends TableSchema> = Array<TypedRecord<T["fields"][number]> & {
   /** Present when `recordMetadata` includes "commentCount" */
@@ -199,7 +199,7 @@ export function makeDeleteTool<
 >(client: TableClient<T>): MCPToolDefinition<DeleteInput, DeleteToolResult> {
   async function execute(input: DeleteInput) {
     const validated = DeleteInput.parse(input);
-    return client.deleteRecords(validated.recordIds);
+    return client.deleteRecords({ recordIds: validated.recordIds });
   }
   return {
     name: `delete-records-from-${toIdentifier(client.schema.name)}-table`,
