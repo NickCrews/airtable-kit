@@ -9,16 +9,20 @@ on:
       - main
   workflow_dispatch:
 
-# Every run resets records in the same shared Airtable test base,
-# so runs from different branches/PRs must not overlap.
+# A new push to a PR cancels that PR's earlier runs.
 concurrency:
-  group: airtable-test-base
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   lint:
     name: Lint Code
     runs-on: ubuntu-latest
+    # Jobs that use the shared Airtable test base run one at a time.
+    # `queue: max` keeps every waiting job in line instead of cancelling it.
+    concurrency:
+      group: airtable-test-base
+      queue: max
 
     steps:
       - name: Checkout code
@@ -54,13 +58,16 @@ jobs:
   test:
     name: Test (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    # Jobs that use the shared Airtable test base run one at a time.
+    # `queue: max` keeps every waiting job in line instead of cancelling it.
+    concurrency:
+      group: airtable-test-base
+      queue: max
 
     strategy:
       matrix:
         node-version: [22, 24]
       fail-fast: false
-      # The matrix jobs share one Airtable test base, so run them one at a time.
-      max-parallel: 1
 
     steps:
       - name: Checkout code
