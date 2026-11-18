@@ -94,6 +94,68 @@ describe("TableClient methods that take an array also take a params object", () 
     });
 });
 
+describe("field and table methods take a schema or a params object", () => {
+    /** Run `call` once with a bare argument and once with params, and return both requests and the second signal. */
+    async function both(call: (t: ReturnType<typeof setup>, signal?: AbortSignal) => Promise<unknown>) {
+        const bare = setup();
+        await call(bare);
+        const params = setup();
+        await call(params, params.signal);
+        return { bare: bare.calls, params: params.calls, signal: params.signal };
+    }
+    const request = (c: Call) => [c.method, new URL(c.url).pathname, c.body];
+
+    it("TableClient.createField", async () => {
+        const field = { name: "notes", type: "multilineText" } as const;
+        const r = await both((t, signal) => signal ? t.table.createField({ field, signal }) : t.table.createField(field));
+        expect(r.params.map(request)).toEqual(r.bare.map(request));
+        expect(r.bare.map(request)).toEqual([["POST", "/v0/meta/bases/app1/tables/tbl1/fields", field]]);
+        expect(r.params[0].signal).toBe(r.signal);
+    });
+
+    it("TableClient.updateField", async () => {
+        const field = { id: NUMBER.id, name: "renamed" };
+        const r = await both((t, signal) => signal ? t.table.updateField({ field, signal }) : t.table.updateField(field));
+        expect(r.params.map(request)).toEqual(r.bare.map(request));
+        expect(r.bare.map(request)).toEqual([["PATCH", `/v0/meta/bases/app1/tables/tbl1/fields/${NUMBER.id}`, { name: "renamed" }]]);
+        expect(r.params[0].signal).toBe(r.signal);
+    });
+
+    it("TableClient.updateTable", async () => {
+        const table = { description: "d" };
+        const r = await both((t, signal) => signal ? t.table.updateTable({ table, signal }) : t.table.updateTable(table));
+        expect(r.params.map(request)).toEqual(r.bare.map(request));
+        expect(r.bare.map(request)).toEqual([["PATCH", "/v0/meta/bases/app1/tables/tbl1", { description: "d" }]]);
+        expect(r.params[0].signal).toBe(r.signal);
+    });
+
+    it("BaseClient.createTable and updateTable", async () => {
+        const run = async (withSignal: boolean) => {
+            const { fetch, calls } = fakeAirtable();
+            const base = createBaseClient({ id: "app1", name: "Base", tables: [tableSchema] }, { apiKey: "key", fetch });
+            const { signal } = new AbortController();
+            const created = { name: "t", fields: [{ name: "n", type: "singleLineText" as const }] };
+            const updated = { id: "tbl1" as const, name: "renamed" };
+            if (withSignal) {
+                await base.createTable({ table: created, signal });
+                await base.updateTable({ table: updated, signal });
+            } else {
+                await base.createTable(created);
+                await base.updateTable(updated);
+            }
+            return { calls, signal };
+        };
+        const bare = await run(false);
+        const params = await run(true);
+        expect(params.calls.map(request)).toEqual(bare.calls.map(request));
+        expect(bare.calls.map(request)).toEqual([
+            ["POST", "/v0/meta/bases/app1/tables", { name: "t", fields: [{ name: "n", type: "singleLineText" }] }],
+            ["PATCH", "/v0/meta/bases/app1/tables/tbl1", { name: "renamed" }],
+        ]);
+        expect(params.calls.every((c) => c.signal === params.signal)).toBe(true);
+    });
+});
+
 describe("TableClient.getRecord takes a record ID or a params object", () => {
     it("with a record ID", async () => {
         const { table, calls } = setup();
@@ -139,31 +201,5 @@ describe("other typed client methods take a params object with a signal", () => 
         expect(new URL(calls[0].url).pathname).toBe(`/v0/app1/rec1/${MULTIPLE_ATTACHMENTS.id}/uploadAttachment`);
         expect(calls[0].body).toEqual({ contentType: "text/plain", file: "aGk=", filename: "hi.txt" });
         expect(calls[0].signal).toBe(signal);
-    });
-
-    it("TableClient.createField, updateField, and updateTable", async () => {
-        const { table, calls, signal } = setup();
-        await table.createField({ field: { name: "notes", type: "multilineText" }, signal });
-        await table.updateField({ field: { id: NUMBER.id, name: "renamed" }, signal });
-        await table.updateTable({ table: { description: "d" }, signal });
-        expect(calls.map((c) => [c.method, new URL(c.url).pathname, c.body])).toEqual([
-            ["POST", "/v0/meta/bases/app1/tables/tbl1/fields", { name: "notes", type: "multilineText" }],
-            ["PATCH", `/v0/meta/bases/app1/tables/tbl1/fields/${NUMBER.id}`, { name: "renamed" }],
-            ["PATCH", "/v0/meta/bases/app1/tables/tbl1", { description: "d" }],
-        ]);
-        expect(calls.every((c) => c.signal === signal)).toBe(true);
-    });
-
-    it("BaseClient.createTable and updateTable", async () => {
-        const { fetch, calls } = fakeAirtable();
-        const base = createBaseClient({ id: "app1", name: "Base", tables: [tableSchema] }, { apiKey: "key", fetch });
-        const { signal } = new AbortController();
-        await base.createTable({ table: { name: "t", fields: [{ name: "n", type: "singleLineText" }] }, signal });
-        await base.updateTable({ table: { id: "tbl1", name: "renamed" }, signal });
-        expect(calls.map((c) => [c.method, new URL(c.url).pathname])).toEqual([
-            ["POST", "/v0/meta/bases/app1/tables"],
-            ["PATCH", "/v0/meta/bases/app1/tables/tbl1"],
-        ]);
-        expect(calls.every((c) => c.signal === signal)).toBe(true);
     });
 });

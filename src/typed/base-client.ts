@@ -22,17 +22,19 @@ export interface BaseClient<T extends BaseSchema = BaseSchema> {
     /** The {@link Airtable} client used to make requests */
     airtable: Airtable;
 
-    /** Create a table in the base
+    /** Create a table in the base, given its schema or `{ table, signal }`
      *
      * @returns The created table's schema
      */
-    createTable(params: { table: TableSchemaCreate } & RequestOptions): Promise<TableSchema>;
+    createTable(params: TableSchemaCreate | ({ table: TableSchemaCreate } & RequestOptions)): Promise<TableSchema>;
 
-    /** Update a table's name, description, or date dependency settings
+    /** Update a table's name, description, or date dependency settings, given the changes or `{ table, signal }`
      *
      * @returns The updated table's schema
      */
-    updateTable(params: { table: UpdateTableSchema<TableIdInBase<T>> } & RequestOptions): Promise<TableSchema>;
+    updateTable(
+        params: UpdateTableSchema<TableIdInBase<T>> | ({ table: UpdateTableSchema<TableIdInBase<T>> } & RequestOptions),
+    ): Promise<TableSchema>;
 }
 
 /**
@@ -68,10 +70,12 @@ export function createBaseClient<T extends BaseSchema>(
         baseSchema,
         tables,
         airtable: client,
-        createTable({ table, signal }) {
+        createTable(params) {
+            const { table, signal } = "table" in params ? params : { table: params, signal: undefined };
             return client.tables.create({ baseId: baseSchema.id, table, signal });
         },
-        updateTable({ table, signal }) {
+        updateTable(params) {
+            const { table, signal } = "table" in params ? params : { table: params, signal: undefined };
             return client.tables.update({ baseId: baseSchema.id, table, signal });
         },
     };

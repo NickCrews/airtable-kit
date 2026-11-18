@@ -213,6 +213,12 @@ export interface UploadAttachmentParams<K extends string = string> extends Uploa
     field: K;
 }
 
+/** The changes to a field for {@link TableClient.updateField}. */
+type FieldUpdate<F extends FieldId = FieldId> = { id: F; name?: string; description?: string };
+
+/** The changes to a table for {@link TableClient.updateTable}. */
+type TableUpdate = { name?: string; description?: string };
+
 /**
  * A typed client for one table, which converts field values using the table's schema.
  *
@@ -228,23 +234,23 @@ export interface TableClient<T extends TableClientSchema = TableSchema> {
     /** The {@link Airtable} client used to make requests */
     airtable: Airtable;
 
-    /** Create a field in the table
+    /** Create a field in the table, given its schema or `{ field, signal }`
      *
      * @returns A promise that resolves to the created field schema
      */
-    createField(params: { field: FieldSchemaCreate } & RequestOptions): Promise<FieldSchemaRead>;
-    /** Update a field's name and/or description
+    createField(params: FieldSchemaCreate | ({ field: FieldSchemaCreate } & RequestOptions)): Promise<FieldSchemaRead>;
+    /** Update a field's name and/or description, given `{ id, name, description }` or `{ field, signal }`
      *
      * @returns A promise that resolves to the updated field schema
      */
     updateField<F extends FieldIdInTable<T>>(
-        params: { field: { id: F; name?: string; description?: string } } & RequestOptions,
+        params: FieldUpdate<F> | ({ field: FieldUpdate<F> } & RequestOptions),
     ): Promise<FieldSchemaRead>;
 
     /**
-     * Update the name and/or description of the table.
+     * Update the name and/or description of the table, given `{ name, description }` or `{ table, signal }`.
      */
-    updateTable(params: { table: { name?: string; description?: string } } & RequestOptions): Promise<TableSchema>;
+    updateTable(params: TableUpdate | ({ table: TableUpdate } & RequestOptions)): Promise<TableSchema>;
 
     /** Create a record in the table
      *
@@ -428,13 +434,16 @@ export function createTableClient<T extends TableClientSchema>(
         tableSchema,
         fields: fieldsByName,
         airtable: client,
-        createField({ field, signal }) {
+        createField(params) {
+            const { field, signal } = "field" in params ? params : { field: params, signal: undefined };
             return client.fields.create({ baseId, tableId, field, signal });
         },
-        updateField({ field, signal }: { field: { id: FieldId; name?: string; description?: string } } & RequestOptions) {
+        updateField(params: FieldUpdate | ({ field: FieldUpdate } & RequestOptions)) {
+            const { field, signal } = "field" in params ? params : { field: params, signal: undefined };
             return client.fields.update({ baseId, tableId, field, signal });
         },
-        updateTable({ table, signal }) {
+        updateTable(params) {
+            const { table, signal } = "table" in params ? params : { table: params, signal: undefined };
             return client.tables.update({ baseId, table: { id: tableId, ...table }, signal });
         },
         createRecords,
