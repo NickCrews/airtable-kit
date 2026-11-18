@@ -205,6 +205,37 @@ describe("TableClient.uploadAttachment", () => {
         }
     });
 
+    it("base64 encodes bytes of every length like Buffer does", async () => {
+        const { fetch, client } = mockTable();
+        fetch.setReturnValue(uploadResponse);
+        const samples = [0, 1, 2, 3, 4, 5, 6, 255, 1000].map((n) => Uint8Array.from({ length: n }, (_, i) => (i * 37 + n) % 256));
+        for (const bytes of samples) {
+            await client.uploadAttachment({ recordId: "rec1", field: MULTIPLE_ATTACHMENTS.id, file: bytes, filename: "f", contentType: "x/y" });
+        }
+        expect(fetch.getCallHistory().map((c) => (c.data as { file: string }).file))
+            .toEqual(samples.map((b) => Buffer.from(b).toString("base64")));
+    });
+
+    it("works in runtimes without the Blob, File, and btoa globals", async () => {
+        const { fetch, client } = mockTable();
+        fetch.setReturnValue(uploadResponse);
+        const bytes = new TextEncoder().encode("hello");
+        const blobLike = { name: "e.txt", type: "text/plain", arrayBuffer: async () => bytes.buffer };
+        const removed = ["Blob", "File", "btoa"] as const;
+        const saved = removed.map((name) => Object.getOwnPropertyDescriptor(globalThis, name)!);
+        removed.forEach((name) => delete (globalThis as Record<string, unknown>)[name]);
+        try {
+            await client.uploadAttachment({ recordId: "rec1", field: MULTIPLE_ATTACHMENTS.id, file: bytes, filename: "c.txt", contentType: "text/plain" });
+            await client.uploadAttachment({ recordId: "rec1", field: MULTIPLE_ATTACHMENTS.id, file: blobLike as unknown as Blob });
+        } finally {
+            removed.forEach((name, i) => Object.defineProperty(globalThis, name, saved[i]));
+        }
+        expect(fetch.getCallHistory().map((c) => c.data)).toEqual([
+            { contentType: "text/plain", filename: "c.txt", file: base64 },
+            { contentType: "text/plain", filename: "e.txt", file: base64 },
+        ]);
+    });
+
     it("throws without a filename or content type", async () => {
         const { client } = mockTable();
         await expect(client.uploadAttachment({

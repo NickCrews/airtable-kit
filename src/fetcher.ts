@@ -53,13 +53,20 @@ const IDEMPOTENT_METHODS = new Set(["GET", "PUT", "PATCH", "DELETE"]);
  * - Anything else (eg 401, 422): not retried.
  */
 export function defaultShouldRetry(outcome: Response | unknown, _attempt: number, method: string): boolean {
-    if (outcome instanceof Response) {
+    if (isResponse(outcome)) {
         if (outcome.status === 429) {
             return true;
         }
         return outcome.status >= 500 && IDEMPOTENT_METHODS.has(method);
     }
     return outcome instanceof TypeError && IDEMPOTENT_METHODS.has(method);
+}
+
+/** Whether `outcome` is a response, checked by shape, so it works without a global `Response`. */
+function isResponse(outcome: unknown): outcome is Response {
+    return typeof outcome === "object" && outcome !== null
+        && typeof (outcome as Response).status === "number"
+        && typeof (outcome as Response).headers?.get === "function";
 }
 
 /**
@@ -103,7 +110,7 @@ export function withRetry(fetcher: Fetcher, options: RetryOptions = {}): Fetcher
         sleep = defaultSleep,
     } = options;
     const delayFor = (outcome: Response | unknown, attempt: number): number => {
-        if (outcome instanceof Response) {
+        if (isResponse(outcome)) {
             const retryAfter = parseRetryAfter(outcome.headers.get("retry-after"));
             if (retryAfter !== undefined) {
                 return retryAfter;

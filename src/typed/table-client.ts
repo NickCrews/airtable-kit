@@ -525,8 +525,9 @@ export function createTableClient<T extends TableClientSchema>(
         },
         async uploadAttachment(params) {
             const { recordId, field, file } = params;
-            const filename = params.filename ?? (isNamedBlob(file) ? file.name : undefined);
-            const contentType = params.contentType || (file instanceof Blob ? file.type : undefined);
+            const blob = isBlobLike(file) ? file : undefined;
+            const filename = params.filename ?? (typeof blob?.name === "string" ? blob.name : undefined);
+            const contentType = params.contentType || blob?.type;
             if (!filename) {
                 throw new Error("uploadAttachment: `filename` is required unless `file` is a File.");
             }
@@ -548,8 +549,11 @@ export function createTableClient<T extends TableClientSchema>(
     };
 }
 
-function isNamedBlob(file: unknown): file is Blob & { name: string } {
-    return file instanceof Blob && typeof (file as { name?: unknown }).name === "string";
+/** The parts of a `Blob` or `File` that uploadAttachment reads. Checked by shape, so it works without a global `Blob`. */
+type BlobLike = { arrayBuffer(): Promise<ArrayBuffer>; type?: string; name?: unknown };
+
+function isBlobLike(file: unknown): file is BlobLike {
+    return typeof file === "object" && file !== null && typeof (file as BlobLike).arrayBuffer === "function";
 }
 
 /** Encode file data as base64. A string is assumed to already be base64 encoded. */
@@ -558,17 +562,29 @@ async function toBase64(file: Blob | ArrayBuffer | ArrayBufferView | string): Pr
         return file;
     }
     let bytes: Uint8Array;
-    if (file instanceof Blob) {
+    if (isBlobLike(file)) {
         bytes = new Uint8Array(await file.arrayBuffer());
     } else if (ArrayBuffer.isView(file)) {
         bytes = new Uint8Array(file.buffer, file.byteOffset, file.byteLength);
     } else {
-        bytes = new Uint8Array(file);
+        bytes = new Uint8Array(file as ArrayBuffer);
     }
-    let binary = "";
-    const CHUNK = 0x8000;
-    for (let i = 0; i < bytes.length; i += CHUNK) {
-        binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+    return bytesToBase64(bytes);
+}
+
+const BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+/** Base64 encode bytes, without relying on `btoa` or `Buffer`, which some runtimes lack. */
+function bytesToBase64(bytes: Uint8Array): string {
+    const parts: string[] = [];
+    for (let i = 0; i < bytes.length; i += 3) {
+        const n = (bytes[i] << 16) | ((bytes[i + 1] ?? 0) << 8) | (bytes[i + 2] ?? 0);
+        parts.push(
+            BASE64_ALPHABET[(n >> 18) & 63],
+            BASE64_ALPHABET[(n >> 12) & 63],
+            i + 1 < bytes.length ? BASE64_ALPHABET[(n >> 6) & 63] : "=",
+            i + 2 < bytes.length ? BASE64_ALPHABET[n & 63] : "=",
+        );
     }
-    return btoa(binary);
+    return parts.join("");
 }
