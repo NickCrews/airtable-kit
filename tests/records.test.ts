@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, expectTypeOf, it } from "vitest";
 import { createTableClient } from "airtable-kit/typed";
 import testBaseSchema from "../src/tests/test-base-schema.generated.ts";
-import { getTestAirtable } from "../src/tests/test-utils.ts";
+import { deleteAllRecords, getTestAirtable } from "../src/tests/test-utils.ts";
 
 const airtable = getTestAirtable();
 
@@ -11,13 +11,7 @@ describe("Records API", () => {
     const tasks = createTableClient(tasksTable, { baseId: testBaseSchema.id, airtable });
     const linkedItems = createTableClient(linkedItemsTable, { baseId: testBaseSchema.id, airtable });
 
-    beforeEach(async () => {
-        const allRecords = await tasks.listRecords();
-
-        if (allRecords.length > 0) {
-            await tasks.deleteRecords(allRecords.map((r) => r.id));
-        }
-    });
+    beforeEach(() => deleteAllRecords(tasks));
 
     describe("createRecords", () => {
         it("can create a single record", async () => {
