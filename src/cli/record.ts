@@ -162,10 +162,11 @@ export function createRecordCommand(resolveAirtable: () => Airtable): Command {
 
       const client = createTableClient(base.id, table, airtable);
 
-      const result = await client.updateRecords(
-        [{ id: recordId as any, fields: data.fields }],
-        { destructive: options.destructive, typecast: options.typecast }
-      );
+      const result = await client.updateRecords({
+        records: [{ id: recordId as any, fields: data.fields }],
+        destructive: options.destructive,
+        typecast: options.typecast,
+      });
 
       const updated = result.records[0];
       if (options.format === "json") {
@@ -234,7 +235,8 @@ export function createRecordCommand(resolveAirtable: () => Airtable): Command {
       const client = createTableClient(base.id, table, airtable);
 
       const fieldsToMergeOn = options.mergeOn.split(",").map((f: string) => f.trim());
-      const results = await client.updateRecords(records, {
+      const results = await client.updateRecords({
+        records,
         performUpsert: { fieldsToMergeOn: fieldsToMergeOn as any },
       });
 

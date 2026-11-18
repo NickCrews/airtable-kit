@@ -23,20 +23,16 @@ export interface BaseClient<T extends BaseSchema = BaseSchema> {
     airtable: Airtable;
 
     /** Create a table in the base
-     * 
-     * @param tableSchema The schema of the table to create
-     * @param requestOptions Per-call options, eg `{ signal }` to cancel the request
+     *
      * @returns The created table's schema
      */
-    createTable(tableSchema: TableSchemaCreate, requestOptions?: RequestOptions): Promise<TableSchema>;
+    createTable(params: { table: TableSchemaCreate } & RequestOptions): Promise<TableSchema>;
 
     /** Update a table's name, description, or date dependency settings
-     * 
-     * @param tableSchema The updated schema of the table
-     * @param requestOptions Per-call options, eg `{ signal }` to cancel the request
+     *
      * @returns The updated table's schema
      */
-    updateTable(tableSchema: UpdateTableSchema<TableIdInBase<T>>, requestOptions?: RequestOptions): Promise<TableSchema>;
+    updateTable(params: { table: UpdateTableSchema<TableIdInBase<T>> } & RequestOptions): Promise<TableSchema>;
 }
 
 /**
@@ -72,11 +68,11 @@ export function createBaseClient<T extends BaseSchema>(
         baseSchema,
         tables,
         airtable: client,
-        createTable(tableSchema, requestOptions) {
-            return client.tables.create({ baseId: baseSchema.id, table: tableSchema, signal: requestOptions?.signal });
+        createTable({ table, signal }) {
+            return client.tables.create({ baseId: baseSchema.id, table, signal });
         },
-        updateTable(tableSchema, requestOptions) {
-            return client.tables.update({ baseId: baseSchema.id, table: tableSchema, signal: requestOptions?.signal });
+        updateTable({ table, signal }) {
+            return client.tables.update({ baseId: baseSchema.id, table, signal });
         },
     };
 }

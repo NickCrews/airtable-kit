@@ -100,6 +100,18 @@ describe("API methods pass the signal to every request", () => {
         expect(calls.every((c) => c.init.signal === signal)).toBe(true);
     });
 
+    it("bases.get with a BaseSummary", async () => {
+        const { fetch, calls } = recordingFetch(() => ({ tables: [] }));
+        const { signal } = new AbortController();
+        const schema = await createAirtable({ apiKey: "key", fetch }).bases.get({
+            base: { id: "app1", name: "Base", permissionLevel: "create" },
+            signal,
+        });
+        expect(schema).toEqual({ id: "app1", name: "Base", tables: [] });
+        expect(calls).toHaveLength(1);
+        expect(calls[0].init.signal).toBe(signal);
+    });
+
     it("bases.get, on both requests", async () => {
         const { fetch, calls } = recordingFetch((url) =>
             url.includes("/meta/bases/")
@@ -107,18 +119,18 @@ describe("API methods pass the signal to every request", () => {
                 : { bases: [{ id: "app1", name: "Base", permissionLevel: "create" }] },
         );
         const { signal } = new AbortController();
-        await createAirtable({ apiKey: "key", fetch }).bases.get("app1", { signal });
+        await createAirtable({ apiKey: "key", fetch }).bases.get({ base: "app1", signal });
         expect(calls).toHaveLength(2);
         expect(calls.every((c) => c.init.signal === signal)).toBe(true);
     });
 });
 
-describe("typed clients pass the signal from requestOptions", () => {
+describe("typed clients pass the signal", () => {
     it("TableClient.listRecords", async () => {
         const { fetch, calls } = recordingFetch();
         const client = createTableClient("app1", tableSchema, { apiKey: "key", fetch });
         const { signal } = new AbortController();
-        await client.listRecords(undefined, { signal });
+        await client.listRecords({ signal });
         expect(calls).toHaveLength(1);
         expect(calls[0].init.signal).toBe(signal);
     });

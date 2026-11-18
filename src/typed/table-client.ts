@@ -104,10 +104,41 @@ export interface ListRecordsPageResponse<F extends ConvertibleFieldSchema, M ext
     offset?: string;
 }
 
+/** Params for {@link TableClient.listRecords}. */
+export type ListRecordsParams<
+    F extends ConvertibleFieldSchema,
+    K extends FieldNameOrId<F> = FieldNameOrId<F>,
+    M extends RecordMetadata = never,
+> = ListRecordsOptions<F, K, M> & RequestOptions;
+
+/** Params for {@link TableClient.listRecordsPage}. */
+export type ListRecordsPageParams<
+    F extends ConvertibleFieldSchema,
+    K extends FieldNameOrId<F> = FieldNameOrId<F>,
+    M extends RecordMetadata = never,
+> = ListRecordsPageOptions<F, K, M> & RequestOptions;
+
 /** Options for {@link TableClient.getRecord}. */
 export interface GetRecordOptions {
     /** Cell value format: "json" (default) or "string" */
     cellFormat?: 'json' | 'string';
+}
+
+/** Params for {@link TableClient.getRecord}. */
+export interface GetRecordParams extends GetRecordOptions, RequestOptions {
+    recordId: RecordId;
+}
+
+/** Params for {@link TableClient.createRecord}. */
+export interface CreateRecordParams<F extends ConvertibleFieldSchema> extends RequestOptions {
+    /** The record to create, keyed by field name or field ID */
+    record: ValuesForWrite<F>;
+}
+
+/** Params for {@link TableClient.createRecords}. */
+export interface CreateRecordsParams<F extends ConvertibleFieldSchema> extends RequestOptions {
+    /** The records to create, each keyed by field name or field ID */
+    records: ReadonlyArray<ValuesForWrite<F>>;
 }
 
 /** Response from {@link TableClient.createRecords}. */
@@ -134,6 +165,23 @@ export interface UpdateRecordsOptions<F extends ConvertibleFieldSchema> {
     typecast?: boolean;
 }
 
+/** A record to write with {@link TableClient.updateRecords}. */
+export interface RecordUpdate<F extends ConvertibleFieldSchema> {
+    /** The record to update. With `performUpsert`, records without an `id` are matched on `fieldsToMergeOn`. */
+    id?: string;
+    fields: Partial<ValuesForWrite<F>>;
+}
+
+/** Params for {@link TableClient.updateRecords}. */
+export interface UpdateRecordsParams<F extends ConvertibleFieldSchema> extends UpdateRecordsOptions<F>, RequestOptions {
+    records: ReadonlyArray<RecordUpdate<F>>;
+}
+
+/** Params for {@link TableClient.deleteRecords}. */
+export interface DeleteRecordsParams extends RequestOptions {
+    recordIds: ReadonlyArray<RecordId>;
+}
+
 /** Response from {@link TableClient.updateRecords}. */
 export interface UpdateRecordsResponse<F extends ConvertibleFieldSchema> {
     /** The written records, in the same order as the input. */
@@ -158,6 +206,13 @@ export interface UploadAttachmentOptions {
     filename: string;
 }
 
+/** Params for {@link TableClient.uploadAttachment}. */
+export interface UploadAttachmentParams<K extends string = string> extends UploadAttachmentOptions, RequestOptions {
+    recordId: RecordId;
+    /** The attachment field's name or ID */
+    field: K;
+}
+
 /**
  * A typed client for one table, which converts field values using the table's schema.
  *
@@ -174,65 +229,59 @@ export interface TableClient<T extends TableClientSchema = TableSchema> {
     airtable: Airtable;
 
     /** Create a field in the table
-     * 
-     * @param field - A field schema to create
+     *
      * @returns A promise that resolves to the created field schema
      */
-    createField(field: FieldSchemaCreate, requestOptions?: RequestOptions): Promise<FieldSchemaRead>;
-    /** Update a field in the table
-     * 
-     * @param field - A field schema to update
+    createField(params: { field: FieldSchemaCreate } & RequestOptions): Promise<FieldSchemaRead>;
+    /** Update a field's name and/or description
+     *
      * @returns A promise that resolves to the updated field schema
      */
     updateField<F extends FieldIdInTable<T>>(
-        field: { id: F; name?: string; description?: string },
-        requestOptions?: RequestOptions,
+        params: { field: { id: F; name?: string; description?: string } } & RequestOptions,
     ): Promise<FieldSchemaRead>;
 
     /**
      * Update the name and/or description of the table.
      */
-    updateTable(params: { name?: string; description?: string }, requestOptions?: RequestOptions): Promise<TableSchema>;
+    updateTable(params: { table: { name?: string; description?: string } } & RequestOptions): Promise<TableSchema>;
 
     /** Create a record in the table
-     * 
-     * @param record - A record to create, keyed by either field name or field ID
+     *
      * @returns A promise that resolves to the created `record`, with its ID, createdTime, and field values,
      *   and the `warnings` Airtable reported, if any.
-     * 
+     *
      * Any values of `null` or `undefined` in the input record will not be passed
      * to Airtable, effectively leaving those fields blank on creation.
      */
-    createRecord(record: ValuesForWrite<FieldType<T>>, requestOptions?: RequestOptions): Promise<{
+    createRecord(params: CreateRecordParams<FieldType<T>>): Promise<{
         record: TypedRecord<FieldType<T>>;
         warnings: raw.WriteWarning[];
     }>;
 
     /** Create multiple records in the table, sending them in batches of up to 25.
-     * 
-     * @param records - An array of records to create, each keyed by either field name or field ID
+     *
+     * @param params - The records to create, or {@link CreateRecordsParams}
      * @returns A promise that resolves to the created records, in input order, and the `warnings` Airtable reported, if any.
-     * 
+     *
      * Any values of `null` or `undefined` in the input records will not be passed
      * to Airtable, effectively leaving those fields blank on creation.
      */
     createRecords(
-        records: ReadonlyArray<ValuesForWrite<FieldType<T>>>,
-        requestOptions?: RequestOptions,
+        params: ReadonlyArray<ValuesForWrite<FieldType<T>>> | CreateRecordsParams<FieldType<T>>,
     ): Promise<CreateRecordsResponse<FieldType<T>>>;
 
     /**
      * List records from the table with optional filtering. Pagination is handled automatically.
      *
-     * If `options.fields` is given, only those fields are returned, and the record type is narrowed to them.
-     * If `options.recordMetadata` is given, the record type includes the requested metadata, eg `commentCount`.
+     * If `fields` is given, only those fields are returned, and the record type is narrowed to them.
+     * If `recordMetadata` is given, the record type includes the requested metadata, eg `commentCount`.
      */
     listRecords<
         K extends FieldNameOrIdInTable<T> = FieldNameOrIdInTable<T>,
         M extends RecordMetadata = never,
     >(
-        options?: ListRecordsOptions<FieldType<T>, K, M>,
-        requestOptions?: RequestOptions,
+        params?: ListRecordsParams<FieldType<T>, K, M>,
     ): Promise<ListRecordsResponse<SelectedFields<FieldType<T>, K>, M>>;
 
     /** List a single page of records. Pass the returned `offset` to get the next page. */
@@ -240,38 +289,29 @@ export interface TableClient<T extends TableClientSchema = TableSchema> {
         K extends FieldNameOrIdInTable<T> = FieldNameOrIdInTable<T>,
         M extends RecordMetadata = never,
     >(
-        options?: ListRecordsPageOptions<FieldType<T>, K, M>,
-        requestOptions?: RequestOptions,
+        params?: ListRecordsPageParams<FieldType<T>, K, M>,
     ): Promise<ListRecordsPageResponse<SelectedFields<FieldType<T>, K>, M>>;
 
-    /** Get a single record by ID */
-    getRecord(recordId: RecordId, options?: GetRecordOptions, requestOptions?: RequestOptions): Promise<TypedRecord<FieldType<T>>>;
+    /** Get a single record, by its ID or with {@link GetRecordParams} */
+    getRecord(params: RecordId | GetRecordParams): Promise<TypedRecord<FieldType<T>>>;
 
     /**
      * Update records in the table, sending them in batches of up to 10.
-     * 
-     * @param records - An array of records to update, each with an optional ID and fields to update
-     * @param options - Optional settings for the update operation
-     * 
+     *
+     * @param params - The records to update, or {@link UpdateRecordsParams}
+     *
      * Any values of `undefined` in a record will be not be sent to Airtable, leaving those fields unchanged.
      * To explicitly clear a field, set its value to `null`.
      */
     updateRecords(
-        records: ReadonlyArray<{ id?: string; fields: Partial<ValuesForWrite<FieldType<T>>> }>,
-        options?: UpdateRecordsOptions<FieldType<T>>,
-        requestOptions?: RequestOptions,
+        params: ReadonlyArray<RecordUpdate<FieldType<T>>> | UpdateRecordsParams<FieldType<T>>,
     ): Promise<UpdateRecordsResponse<FieldType<T>>>;
 
-    /** Delete records by IDs */
-    deleteRecords(recordIds: ReadonlyArray<RecordId>, requestOptions?: RequestOptions): Promise<raw.DeleteRecordsResponse>;
+    /** Delete records, given their IDs or {@link DeleteRecordsParams} */
+    deleteRecords(params: ReadonlyArray<RecordId> | DeleteRecordsParams): Promise<raw.DeleteRecordsResponse>;
 
     /** Upload an attachment to a record */
-    uploadAttachment(
-        recordId: RecordId,
-        attachmentFieldIdOrName: FieldNameOrIdInTable<T>,
-        options: UploadAttachmentOptions,
-        requestOptions?: RequestOptions,
-    ): Promise<raw.UploadAttachmentResponse>;
+    uploadAttachment(params: UploadAttachmentParams<FieldNameOrIdInTable<T>>): Promise<raw.UploadAttachmentResponse>;
 
     /** Convert a {@link Formula} object for this table to a string */
     formulaToString(formula: Formula<FieldType<T>>): string;
@@ -363,11 +403,11 @@ export function createTableClient<T extends TableClientSchema>(
     const withoutUndefined = (values: object) =>
         Object.fromEntries(Object.entries(values).filter(([_, v]) => v !== undefined));
 
-    const createRecords: TableClient<T>["createRecords"] = async (records, requestOptions) => {
+    const createRecords: TableClient<T>["createRecords"] = async (params) => {
+        const { records, signal } = isArray(params) ? { records: params, signal: undefined } : params;
         const response = await client.records.create({
             baseId,
             tableId,
-            signal: requestOptions?.signal,
             records: records.map((record) => ({
                 fields: convertValuesForWrite(
                     Object.fromEntries(Object.entries(record).filter(([_, v]) => v !== undefined && v !== null)) as ValuesForWrite<F>,
@@ -375,6 +415,7 @@ export function createTableClient<T extends TableClientSchema>(
                 ),
             })),
             returnFieldsByFieldId: true,
+            signal,
         });
         return {
             records: response.records.map((record) => fromRaw(record, fields)),
@@ -387,50 +428,50 @@ export function createTableClient<T extends TableClientSchema>(
         tableSchema,
         fields: fieldsByName,
         airtable: client,
-        createField(field, requestOptions) {
-            return client.fields.create({ baseId, tableId, field, signal: requestOptions?.signal });
+        createField({ field, signal }) {
+            return client.fields.create({ baseId, tableId, field, signal });
         },
-        updateField(field: { id: FieldId; name?: string; description?: string }, requestOptions) {
-            return client.fields.update({ baseId, tableId, field, signal: requestOptions?.signal });
+        updateField({ field, signal }: { field: { id: FieldId; name?: string; description?: string } } & RequestOptions) {
+            return client.fields.update({ baseId, tableId, field, signal });
         },
-        updateTable(params, requestOptions) {
-            return client.tables.update({ baseId, table: { id: tableId, ...params }, signal: requestOptions?.signal });
+        updateTable({ table, signal }) {
+            return client.tables.update({ baseId, table: { id: tableId, ...table }, signal });
         },
         createRecords,
-        async createRecord(record, requestOptions) {
-            const response = await createRecords([record], requestOptions);
+        async createRecord({ record, signal }) {
+            const response = await createRecords({ records: [record], signal });
             return { record: response.records[0], warnings: response.warnings };
         },
-        async listRecords(listOptions, requestOptions) {
+        async listRecords(params) {
+            const { signal, ...listOptions } = params ?? {};
             const { rawOptions, toRecord } = toRawListOptions(listOptions);
-            const records = await client.records.list({ baseId, tableId, ...rawOptions, signal: requestOptions?.signal });
+            const records = await client.records.list({ baseId, tableId, ...rawOptions, signal });
             return records.map(toRecord);
         },
-        async listRecordsPage(listOptions, requestOptions) {
+        async listRecordsPage(params) {
+            const { signal, ...listOptions } = params ?? {};
             const { rawOptions, toRecord } = toRawListOptions(listOptions);
-            const page = await client.records.listPage({
-                baseId,
-                tableId,
-                ...rawOptions,
-                signal: requestOptions?.signal,
-            });
+            const page = await client.records.listPage({ baseId, tableId, ...rawOptions, signal });
             return {
                 records: page.records.map(toRecord),
                 offset: page.offset,
             };
         },
-        async getRecord(recordId, getRecordOptions, requestOptions) {
+        async getRecord(params) {
+            const { recordId, cellFormat, signal }: GetRecordParams = typeof params === "string" ? { recordId: params } : params;
             const record = await client.records.get({
                 baseId,
                 tableId,
                 recordId,
-                cellFormat: getRecordOptions?.cellFormat,
+                cellFormat,
                 returnFieldsByFieldId: true,
-                signal: requestOptions?.signal,
+                signal,
             });
             return fromRaw(record, fields);
         },
-        async updateRecords(records, updateOptions, requestOptions) {
+        async updateRecords(params) {
+            const { records, destructive, performUpsert, typecast, signal }: UpdateRecordsParams<F> =
+                isArray(params) ? { records: params } : params;
             const response = await client.records.update({
                 baseId,
                 tableId,
@@ -443,31 +484,39 @@ export function createTableClient<T extends TableClientSchema>(
                     }
                     return converted;
                 }),
-                destructive: updateOptions?.destructive,
-                performUpsert: updateOptions?.performUpsert,
-                typecast: updateOptions?.typecast,
+                destructive,
+                performUpsert,
+                typecast,
                 returnFieldsByFieldId: true,
-                signal: requestOptions?.signal,
+                signal,
             });
             return {
                 records: response.records.map((record) => ({ ...fromRaw(record, fields), operation: record.operation })),
                 warnings: response.warnings,
             };
         },
-        deleteRecords(recordIds, requestOptions) {
-            return client.records.delete({ baseId, tableId, recordIds, signal: requestOptions?.signal });
+        deleteRecords(params) {
+            const { recordIds, signal }: DeleteRecordsParams = isArray(params) ? { recordIds: params } : params;
+            return client.records.delete({ baseId, tableId, recordIds, signal });
         },
-        uploadAttachment(recordId, attachmentFieldIdOrName, uploadOptions, requestOptions) {
+        uploadAttachment({ recordId, field, contentType, file, filename, signal }) {
             return client.records.uploadAttachment({
                 baseId,
                 recordId,
-                field: toFieldSchema(attachmentFieldIdOrName).id,
-                ...uploadOptions,
-                signal: requestOptions?.signal,
+                field: toFieldSchema(field).id,
+                contentType,
+                file,
+                filename,
+                signal,
             });
         },
         formulaToString(formula) {
             return formulaToString(fields, formula);
         },
     };
+}
+
+/** Like `Array.isArray`, but narrows a `ReadonlyArray` union member. */
+function isArray<T>(value: ReadonlyArray<T> | object): value is ReadonlyArray<T> {
+    return Array.isArray(value);
 }
