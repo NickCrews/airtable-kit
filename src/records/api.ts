@@ -192,6 +192,8 @@ export type UploadAttachmentResponse = {
 export interface RecordsApi {
     /** List records. Pagination is handled automatically. */
     list(params: ListRecordsParams): Promise<RawRecord[]>;
+    /** Iterate over records, fetching one page at a time as the iteration proceeds. */
+    iterate(params: ListRecordsParams): AsyncIterable<RawRecord>;
     /** List a single page of records. */
     listPage(params: ListRecordsPageParams): Promise<ListRecordsPageResponse>;
     /** Get a single record. */
@@ -243,16 +245,23 @@ export function makeRecordsApi(request: Requester, { contentBaseUrl }: { content
         });
     }
 
+    async function* iterate(params: ListRecordsParams): AsyncGenerator<RawRecord> {
+        let offset: string | undefined = undefined;
+        do {
+            const page: ListRecordsPageResponse = await listPage({ ...params, offset });
+            yield* page.records;
+            offset = page.offset;
+        } while (offset);
+    }
+
     return {
         listPage,
+        iterate,
         async list(params) {
             const records: RawRecord[] = [];
-            let offset: string | undefined = undefined;
-            do {
-                const page: ListRecordsPageResponse = await listPage({ ...params, offset });
-                records.push(...page.records);
-                offset = page.offset;
-            } while (offset);
+            for await (const record of iterate(params)) {
+                records.push(record);
+            }
             return records;
         },
         // https://airtable.com/developers/web/api/get-record

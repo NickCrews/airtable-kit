@@ -97,7 +97,7 @@ The available methods are:
 - `airtable.bases`: `list`, `get` (the full schema), `create`
 - `airtable.tables`: `create`, `update`
 - `airtable.fields`: `create`, `update`
-- `airtable.records`: `list`, `listPage`, `get`, `create`, `update`, `delete`, `uploadAttachment`
+- `airtable.records`: `list`, `iterate`, `listPage`, `get`, `create`, `update`, `delete`, `uploadAttachment`
 - `airtable.request`: any other endpoint, with the client's credentials
 
 ### Use Case 2: Statically Typed Client for a Known Base
@@ -178,7 +178,7 @@ import { createBaseClient } from 'airtable-kit/typed';
 import projectTrackerSchema from './schemas/projectTracker.ts';
 
 // `airtable` from createAirtable(), see Use Case 1
-const client = createBaseClient(projectTrackerSchema, airtable);
+const client = createBaseClient(projectTrackerSchema, { airtable });
 // if you tried `client.tables.nonExistentTable` you would get a type error here
 client.tables.tasks.createRecords([
   {
@@ -220,6 +220,28 @@ const tasks = await client.tables.tasks.listRecords({
 console.log(tasks);
 ```
 
+A typed table client has these methods:
+
+- Records: `listRecords`, `iterateRecords`, `listRecordsPage`, `getRecord`,
+  `createRecords`, `createRecord`, `updateRecords`, `updateRecord`, `deleteRecords`, `deleteRecord`,
+  `uploadAttachment`
+- Schema: `createField`, `updateField`, `updateTable`
+- `formulaToString`, to build a formula for this table
+
+`iterateRecords` fetches one page at a time as you go, for tables too large to hold in memory:
+
+```typescript
+for await (const task of client.tables.tasks.iterateRecords({ fields: ['name'] })) {
+  console.log(task.fields.name);
+}
+```
+
+`uploadAttachment` takes a `File`, a `Blob`, bytes, or a base64 string:
+
+```typescript
+await client.tables.tasks.uploadAttachment({ recordId: 'recXXXXXXXXXXXXXX', field: 'attachments', file });
+```
+
 To work with several bases, share one `Airtable` client,
 so that every base uses the same credentials and `fetch`:
 
@@ -228,8 +250,8 @@ import { createBaseClient } from 'airtable-kit/typed';
 import projectTrackerSchema from './schemas/projectTracker.ts';
 import otherBaseSchema from './schemas/otherBase.ts';
 
-const projectTracker = createBaseClient(projectTrackerSchema, airtable);
-const otherBase = createBaseClient(otherBaseSchema, airtable);
+const projectTracker = createBaseClient(projectTrackerSchema, { airtable });
+const otherBase = createBaseClient(otherBaseSchema, { airtable });
 otherBase.tables.someTable.createRecords([ ... ]);
 ```
 
@@ -242,15 +264,15 @@ and formula, rollup, and lookup fields need `options.result`:
 import { createTableClient } from 'airtable-kit/typed';
 
 // `airtable` from createAirtable(), see Use Case 1
-const tasks = createTableClient('appZZZZZZZZZZZZZZ', {
+const tasks = createTableClient({
   id: 'tblAAAAAAAAAAAAAA',
   fields: [
     { id: 'fldDue', name: 'dueDate', type: 'date' },
     { id: 'fldDone', name: 'done', type: 'checkbox' },
   ],
-} as const, airtable);
+} as const, { baseId: 'appZZZZZZZZZZZZZZ', airtable });
 
-await tasks.updateRecords([{ id: 'recXXXXXXXXXXXXXX', fields: { dueDate: new Date(), done: true } }]);
+await tasks.updateRecord({ id: 'recXXXXXXXXXXXXXX', fields: { dueDate: new Date(), done: true } });
 const [record] = await tasks.listRecords({ fields: ['dueDate', 'done'] });
 record.fields.done; // boolean
 ```
@@ -357,7 +379,7 @@ import { createBaseClient } from 'airtable-kit/typed';
 import { makeListTool } from 'airtable-kit/mcp';
 
 // `airtable` from createAirtable(), see Use Case 1
-const client = createBaseClient(await airtable.bases.get('appXXXXXXXXXXXXXX'), airtable);
+const client = createBaseClient(await airtable.bases.get('appXXXXXXXXXXXXXX'), { airtable });
 const listTool = makeListTool(client.tables.tasks);
 
 // Now you can pass this off to an AI agent framework, eg Vercel's AI SDK (https://github.com/vercel/ai)
@@ -409,24 +431,33 @@ console.log(JSON.stringify(spec, null, 2));
   Defaults to the `AIRTABLE_API_KEY` environment variable, read before every request,
   so a client can be created before the variable is set.
 - `fetch`: any function with the shape `(url: string, init: RequestInit) => Promise<Response>`.
-  Defaults to `globalThis.fetch`. If you pass a custom `fetch` and no API key is found,
+  Defaults to `globalThis.fetch`, throttled to Airtable's limit of 5 requests per second per base,
+  and retried on rate limits (HTTP 429) and transient errors.
+  A custom `fetch` is used as given, without throttling or retries; wrap it with
+  `withThrottle` and `withRetry` to keep them.
+  If you pass a custom `fetch` and no API key is found,
   requests are sent without an `Authorization` header, so your `fetch` can add its own.
 - `baseUrl`: defaults to `https://api.airtable.com/v0`.
 - `contentBaseUrl`: the base URL for attachment uploads. Defaults to `baseUrl` if given,
   otherwise `https://content.airtable.com/v0`.
 
-Anywhere a typed client takes an `airtable` argument, you can pass either an `Airtable`
+The typed clients take an `airtable` option, which is either an `Airtable`
 client or these options. If you omit it, `createAirtable()` is used.
 
+To add logging to a custom `fetch`, while keeping the default throttling and retries:
+
 ```typescript
+import { createAirtable, withRetry, withThrottle } from 'airtable-kit';
+
+const loggingFetch = async (url: string, init: RequestInit) => {
+  const response = await fetch(url, init);
+  console.log(init.method, url, response.status);
+  return response;
+};
 const airtable = createAirtable({
-  fetch: async (url, init) => {
-    for (let attempt = 0; ; attempt++) {
-      const response = await fetch(url, init);
-      if (response.status !== 429 || attempt === 3) return response;
-      await new Promise((resolve) => setTimeout(resolve, 30_000));
-    }
-  },
+  fetch: withRetry(withThrottle(loggingFetch), {
+    onRetry: ({ attempt, delayMs }) => console.log(`retry ${attempt} in ${delayMs}ms`),
+  }),
 });
 ```
 

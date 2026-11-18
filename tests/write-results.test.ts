@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { type Fetcher, createAirtable } from "airtable-kit";
 import { createTableClient } from "airtable-kit/typed";
+import { type RecordId } from "airtable-kit/records";
 import { NUMBER } from "./_example-fields.ts";
 
 const fields = [NUMBER] as const;
 const CREATED_TIME = "2024-01-01T00:00:00.000Z";
 const tableSchema = { id: "tbl1", name: "Table", primaryFieldId: NUMBER.id, fields } as const;
-const makeTable = (fetch: Fetcher) => createTableClient("app1", tableSchema, { fetch });
+const makeTable = (fetch: Fetcher) => createTableClient(tableSchema, { baseId: "app1", airtable: { fetch } });
 
-type RequestRecord = { id?: string; fields: Record<string, unknown> };
+type RequestRecord = { id?: RecordId; fields: Record<string, unknown> };
 
 /**
  * A fetch that echoes the request's records back, giving new IDs to records without one,
@@ -45,7 +46,7 @@ describe("updateRecords results", () => {
         }));
         // 25 records -> 3 batches. Even indexes have IDs (updates), odd ones do not (creates).
         const records = Array.from({ length: 25 }, (_, i) => ({
-            ...(i % 2 === 0 ? { id: `rec${i}` } : {}),
+            ...(i % 2 === 0 ? { id: `rec${i}` as RecordId } : {}),
             fields: { [NUMBER.name]: i },
         }));
         const result = await makeTable(fetch).updateRecords(
@@ -65,7 +66,7 @@ describe("updateRecords results", () => {
 
     it("marks every record as updated when not upserting", async () => {
         const { fetch } = echoFetch();
-        const records = Array.from({ length: 15 }, (_, i) => ({ id: `rec${i}`, fields: { [NUMBER.name]: i } }));
+        const records = Array.from({ length: 15 }, (_, i) => ({ id: `rec${i}` as RecordId, fields: { [NUMBER.name]: i } }));
         const result = await makeTable(fetch).updateRecords(records);
         expect(result.records.map((r) => r.id)).toEqual(records.map((r) => r.id));
         expect(result.records.every((r) => r.operation === "updated")).toBe(true);

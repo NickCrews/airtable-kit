@@ -8,8 +8,8 @@ const airtable = getTestAirtable();
 describe("Records API", () => {
     const tasksTable = testBaseSchema.tables.find((t) => t.name === "tasks")!;
     const linkedItemsTable = testBaseSchema.tables.find((t) => t.name === "linkedItems")!;
-    const tasks = createTableClient(testBaseSchema.id, tasksTable, airtable);
-    const linkedItems = createTableClient(testBaseSchema.id, linkedItemsTable, airtable);
+    const tasks = createTableClient(tasksTable, { baseId: testBaseSchema.id, airtable });
+    const linkedItems = createTableClient(linkedItemsTable, { baseId: testBaseSchema.id, airtable });
 
     beforeEach(async () => {
         const allRecords = await tasks.listRecords();
@@ -470,11 +470,7 @@ describe("Records API", () => {
 
             const result = await tasks.deleteRecords([created.id]);
 
-            expect(result.records).toHaveLength(1);
-            expect(result.records[0]).toEqual({
-                id: created.id,
-                deleted: true,
-            });
+            expect(result).toEqual([created.id]);
         });
 
         it("can delete multiple records in batches", async () => {
@@ -484,14 +480,13 @@ describe("Records API", () => {
 
             const result = await tasks.deleteRecords(created.map((r) => r.id));
 
-            expect(result.records).toHaveLength(25);
-            expect(result.records.every((r) => r.deleted === true)).toBe(true);
+            expect(result).toEqual(created.map((r) => r.id));
         });
 
         it("handles empty record list", async () => {
             const result = await tasks.deleteRecords([]);
 
-            expect(result).toEqual({ records: [] });
+            expect(result).toEqual([]);
         });
     });
 
@@ -501,10 +496,12 @@ describe("Records API", () => {
             it(`can upload an attachment to a record with attachmentFieldIdOrName=${attachmentFieldIdOrName}`, async () => {
                 const { records: [created] } = await tasks.createRecords([{ name: "Attachment Test" }]);
                 const base64File = Buffer.from("test file content").toString("base64");
-                await tasks.uploadAttachment(created.id, attachmentFieldIdOrName, {
-                    "contentType": "text/plain",
-                    "file": base64File,
-                    "filename": "test.txt"
+                await tasks.uploadAttachment({
+                    recordId: created.id,
+                    field: attachmentFieldIdOrName,
+                    contentType: "text/plain",
+                    file: base64File,
+                    filename: "test.txt",
                 });
                 const updatedRecord = await tasks.getRecord(created.id);
 

@@ -17,7 +17,7 @@ function mockTable(responseFields: Record<string, unknown>) {
     fetch.setReturnValue({
         records: [{ id: "rec1", createdTime: "2024-01-01T00:00:00.000Z", fields: responseFields }],
     });
-    const client = createTableClient("appTest", tableSchema, { fetch });
+    const client = createTableClient(tableSchema, { baseId: "appTest", airtable: { fetch } });
     return { fetch, client };
 }
 
@@ -52,7 +52,7 @@ describe("TableClient.listRecords with a fields subset", () => {
 
     it("returns no field values for an empty subset", async () => {
         const { fetch } = mockTable({ [SINGLE_LINE_TEXT.id]: "hello", [AUTO_NUMBER.id]: 7 });
-        const client = createTableClient("appTest", tableSchema, { fetch }, { onReadUnexpectedField: "throw" });
+        const client = createTableClient(tableSchema, { baseId: "appTest", airtable: { fetch }, onReadUnexpectedField: "throw" });
         const records = await client.listRecords({ fields: [] });
         expect(records[0].fields).toEqual({});
     });

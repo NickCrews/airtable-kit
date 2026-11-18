@@ -27,8 +27,8 @@ export interface AirtableOptions {
     contentBaseUrl?: string;
     /**
      * The {@link Fetcher} used to send requests. Defaults to `globalThis.fetch`, throttled to
-     * 5 requests per second per base and retried on rate limits and transient errors (see `airtable-kit/fetcher`).
-     * A custom fetcher is used unchanged.
+     * 5 requests per second per base and retried on rate limits and transient errors.
+     * A custom fetcher is used unchanged: wrap it with `withThrottle` and `withRetry` to keep those.
      */
     fetch?: Fetcher;
 }

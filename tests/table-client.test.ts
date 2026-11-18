@@ -3,7 +3,7 @@ import { getTestAirtable, prepTestBaseClient } from '../src/tests/test-utils.ts'
 import { createBaseClient, createTableClient } from "airtable-kit/typed";
 
 import testBaseSchema from "../src/tests/test-base-schema.generated.ts";
-const baseClient = createBaseClient(testBaseSchema, getTestAirtable());
+const baseClient = createBaseClient(testBaseSchema, { airtable: getTestAirtable() });
 const { resetBaseData } = prepTestBaseClient(baseClient);
 
 describe("TableClient", () => {
@@ -135,12 +135,7 @@ describe("TableClient", () => {
             // Delete it
             const result = await tasksTableClient.deleteRecords([created.id]);
 
-            expect(result.records).toEqual([
-                {
-                    id: created.id,
-                    deleted: true,
-                },
-            ]);
+            expect(result).toEqual([created.id]);
 
             // Verify it's deleted by trying to list
             const allRecords = await tasksTableClient.listRecords();
@@ -171,7 +166,7 @@ describe("TableClient", () => {
             ]);
 
             // Get the completed field ID from the table schema
-            const completedFieldId = tasksTableClient.tableSchema.fields.find(
+            const completedFieldId = tasksTableClient.schema.fields.find(
                 (f: any) => f.name === "completed"
             )?.id;
 
@@ -271,9 +266,8 @@ describe("TableClient", () => {
         it("needs only the table ID, and each field's id, name, type, and the options its values depend on", async () => {
             const { name, completed, dueDate, status } = tasksTableClient.fields;
             const tasks = createTableClient(
-                testBaseSchema.id,
                 {
-                    id: tasksTableClient.tableSchema.id,
+                    id: tasksTableClient.schema.id,
                     fields: [
                         { id: name.id, name: name.name, type: name.type },
                         { id: completed.id, name: completed.name, type: completed.type },
@@ -286,9 +280,12 @@ describe("TableClient", () => {
                         },
                     ],
                 },
-                getTestAirtable(),
-                // The table has other fields; leave them out of the records
-                { onReadUnexpectedField: { warn: false, keep: false } },
+                {
+                    baseId: testBaseSchema.id,
+                    airtable: getTestAirtable(),
+                    // The table has other fields; leave them out of the records
+                    onReadUnexpectedField: { warn: false, keep: false },
+                },
             );
 
             const { records: [created] } = await tasks.createRecords([

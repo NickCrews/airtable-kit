@@ -119,8 +119,8 @@ export function makeFieldsApi(request: Requester): FieldsApi {
                 path: `/meta/bases/${baseId}/tables/${tableId}/fields/${field.id}`,
                 method: "PATCH",
                 data: {
-                    name: field.name || undefined,
-                    description: field.description || undefined,
+                    name: field.name,
+                    description: field.description,
                 },
             });
         },

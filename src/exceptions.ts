@@ -41,7 +41,7 @@ export class ReadValueConversionError extends AirtableKitError {
         this.value = value;
         this.fieldSchema = fieldSchema;
         this.originalError = originalError;
-        this.name = "ReadValueNotConvertibleError";
+        this.name = "ReadValueConversionError";
         // Maintain the correct prototype chain
         Object.setPrototypeOf(this, ReadValueConversionError.prototype);
     }
@@ -59,7 +59,7 @@ export class WriteValueConversionError extends AirtableKitError {
         this.value = value;
         this.fieldSchema = fieldSchema;
         this.originalError = originalError;
-        this.name = "WriteValueNotConvertibleError";
+        this.name = "WriteValueConversionError";
         // Maintain the correct prototype chain
         Object.setPrototypeOf(this, WriteValueConversionError.prototype);
     }

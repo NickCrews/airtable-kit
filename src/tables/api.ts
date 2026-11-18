@@ -54,9 +54,9 @@ export function makeTablesApi(request: Requester): TablesApi {
                 path: `/meta/bases/${baseId}/tables/${table.id}`,
                 method: "PATCH",
                 data: {
-                    name: table.name || undefined,
-                    description: table.description || undefined,
-                    dateDependencySettings: table.dateDependencySettings || undefined,
+                    name: table.name,
+                    description: table.description,
+                    dateDependencySettings: table.dateDependencySettings,
                 },
             });
         },

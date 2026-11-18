@@ -37,7 +37,7 @@ type CreateToolResult<T extends TableSchema> = {
 export function makeCreateTool<
   T extends TableSchema,
 >(client: TableClient<T>): MCPToolDefinition<CreateInput<T>, CreateToolResult<T>> {
-  const recordSchema = makeRecordWriteValidator(client.tableSchema.fields);
+  const recordSchema = makeRecordWriteValidator(client.schema.fields);
   const zodInputValidator = z4.object({ records: z4.array(recordSchema) });
   async function execute(input: CreateInput<T>) {
     const validated = zodInputValidator.parse(input);
@@ -46,18 +46,18 @@ export function makeCreateTool<
       records: created.records.map((r) => ({
         ...r,
         // include the URL so the bot can share it with the user
-        "url": `https://airtable.com/${client.baseId}/${client.tableSchema.id}/${r.id}`,
+        "url": `https://airtable.com/${client.baseId}/${client.schema.id}/${r.id}`,
       })),
       warnings: created.warnings,
     };
   }
   let description = "";
-  if (client.tableSchema.description) {
-    description += `\n\nThe table has the description:\n${client.tableSchema.description}`;
+  if (client.schema.description) {
+    description += `\n\nThe table has the description:\n${client.schema.description}`;
   }
   return {
-    name: `create-records-in-${toIdentifier(client.tableSchema.name)}-table`,
-    description: `Insert new records into the ${client.tableSchema.name} table.${description}
+    name: `create-records-in-${toIdentifier(client.schema.name)}-table`,
+    description: `Insert new records into the ${client.schema.name} table.${description}
 
 Note that the input does NOT use the same format as the Airtable API.
 Look carefully at the input schema to see how to structure the records to create.
@@ -80,7 +80,7 @@ type UpdateInput<T extends TableSchema> = {
 export function makeUpdateTool<
   T extends TableSchema,
 >(client: TableClient<T>): MCPToolDefinition<UpdateInput<T>, UpdateRecordsResponse<T["fields"][number]>> {
-  const fieldsZod = makeRecordWriteValidator(client.tableSchema.fields);
+  const fieldsZod = makeRecordWriteValidator(client.schema.fields);
   const recordZod = z4.object({
     id: RecordIdSchema.optional(),
     fields: fieldsZod,
@@ -91,7 +91,6 @@ export function makeUpdateTool<
       performUpsert: z4.object({
         fieldsToMergeOn: z4.array(z4.string()).min(1).max(3),
       }).optional(),
-      returnFieldsByFieldId: z4.boolean().optional(),
       typecast: z4.boolean().optional(),
       destructive: z4.boolean().optional(),
     }).optional(),
@@ -102,8 +101,8 @@ export function makeUpdateTool<
     return result;
   }
   return {
-    name: `update-records-in-${toIdentifier(client.tableSchema.name)}-table`,
-    description: `Update existing records in the ${client.tableSchema.name} table.`,
+    name: `update-records-in-${toIdentifier(client.schema.name)}-table`,
+    description: `Update existing records in the ${client.schema.name} table.`,
     zodInputValidator: zodInputValidator as any,
     inputJsonSchema: z4.toJSONSchema(zodInputValidator),
     execute,
@@ -114,7 +113,6 @@ const GetInput = z4.object({
   recordId: RecordIdSchema,
   options: z4.object({
     cellFormat: z4.enum(['json', 'string']).optional(),
-    returnFieldsByFieldId: z4.boolean().optional(),
   }).optional(),
 });
 type GetInput = z4.infer<typeof GetInput>;
@@ -132,12 +130,12 @@ export function makeGetTool<
     const raw = await client.getRecord(validated.recordId, validated.options);
     return {
       ...raw,
-      url: `https://airtable.com/${client.baseId}/${client.tableSchema.id}/${raw.id}`,
+      url: `https://airtable.com/${client.baseId}/${client.schema.id}/${raw.id}`,
     };
   }
   return {
-    name: `get-record-from-${toIdentifier(client.tableSchema.name)}-table`,
-    description: `Get a single record by ID from the ${client.tableSchema.name} table.`,
+    name: `get-record-from-${toIdentifier(client.schema.name)}-table`,
+    description: `Get a single record by ID from the ${client.schema.name} table.`,
     zodInputValidator: GetInput as any,
     inputJsonSchema: z4.toJSONSchema(GetInput),
     execute,
@@ -155,7 +153,7 @@ type ListToolResult<T extends TableSchema> = Array<TypedRecord<T["fields"][numbe
 export function makeListTool<
   T extends TableSchema,
 >(client: TableClient<T>): MCPToolDefinition<ListInput<T>, ListToolResult<T>> {
-  const availableFieldNames = client.tableSchema.fields.map((f) => f.name);
+  const availableFieldNames = client.schema.fields.map((f) => f.name);
   const zodInputValidator = z4.object({
     options: z4.object({
       timeZone: z4.enum(TIMEZONES).optional(),
@@ -179,12 +177,12 @@ export function makeListTool<
     const rawRecords = await client.listRecords(validated.options);
     return rawRecords.map((rec) => ({
       ...rec,
-      url: `https://airtable.com/${client.baseId}/${client.tableSchema.id}/${rec.id}`,
+      url: `https://airtable.com/${client.baseId}/${client.schema.id}/${rec.id}`,
     }));
   }
   return {
-    name: `list-records-from-${toIdentifier(client.tableSchema.name)}-table`,
-    description: `List records from the ${client.tableSchema.name} table with optional filtering and pagination.`,
+    name: `list-records-from-${toIdentifier(client.schema.name)}-table`,
+    description: `List records from the ${client.schema.name} table with optional filtering and pagination.`,
     zodInputValidator: zodInputValidator,
     inputJsonSchema: z4.toJSONSchema(zodInputValidator),
     execute,
@@ -201,12 +199,11 @@ export function makeDeleteTool<
 >(client: TableClient<T>): MCPToolDefinition<DeleteInput, DeleteToolResult> {
   async function execute(input: DeleteInput) {
     const validated = DeleteInput.parse(input);
-    const raw = await client.deleteRecords(validated.recordIds);
-    return raw.records.map((r) => r.id);
+    return client.deleteRecords(validated.recordIds);
   }
   return {
-    name: `delete-records-from-${toIdentifier(client.tableSchema.name)}-table`,
-    description: `Delete records by ID from the ${client.tableSchema.name} table.
+    name: `delete-records-from-${toIdentifier(client.schema.name)}-table`,
+    description: `Delete records by ID from the ${client.schema.name} table.
     
     Returns the list of deleted record IDs.`,
     zodInputValidator: DeleteInput as any,

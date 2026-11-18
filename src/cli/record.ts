@@ -33,7 +33,7 @@ export function createRecordCommand(resolveAirtable: () => Airtable): Command {
       const tableResolved = resolveTable(baseId || null, tableId || null, allSchemas);
       const { base, table } = ensureOneMatch(tableResolved, "table", tableId || "(no context)", baseId ? `in base ${baseId}` : undefined);
 
-      const client = createTableClient(base.id, table, airtable);
+      const client = createTableClient(table, { baseId: base.id, airtable });
 
       const listOptions: any = {};
       if (options.view) listOptions.view = options.view;
@@ -82,7 +82,7 @@ export function createRecordCommand(resolveAirtable: () => Airtable): Command {
       const tableResolved = resolveTable(baseId || null, tableId || null, allSchemas);
       const { base, table } = ensureOneMatch(tableResolved, "table", tableId || "(no context)", baseId ? `in base ${baseId}` : undefined);
 
-      const client = createTableClient(base.id, table, airtable);
+      const client = createTableClient(table, { baseId: base.id, airtable });
 
       const record = await client.getRecord(recordId as any);
       if (options.format === "json") {
@@ -119,7 +119,7 @@ export function createRecordCommand(resolveAirtable: () => Airtable): Command {
 
       const records = validateBatchData(data);
 
-      const client = createTableClient(base.id, table, airtable);
+      const client = createTableClient(table, { baseId: base.id, airtable });
 
       const results = await client.createRecords(records.map((record) => record.fields));
       if (options.format === "json") {
@@ -160,7 +160,7 @@ export function createRecordCommand(resolveAirtable: () => Airtable): Command {
 
       validateRecordData(data);
 
-      const client = createTableClient(base.id, table, airtable);
+      const client = createTableClient(table, { baseId: base.id, airtable });
 
       const result = await client.updateRecords(
         [{ id: recordId as any, fields: data.fields }],
@@ -193,7 +193,7 @@ export function createRecordCommand(resolveAirtable: () => Airtable): Command {
       const tableResolved = resolveTable(baseId || null, tableId || null, allSchemas);
       const { base, table } = ensureOneMatch(tableResolved, "table", tableId || "(no context)", baseId ? `in base ${baseId}` : undefined);
 
-      const client = createTableClient(base.id, table, airtable);
+      const client = createTableClient(table, { baseId: base.id, airtable });
 
       await client.deleteRecords(recordIds as any);
       console.log(`✅ Deleted ${recordIds.length} record(s)`);
@@ -231,7 +231,7 @@ export function createRecordCommand(resolveAirtable: () => Airtable): Command {
 
       const records = validateBatchData(data);
 
-      const client = createTableClient(base.id, table, airtable);
+      const client = createTableClient(table, { baseId: base.id, airtable });
 
       const fieldsToMergeOn = options.mergeOn.split(",").map((f: string) => f.trim());
       const results = await client.updateRecords(records, {

@@ -109,6 +109,12 @@ export interface GetRecordOptions {
     cellFormat?: 'json' | 'string';
 }
 
+/** Options for {@link TableClient.createRecords} and {@link TableClient.createRecord}. */
+export interface CreateRecordsOptions {
+    /** Let Airtable convert string values to the appropriate cell values */
+    typecast?: boolean;
+}
+
 /** Response from {@link TableClient.createRecords}. */
 export interface CreateRecordsResponse<F extends ConvertibleFieldSchema> {
     /** The created records, in the same order as the input. */
@@ -147,15 +153,25 @@ export interface UpdateRecordsResponse<F extends ConvertibleFieldSchema> {
     warnings: raw.WriteWarning[];
 }
 
-/** Options for {@link TableClient.uploadAttachment}. */
-export interface UploadAttachmentOptions {
-    /** Content type (e.g., "image/jpeg") */
-    contentType: string;
-    /** Base64 encoded file data */
-    file: string;
+/**
+ * Parameters for {@link TableClient.uploadAttachment}.
+ *
+ * `file` is a `Blob` (including a `File`), binary data, or a base64 encoded string.
+ * `filename` defaults to the name of a `File`, and `contentType` to the type of a `Blob`.
+ */
+export type UploadAttachmentParams<F extends string = string> = {
+    /** The record to attach the file to */
+    recordId: RecordId;
+    /** The attachment field's name or ID */
+    field: F;
     /** Filename (e.g., "photo.jpg") */
-    filename: string;
-}
+    filename?: string;
+    /** Content type (e.g., "image/jpeg") */
+    contentType?: string;
+} & (
+    | { file: Blob }
+    | { file: ArrayBuffer | ArrayBufferView | string; filename: string; contentType: string }
+);
 
 /**
  * A typed client for one table, which converts field values using the table's schema.
@@ -166,7 +182,7 @@ export interface TableClient<T extends TableClientSchema = TableSchema> {
     /** The ID of the base this table belongs to, e.g. "appXXXXXXXXXXXXXXX" */
     baseId: BaseId;
     /** The schema of the table this client interacts with */
-    tableSchema: T;
+    schema: T;
     /** An object mapping field names to their field schemas */
     fields: FieldsByName<T["fields"]>;
     /** The {@link Airtable} client used to make requests */
@@ -199,7 +215,7 @@ export interface TableClient<T extends TableClientSchema = TableSchema> {
      * Any values of `null` or `undefined` in the input record will not be passed
      * to Airtable, effectively leaving those fields blank on creation.
      */
-    createRecord(record: ValuesForWrite<FieldType<T>>): Promise<{
+    createRecord(record: ValuesForWrite<FieldType<T>>, options?: CreateRecordsOptions): Promise<{
         record: TypedRecord<FieldType<T>>;
         warnings: raw.WriteWarning[];
     }>;
@@ -212,7 +228,10 @@ export interface TableClient<T extends TableClientSchema = TableSchema> {
      * Any values of `null` or `undefined` in the input records will not be passed
      * to Airtable, effectively leaving those fields blank on creation.
      */
-    createRecords(records: ReadonlyArray<ValuesForWrite<FieldType<T>>>): Promise<CreateRecordsResponse<FieldType<T>>>;
+    createRecords(
+        records: ReadonlyArray<ValuesForWrite<FieldType<T>>>,
+        options?: CreateRecordsOptions,
+    ): Promise<CreateRecordsResponse<FieldType<T>>>;
 
     /**
      * List records from the table with optional filtering. Pagination is handled automatically.
@@ -226,6 +245,23 @@ export interface TableClient<T extends TableClientSchema = TableSchema> {
     >(
         options?: ListRecordsOptions<FieldType<T>, K, M>
     ): Promise<ListRecordsResponse<SelectedFields<FieldType<T>, K>, M>>;
+
+    /**
+     * Iterate over records, fetching one page at a time as the iteration proceeds.
+     * Takes the same options as {@link TableClient.listRecords}.
+     *
+     * ```typescript
+     * for await (const record of tasks.iterateRecords({ filterByFormula: "{Done}" })) {
+     *     console.log(record.fields.name);
+     * }
+     * ```
+     */
+    iterateRecords<
+        K extends FieldNameOrIdInTable<T> = FieldNameOrIdInTable<T>,
+        M extends RecordMetadata = never,
+    >(
+        options?: ListRecordsOptions<FieldType<T>, K, M>
+    ): AsyncIterable<TypedRecord<SelectedFields<FieldType<T>, K>, M>>;
 
     /** List a single page of records. Pass the returned `offset` to get the next page. */
     listRecordsPage<
@@ -248,28 +284,64 @@ export interface TableClient<T extends TableClientSchema = TableSchema> {
      * To explicitly clear a field, set its value to `null`.
      */
     updateRecords(
-        records: ReadonlyArray<{ id?: string; fields: Partial<ValuesForWrite<FieldType<T>>> }>,
+        records: ReadonlyArray<{ id?: RecordId; fields: Partial<ValuesForWrite<FieldType<T>>> }>,
         options?: UpdateRecordsOptions<FieldType<T>>
     ): Promise<UpdateRecordsResponse<FieldType<T>>>;
 
-    /** Delete records by IDs */
-    deleteRecords(recordIds: ReadonlyArray<RecordId>): Promise<raw.DeleteRecordsResponse>;
+    /**
+     * Update a single record.
+     *
+     * Any values of `undefined` will be not be sent to Airtable, leaving those fields unchanged.
+     * To explicitly clear a field, set its value to `null`.
+     */
+    updateRecord(
+        record: { id: RecordId; fields: Partial<ValuesForWrite<FieldType<T>>> },
+        options?: Omit<UpdateRecordsOptions<FieldType<T>>, "performUpsert">
+    ): Promise<{
+        record: TypedRecord<FieldType<T>>;
+        warnings: raw.WriteWarning[];
+    }>;
 
-    /** Upload an attachment to a record */
-    uploadAttachment(
-        recordId: RecordId,
-        attachmentFieldIdOrName: FieldNameOrIdInTable<T>,
-        options: UploadAttachmentOptions
-    ): Promise<raw.UploadAttachmentResponse>;
+    /**
+     * Delete records by ID, sending them in batches of up to 10.
+     *
+     * @returns The IDs of the deleted records
+     */
+    deleteRecords(recordIds: ReadonlyArray<RecordId>): Promise<RecordId[]>;
+
+    /**
+     * Delete a single record by ID.
+     *
+     * @returns The ID of the deleted record
+     */
+    deleteRecord(recordId: RecordId): Promise<RecordId>;
+
+    /**
+     * Upload a file to a record's attachment field.
+     *
+     * ```typescript
+     * await tasks.uploadAttachment({ recordId, field: "attachments", file: fileFromInput });
+     * await tasks.uploadAttachment({ recordId, field: "attachments", file: bytes, filename: "a.png", contentType: "image/png" });
+     * ```
+     */
+    uploadAttachment(params: UploadAttachmentParams<FieldNameOrIdInTable<T>>): Promise<raw.UploadAttachmentResponse>;
 
     /** Convert a {@link Formula} object for this table to a string */
     formulaToString(formula: Formula<FieldType<T>>): string;
 }
 
-/** Options for {@link createTableClient} and {@link createBaseClient}. */
-export interface TableClientOptions {
+/** Options shared by {@link createTableClient} and `createBaseClient`. */
+export interface TypedClientOptions {
+    /** An {@link Airtable} client, or options to create one. Defaults to `createAirtable()`. */
+    airtable?: IntoAirtable;
     /** When reading from the Airtable API, behavior when encountering a field in a record that is not described by the table schema. */
     onReadUnexpectedField?: OnReadUnexpectedField;
+}
+
+/** Options for {@link createTableClient}. */
+export interface TableClientOptions extends TypedClientOptions {
+    /** The ID of the base the table belongs to */
+    baseId: BaseId;
 }
 
 /**
@@ -279,26 +351,22 @@ export interface TableClientOptions {
  * import { createTableClient } from 'airtable-kit/typed';
  * import myBaseSchema from './schemas/myBase';
  *
- * const tasks = createTableClient(myBaseSchema.id, myBaseSchema.tables[0], { apiKey: "patXXX" });
+ * const tasks = createTableClient(myBaseSchema.tables[0], { baseId: myBaseSchema.id });
  * const records = await tasks.listRecords();
  * ```
  *
- * @param baseId - The ID of the base the table belongs to
  * @param tableSchema - The table's ID and the fields to read and write, eg a {@link TableSchema}. The client only reads and writes the fields it lists.
- * @param airtable - An {@link Airtable} client, or options to create one. Defaults to `createAirtable()`.
- * @param options - See {@link TableClientOptions}
+ * @param options - The base ID, and optionally the {@link Airtable} client to use. See {@link TableClientOptions}.
  */
 export function createTableClient<T extends TableClientSchema>(
-    baseId: BaseId,
     tableSchema: T,
-    airtable?: IntoAirtable,
-    options?: TableClientOptions,
+    options: TableClientOptions,
 ): TableClient<T> {
     type F = FieldType<T>;
-    const client = createAirtable(airtable);
+    const { baseId, onReadUnexpectedField: onUnexpectedField } = options;
+    const client = createAirtable(options.airtable);
     const tableId = tableSchema.id;
     const fields: ReadonlyArray<F> = tableSchema.fields;
-    const onUnexpectedField = options?.onReadUnexpectedField;
     const fieldsByName = Object.fromEntries(
         fields.map(fieldSchema => [fieldSchema.name, fieldSchema])
     ) as FieldsByName<T["fields"]>;
@@ -352,7 +420,7 @@ export function createTableClient<T extends TableClientSchema>(
     const withoutUndefined = (values: object) =>
         Object.fromEntries(Object.entries(values).filter(([_, v]) => v !== undefined));
 
-    const createRecords: TableClient<T>["createRecords"] = async (records) => {
+    const createRecords: TableClient<T>["createRecords"] = async (records, createOptions) => {
         const response = await client.records.create({
             baseId,
             tableId,
@@ -362,6 +430,7 @@ export function createTableClient<T extends TableClientSchema>(
                     fields,
                 ),
             })),
+            typecast: createOptions?.typecast,
             returnFieldsByFieldId: true,
         });
         return {
@@ -370,9 +439,40 @@ export function createTableClient<T extends TableClientSchema>(
         };
     };
 
+    const updateRecords: TableClient<T>["updateRecords"] = async (records, updateOptions) => {
+        const response = await client.records.update({
+            baseId,
+            tableId,
+            records: records.map((record) => {
+                const converted: { id?: RecordId; fields: raw.RawFields } = {
+                    fields: convertValuesForWrite(withoutUndefined(record.fields) as ValuesForWrite<F>, fields),
+                };
+                if (record.id) {
+                    converted.id = record.id;
+                }
+                return converted;
+            }),
+            destructive: updateOptions?.destructive,
+            performUpsert: updateOptions?.performUpsert && {
+                fieldsToMergeOn: updateOptions.performUpsert.fieldsToMergeOn.map((f) => toFieldSchema(f).id),
+            },
+            typecast: updateOptions?.typecast,
+            returnFieldsByFieldId: true,
+        });
+        return {
+            records: response.records.map((record) => ({ ...fromRaw(record, fields), operation: record.operation })),
+            warnings: response.warnings,
+        };
+    };
+
+    const deleteRecords: TableClient<T>["deleteRecords"] = async (recordIds) => {
+        const response = await client.records.delete({ baseId, tableId, recordIds });
+        return response.records.map((r) => r.id);
+    };
+
     return {
         baseId,
-        tableSchema,
+        schema: tableSchema,
         fields: fieldsByName,
         airtable: client,
         createField(field) {
@@ -385,14 +485,20 @@ export function createTableClient<T extends TableClientSchema>(
             return client.tables.update({ baseId, table: { id: tableId, ...params } });
         },
         createRecords,
-        async createRecord(record) {
-            const response = await createRecords([record]);
+        async createRecord(record, createOptions) {
+            const response = await createRecords([record], createOptions);
             return { record: response.records[0], warnings: response.warnings };
         },
         async listRecords(listOptions) {
             const { rawOptions, toRecord } = toRawListOptions(listOptions);
             const records = await client.records.list({ baseId, tableId, ...rawOptions });
             return records.map(toRecord);
+        },
+        async *iterateRecords(listOptions) {
+            const { rawOptions, toRecord } = toRawListOptions(listOptions);
+            for await (const record of client.records.iterate({ baseId, tableId, ...rawOptions })) {
+                yield toRecord(record);
+            }
         },
         async listRecordsPage(listOptions) {
             const { rawOptions, toRecord } = toRawListOptions(listOptions);
@@ -416,42 +522,63 @@ export function createTableClient<T extends TableClientSchema>(
             });
             return fromRaw(record, fields);
         },
-        async updateRecords(records, updateOptions) {
-            const response = await client.records.update({
-                baseId,
-                tableId,
-                records: records.map((record) => {
-                    const converted: { id?: string; fields: raw.RawFields } = {
-                        fields: convertValuesForWrite(withoutUndefined(record.fields) as ValuesForWrite<F>, fields),
-                    };
-                    if (record.id) {
-                        converted.id = record.id;
-                    }
-                    return converted;
-                }),
-                destructive: updateOptions?.destructive,
-                performUpsert: updateOptions?.performUpsert,
-                typecast: updateOptions?.typecast,
-                returnFieldsByFieldId: true,
-            });
-            return {
-                records: response.records.map((record) => ({ ...fromRaw(record, fields), operation: record.operation })),
-                warnings: response.warnings,
-            };
+        updateRecords,
+        async updateRecord(record, updateOptions) {
+            const response = await updateRecords([record], updateOptions);
+            const { operation: _, ...updated } = response.records[0];
+            return { record: updated, warnings: response.warnings };
         },
-        deleteRecords(recordIds) {
-            return client.records.delete({ baseId, tableId, recordIds });
+        deleteRecords,
+        async deleteRecord(recordId) {
+            const [deleted] = await deleteRecords([recordId]);
+            return deleted;
         },
-        uploadAttachment(recordId, attachmentFieldIdOrName, uploadOptions) {
+        async uploadAttachment(params) {
+            const { recordId, field, file } = params;
+            const filename = params.filename ?? (isNamedBlob(file) ? file.name : undefined);
+            const contentType = params.contentType || (file instanceof Blob ? file.type : undefined);
+            if (!filename) {
+                throw new Error("uploadAttachment: `filename` is required unless `file` is a File.");
+            }
+            if (!contentType) {
+                throw new Error("uploadAttachment: `contentType` is required unless `file` is a Blob with a type.");
+            }
             return client.records.uploadAttachment({
                 baseId,
                 recordId,
-                field: toFieldSchema(attachmentFieldIdOrName).id,
-                ...uploadOptions,
+                field: toFieldSchema(field).id,
+                contentType,
+                filename,
+                file: await toBase64(file),
             });
         },
         formulaToString(formula) {
             return formulaToString(fields, formula);
         },
     };
+}
+
+function isNamedBlob(file: unknown): file is Blob & { name: string } {
+    return file instanceof Blob && typeof (file as { name?: unknown }).name === "string";
+}
+
+/** Encode file data as base64. A string is assumed to already be base64 encoded. */
+async function toBase64(file: Blob | ArrayBuffer | ArrayBufferView | string): Promise<string> {
+    if (typeof file === "string") {
+        return file;
+    }
+    let bytes: Uint8Array;
+    if (file instanceof Blob) {
+        bytes = new Uint8Array(await file.arrayBuffer());
+    } else if (ArrayBuffer.isView(file)) {
+        bytes = new Uint8Array(file.buffer, file.byteOffset, file.byteLength);
+    } else {
+        bytes = new Uint8Array(file);
+    }
+    let binary = "";
+    const CHUNK = 0x8000;
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+    }
+    return btoa(binary);
 }
