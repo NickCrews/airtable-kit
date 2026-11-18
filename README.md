@@ -369,7 +369,7 @@ const agent = new ToolLoopAgent({
     listRecords: tool({
       description: listTool.description,
       inputSchema: listTool.zodInputValidator,
-      execute: listTool.execute,
+      execute: (input, { abortSignal }) => listTool.execute(input, { signal: abortSignal }),
     })
   },
 });

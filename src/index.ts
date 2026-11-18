@@ -11,6 +11,7 @@ export {
     type ApiKey,
     type Fetcher,
     type RequestArgs,
+    type RequestOptions,
     type Requester,
     DEFAULT_BASE_URL,
 } from "./request.ts";
@@ -19,6 +20,7 @@ export {
     type BaseSummary,
     type BaseSchemaCreate,
     type CreateBaseParams,
+    type GetBaseParams,
     type PermissionLevel,
 } from "./bases/api.ts";
 export {

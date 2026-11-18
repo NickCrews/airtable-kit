@@ -1,4 +1,4 @@
-import type { Requester } from "../request.ts";
+import type { RequestOptions, Requester } from "../request.ts";
 import { Timezone } from "../fields/timezones.ts";
 import { AttachmentId } from "../fields/types.ts";
 import { URLSearchParams } from "../url.ts";
@@ -42,7 +42,7 @@ function addWarnings(warnings: WriteWarning[], reasons: ReadonlyArray<WriteWarni
     }
 }
 
-interface TableRef {
+interface TableRef extends RequestOptions {
     baseId: BaseId;
     tableId: TableId;
 }
@@ -158,7 +158,7 @@ export interface DeleteRecordsResponse {
     }>;
 }
 
-export interface UploadAttachmentParams {
+export interface UploadAttachmentParams extends RequestOptions {
     baseId: BaseId;
     recordId: RecordId;
     /** The attachment field's name or ID */
@@ -220,7 +220,7 @@ function chunk<T>(items: ReadonlyArray<T>, size: number): T[][] {
 
 export function makeRecordsApi(request: Requester, { contentBaseUrl }: { contentBaseUrl: string }): RecordsApi {
     // https://airtable.com/developers/web/api/list-records
-    async function listPage({ baseId, tableId, ...options }: ListRecordsPageParams): Promise<ListRecordsPageResponse> {
+    async function listPage({ baseId, tableId, signal, ...options }: ListRecordsPageParams): Promise<ListRecordsPageResponse> {
         const queryParams = new URLSearchParams();
         if (options.returnFieldsByFieldId) queryParams.append('returnFieldsByFieldId', 'true');
         if (options.timeZone) queryParams.append('timeZone', options.timeZone);
@@ -240,6 +240,7 @@ export function makeRecordsApi(request: Requester, { contentBaseUrl }: { content
         const query = queryParams.toString();
         return request<ListRecordsPageResponse>({
             path: `/${baseId}/${tableId}${query ? `?${query}` : ''}`,
+            signal,
         });
     }
 
@@ -256,23 +257,25 @@ export function makeRecordsApi(request: Requester, { contentBaseUrl }: { content
             return records;
         },
         // https://airtable.com/developers/web/api/get-record
-        get({ baseId, tableId, recordId, cellFormat, returnFieldsByFieldId }) {
+        get({ baseId, tableId, recordId, cellFormat, returnFieldsByFieldId, signal }) {
             const queryParams = new URLSearchParams();
             if (returnFieldsByFieldId) queryParams.append('returnFieldsByFieldId', 'true');
             if (cellFormat) queryParams.append('cellFormat', cellFormat);
             const query = queryParams.toString();
             return request<RawRecord>({
                 path: `/${baseId}/${tableId}/${recordId}${query ? `?${query}` : ''}`,
+                signal,
             });
         },
         // https://airtable.com/developers/web/api/create-records
-        async create({ baseId, tableId, records, typecast, returnFieldsByFieldId }) {
+        async create({ baseId, tableId, records, typecast, returnFieldsByFieldId, signal }) {
             const result: CreateRecordsResponse = { records: [], warnings: [] };
             for (const batch of chunk(records, CREATE_BATCH_SIZE)) {
                 const response = await request<{ records: RawRecord[]; details?: PartialSuccessDetails }>({
                     path: `/${baseId}/${tableId}`,
                     method: "POST",
                     data: { records: batch, typecast, returnFieldsByFieldId },
+                    signal,
                 });
                 result.records.push(...response.records);
                 addWarnings(result.warnings, response.details?.reasons);
@@ -280,7 +283,7 @@ export function makeRecordsApi(request: Requester, { contentBaseUrl }: { content
             return result;
         },
         // https://airtable.com/developers/web/api/update-multiple-records
-        async update({ baseId, tableId, records, destructive, performUpsert, typecast, returnFieldsByFieldId }) {
+        async update({ baseId, tableId, records, destructive, performUpsert, typecast, returnFieldsByFieldId, signal }) {
             type UpdateApiResponse = {
                 records: RawRecord[];
                 details?: PartialSuccessDetails;
@@ -294,6 +297,7 @@ export function makeRecordsApi(request: Requester, { contentBaseUrl }: { content
                     path: `/${baseId}/${tableId}`,
                     method: destructive ? "PUT" : "PATCH",
                     data: { records: batch, performUpsert, typecast, returnFieldsByFieldId },
+                    signal,
                 });
                 const createdIds = new Set(response.createdRecords ?? []);
                 for (const record of response.records) {
@@ -304,7 +308,7 @@ export function makeRecordsApi(request: Requester, { contentBaseUrl }: { content
             return result;
         },
         // https://airtable.com/developers/web/api/delete-multiple-records
-        async delete({ baseId, tableId, recordIds }) {
+        async delete({ baseId, tableId, recordIds, signal }) {
             const result: DeleteRecordsResponse = { records: [] };
             for (const batch of chunk(recordIds, DELETE_BATCH_SIZE)) {
                 const queryParams = new URLSearchParams();
@@ -312,18 +316,20 @@ export function makeRecordsApi(request: Requester, { contentBaseUrl }: { content
                 const response = await request<DeleteRecordsResponse>({
                     path: `/${baseId}/${tableId}?${queryParams.toString()}`,
                     method: "DELETE",
+                    signal,
                 });
                 result.records.push(...response.records);
             }
             return result;
         },
         // https://airtable.com/developers/web/api/upload-attachment
-        uploadAttachment({ baseId, recordId, field, contentType, file, filename }) {
+        uploadAttachment({ baseId, recordId, field, contentType, file, filename, signal }) {
             return request<UploadAttachmentResponse>({
                 baseUrl: contentBaseUrl,
                 path: `/${baseId}/${recordId}/${encodeURIComponent(field)}/uploadAttachment`,
                 method: "POST",
                 data: { contentType, file, filename },
+                signal,
             });
         },
     };

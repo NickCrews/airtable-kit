@@ -1,0 +1,146 @@
+import { describe, expect, it, vi } from "vitest";
+import { type Fetcher, createAirtable } from "airtable-kit";
+import { createTableClient } from "airtable-kit/typed";
+import { makeListTool } from "airtable-kit/mcp";
+import { NUMBER } from "./_example-fields.ts";
+
+type Call = { url: string; init: RequestInit };
+
+/** A fetcher that records each request and answers with `respond(url, init, callIndex)`. */
+function recordingFetch(respond: (url: string, init: RequestInit, callIndex: number) => unknown = () => ({ records: [] })) {
+    const calls: Call[] = [];
+    const fetch: Fetcher = async (url, init) => {
+        calls.push({ url, init });
+        return Response.json(respond(url, init, calls.length - 1));
+    };
+    return { fetch, calls };
+}
+
+const tableSchema = {
+    id: "tbl1",
+    name: "Table",
+    primaryFieldId: NUMBER.id,
+    fields: [NUMBER],
+} as const;
+
+describe("request", () => {
+    it("passes the signal to fetch", async () => {
+        const { fetch, calls } = recordingFetch();
+        const { signal } = new AbortController();
+        await createAirtable({ apiKey: "key", fetch }).request({ path: "/app1/tbl1", signal });
+        expect(calls).toHaveLength(1);
+        expect(calls[0].init.signal).toBe(signal);
+    });
+
+    it("does not send a request when the signal is already aborted", async () => {
+        const fetchMock = vi.fn(async () => Response.json({}));
+        const controller = new AbortController();
+        const reason = new Error("stop");
+        controller.abort(reason);
+        await expect(
+            createAirtable({ apiKey: "key", fetch: fetchMock }).request({ path: "/app1/tbl1", signal: controller.signal }),
+        ).rejects.toBe(reason);
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+});
+
+describe("aborting partway through a multi-request call", () => {
+    it("records.list sends no more pages", async () => {
+        const controller = new AbortController();
+        const reason = new Error("stop");
+        const { fetch, calls } = recordingFetch((_url, _init, i) => {
+            controller.abort(reason);
+            return { records: [], ...(i === 0 ? { offset: "next" } : {}) };
+        });
+        await expect(
+            createAirtable({ apiKey: "key", fetch }).records.list({ baseId: "app1", tableId: "tbl1", signal: controller.signal }),
+        ).rejects.toBe(reason);
+        expect(calls).toHaveLength(1);
+    });
+
+    it("records.delete sends no more batches", async () => {
+        const controller = new AbortController();
+        const reason = new Error("stop");
+        const { fetch, calls } = recordingFetch(() => {
+            controller.abort(reason);
+            return { records: [] };
+        });
+        const recordIds = Array.from({ length: 15 }, (_, i) => `rec${i}` as const);
+        await expect(
+            createAirtable({ apiKey: "key", fetch }).records.delete({ baseId: "app1", tableId: "tbl1", recordIds, signal: controller.signal }),
+        ).rejects.toBe(reason);
+        expect(calls).toHaveLength(1);
+    });
+});
+
+describe("API methods pass the signal to every request", () => {
+    it("records.list, on every page", async () => {
+        const { fetch, calls } = recordingFetch((_url, _init, i) => ({
+            records: [],
+            ...(i < 2 ? { offset: `page${i + 1}` } : {}),
+        }));
+        const { signal } = new AbortController();
+        await createAirtable({ apiKey: "key", fetch }).records.list({ baseId: "app1", tableId: "tbl1", signal });
+        expect(calls).toHaveLength(3);
+        expect(calls.every((c) => c.init.signal === signal)).toBe(true);
+    });
+
+    it("records.create, on every batch", async () => {
+        const { fetch, calls } = recordingFetch((_url, init) => ({
+            records: (JSON.parse(init.body as string) as { records: unknown[] }).records.map((_, j) => ({
+                id: `rec${j}`,
+                createdTime: "2024-01-01T00:00:00.000Z",
+                fields: {},
+            })),
+        }));
+        const { signal } = new AbortController();
+        const records = Array.from({ length: 30 }, (_, i) => ({ fields: { [NUMBER.name]: i } }));
+        await createAirtable({ apiKey: "key", fetch }).records.create({ baseId: "app1", tableId: "tbl1", records, signal });
+        expect(calls).toHaveLength(2);
+        expect(calls.every((c) => c.init.signal === signal)).toBe(true);
+    });
+
+    it("bases.get with a BaseSummary", async () => {
+        const { fetch, calls } = recordingFetch(() => ({ tables: [] }));
+        const { signal } = new AbortController();
+        const schema = await createAirtable({ apiKey: "key", fetch }).bases.get({
+            base: { id: "app1", name: "Base", permissionLevel: "create" },
+            signal,
+        });
+        expect(schema).toEqual({ id: "app1", name: "Base", tables: [] });
+        expect(calls).toHaveLength(1);
+        expect(calls[0].init.signal).toBe(signal);
+    });
+
+    it("bases.get, on both requests", async () => {
+        const { fetch, calls } = recordingFetch((url) =>
+            url.includes("/meta/bases/")
+                ? { tables: [] }
+                : { bases: [{ id: "app1", name: "Base", permissionLevel: "create" }] },
+        );
+        const { signal } = new AbortController();
+        await createAirtable({ apiKey: "key", fetch }).bases.get({ base: "app1", signal });
+        expect(calls).toHaveLength(2);
+        expect(calls.every((c) => c.init.signal === signal)).toBe(true);
+    });
+});
+
+describe("typed clients pass the signal", () => {
+    it("TableClient.listRecords", async () => {
+        const { fetch, calls } = recordingFetch();
+        const client = createTableClient("app1", tableSchema, { apiKey: "key", fetch });
+        const { signal } = new AbortController();
+        await client.listRecords({ signal });
+        expect(calls).toHaveLength(1);
+        expect(calls[0].init.signal).toBe(signal);
+    });
+
+    it("MCP list tool execute", async () => {
+        const { fetch, calls } = recordingFetch();
+        const client = createTableClient("app1", tableSchema, { apiKey: "key", fetch });
+        const { signal } = new AbortController();
+        await makeListTool(client).execute({}, { signal });
+        expect(calls).toHaveLength(1);
+        expect(calls[0].init.signal).toBe(signal);
+    });
+});

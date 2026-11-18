@@ -1,5 +1,5 @@
 import { BaseId } from "../bases/types.ts";
-import type { Requester } from "../request.ts";
+import type { RequestOptions, Requester } from "../request.ts";
 import { TableId } from "../tables/types.ts";
 import { FieldId } from "./types.ts";
 
@@ -77,7 +77,7 @@ export function fieldCreationAbility<T extends FieldType = FieldType>(fieldType:
     return result;
 }
 
-export interface CreateFieldParams {
+export interface CreateFieldParams extends RequestOptions {
     baseId: BaseId;
     tableId: TableId;
     field: FieldSchemaCreate;
@@ -89,7 +89,7 @@ export interface UpdateFieldSchema {
     description?: string;
 }
 
-export interface UpdateFieldParams {
+export interface UpdateFieldParams extends RequestOptions {
     baseId: BaseId;
     tableId: TableId;
     field: UpdateFieldSchema;
@@ -106,15 +106,16 @@ export interface FieldsApi {
 export function makeFieldsApi(request: Requester): FieldsApi {
     return {
         // https://airtable.com/developers/web/api/create-field
-        create({ baseId, tableId, field }) {
+        create({ baseId, tableId, field, signal }) {
             return request<FieldSchemaRead>({
                 path: `/meta/bases/${baseId}/tables/${tableId}/fields`,
                 method: "POST",
                 data: field,
+                signal,
             });
         },
         // https://airtable.com/developers/web/api/update-field
-        update({ baseId, tableId, field }) {
+        update({ baseId, tableId, field, signal }) {
             return request<FieldSchemaRead>({
                 path: `/meta/bases/${baseId}/tables/${tableId}/fields/${field.id}`,
                 method: "PATCH",
@@ -122,6 +123,7 @@ export function makeFieldsApi(request: Requester): FieldsApi {
                     name: field.name || undefined,
                     description: field.description || undefined,
                 },
+                signal,
             });
         },
     };

@@ -23,8 +23,11 @@ export interface RetryOptions {
     shouldRetry?: (outcome: Response | unknown, attempt: number, method: string) => boolean;
     /** Called before waiting to retry. Useful for logging. */
     onRetry?: (info: { outcome: Response | unknown; attempt: number; delayMs: number }) => void;
-    /** Function used to wait between attempts. Defaults to a `setTimeout`-based sleep. */
-    sleep?: (ms: number) => Promise<void>;
+    /**
+     * Function used to wait between attempts. Defaults to a `setTimeout`-based sleep.
+     * Receives the request's `signal`, if any, and should reject with its `reason` when it aborts.
+     */
+    sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
 }
 
 /** Options for {@link withThrottle}. */
@@ -36,11 +39,31 @@ export interface ThrottleOptions {
      * URL path (eg `app123` for `/v0/app123/tbl456`), or `""` if there is none.
      */
     key?: (url: string) => string;
-    /** Function used to wait for a free slot. Defaults to a `setTimeout`-based sleep. */
-    sleep?: (ms: number) => Promise<void>;
+    /**
+     * Function used to wait for a free slot. Defaults to a `setTimeout`-based sleep.
+     * Receives the request's `signal`, if any, and should reject with its `reason` when it aborts.
+     */
+    sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
 }
 
-const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+/** Resolve after `ms` milliseconds, or reject with the signal's `reason` as soon as it aborts. */
+function defaultSleep(ms: number, signal?: AbortSignal): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+        if (signal?.aborted) {
+            reject(signal.reason);
+            return;
+        }
+        const onAbort = () => {
+            clearTimeout(timer);
+            reject(signal!.reason);
+        };
+        const timer = setTimeout(() => {
+            signal?.removeEventListener("abort", onAbort);
+            resolve();
+        }, ms);
+        signal?.addEventListener("abort", onAbort, { once: true });
+    });
+}
 
 /** HTTP methods that are retried after server errors and network errors by {@link defaultShouldRetry}. */
 const IDEMPOTENT_METHODS = new Set(["GET", "PUT", "PATCH", "DELETE"]);
@@ -91,6 +114,8 @@ export function parseRetryAfter(value: string | null): number | undefined {
  *    `min(maxDelayMs, initialDelayMs * 2 ** attempt)`.
  *
  * After `maxRetries` retries, the last response is returned, or the last error thrown.
+ *
+ * If `init.signal` aborts, the wait stops and no more attempts are made: the call rejects with the signal's `reason`.
  */
 export function withRetry(fetcher: Fetcher, options: RetryOptions = {}): Fetcher {
     const {
@@ -126,14 +151,15 @@ export function withRetry(fetcher: Fetcher, options: RetryOptions = {}): Fetcher
                 }
                 outcome = response;
             } catch (error) {
-                if (attempt >= maxRetries || !shouldRetry(error, attempt, method)) {
+                if (init.signal?.aborted || attempt >= maxRetries || !shouldRetry(error, attempt, method)) {
                     throw error;
                 }
                 outcome = error;
             }
             const delayMs = delayFor(outcome, attempt);
             onRetry?.({ outcome, attempt, delayMs });
-            await sleep(delayMs);
+            await sleep(delayMs, init.signal ?? undefined);
+            init.signal?.throwIfAborted();
         }
     };
 }
@@ -141,6 +167,8 @@ export function withRetry(fetcher: Fetcher, options: RetryOptions = {}): Fetcher
 /**
  * Wrap a {@link Fetcher} so that requests with the same key start at least
  * `1000 / requestsPerSecond` milliseconds apart. Each call has its own limit.
+ *
+ * If `init.signal` aborts while waiting for a slot, the call rejects with the signal's `reason` without sending.
  */
 export function withThrottle(fetcher: Fetcher, options: ThrottleOptions = {}): Fetcher {
     const {
@@ -160,7 +188,8 @@ export function withThrottle(fetcher: Fetcher, options: ThrottleOptions = {}): F
         const start = Math.max(now, nextSlot.get(k) ?? now);
         nextSlot.set(k, start + intervalMs);
         if (start > now) {
-            await sleep(start - now);
+            await sleep(start - now, init.signal ?? undefined);
+            init.signal?.throwIfAborted();
         }
         return fetcher(url, init);
     };

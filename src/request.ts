@@ -26,6 +26,14 @@ export interface RequestArgs {
     data?: unknown;
     /** Overrides the client's base URL for this request */
     baseUrl?: string;
+    /** Aborts the request. If already aborted, the request is not sent and the signal's reason is thrown. */
+    signal?: AbortSignal;
+}
+
+/** Per-call options accepted by the typed clients' methods. */
+export interface RequestOptions {
+    /** Aborts the request(s) made by the call. */
+    signal?: AbortSignal;
 }
 
 /**
@@ -49,7 +57,8 @@ export function makeRequester(
         fetch: Fetcher;
     },
 ): Requester {
-    return async <T = unknown>({ path, method = "GET", data, baseUrl: baseUrlOverride }: RequestArgs): Promise<T> => {
+    return async <T = unknown>({ path, method = "GET", data, baseUrl: baseUrlOverride, signal }: RequestArgs): Promise<T> => {
+        signal?.throwIfAborted();
         const headers: Record<string, string> = { "Content-Type": "application/json" };
         const token = await getToken();
         if (token) {
@@ -59,6 +68,7 @@ export function makeRequester(
             method,
             headers,
             body: JSON.stringify(data),
+            signal,
         });
         const text = await response.text();
         let body: unknown = text;

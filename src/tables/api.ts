@@ -1,5 +1,5 @@
 import { BaseId } from "../bases/types";
-import type { Requester } from "../request.ts";
+import type { RequestOptions, Requester } from "../request.ts";
 import { FieldSchemaCreate } from "../fields";
 import { TableId, TableSchema } from "./types";
 
@@ -13,7 +13,7 @@ export interface TableSchemaCreate {
     fields: Array<FieldSchemaCreate>
 }
 
-export interface CreateTableParams {
+export interface CreateTableParams extends RequestOptions {
     baseId: BaseId;
     table: TableSchemaCreate;
 }
@@ -25,7 +25,7 @@ export interface UpdateTableSchema<T extends TableId = TableId> {
     dateDependencySettings?: any;
 }
 
-export interface UpdateTableParams {
+export interface UpdateTableParams extends RequestOptions {
     baseId: BaseId;
     table: UpdateTableSchema;
 }
@@ -41,15 +41,16 @@ export interface TablesApi {
 export function makeTablesApi(request: Requester): TablesApi {
     return {
         // https://airtable.com/developers/web/api/create-table
-        create({ baseId, table }) {
+        create({ baseId, table, signal }) {
             return request<TableSchema>({
                 path: `/meta/bases/${baseId}/tables`,
                 method: "POST",
                 data: table,
+                signal,
             });
         },
         // https://airtable.com/developers/web/api/update-table
-        update({ baseId, table }) {
+        update({ baseId, table, signal }) {
             return request<TableSchema>({
                 path: `/meta/bases/${baseId}/tables/${table.id}`,
                 method: "PATCH",
@@ -58,6 +59,7 @@ export function makeTablesApi(request: Requester): TablesApi {
                     description: table.description || undefined,
                     dateDependencySettings: table.dateDependencySettings || undefined,
                 },
+                signal,
             });
         },
     };

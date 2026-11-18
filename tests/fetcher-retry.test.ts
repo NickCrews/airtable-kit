@@ -104,3 +104,44 @@ describe("withThrottle", () => {
         expect(baseIdKey("https://api.airtable.com/v0/meta/bases")).toBe("");
     });
 });
+
+describe("abort signal", () => {
+    it("withRetry stops waiting and makes no more attempts when the signal aborts", async () => {
+        const controller = new AbortController();
+        const reason = new Error("stop");
+        const inner = seq(new Response("", { status: 429 }), new Response("ok"));
+        const f = withRetry(inner, { rateLimitDelayMs: 60_000 });
+        setTimeout(() => controller.abort(reason), 10);
+        await expect(f(URL_, { ...GET, signal: controller.signal })).rejects.toBe(reason);
+        expect(inner.calls).toBe(1);
+    });
+
+    it("withRetry makes no more attempts when a custom sleep ignores the signal", async () => {
+        const controller = new AbortController();
+        const reason = new Error("stop");
+        const inner = seq(new Response("", { status: 429 }), new Response("ok"));
+        const sleep = async () => { controller.abort(reason); };
+        await expect(withRetry(inner, { sleep })(URL_, { ...GET, signal: controller.signal })).rejects.toBe(reason);
+        expect(inner.calls).toBe(1);
+    });
+
+    it("withRetry does not retry an error thrown after the signal aborts", async () => {
+        const controller = new AbortController();
+        controller.abort();
+        const inner = seq(new TypeError("aborted"), new Response("ok"));
+        await expect(withRetry(inner, noSleep)(URL_, { ...GET, signal: controller.signal })).rejects.toThrow("aborted");
+        expect(inner.calls).toBe(1);
+    });
+
+    it("withThrottle does not send a request whose signal aborts while it waits for a slot", async () => {
+        const controller = new AbortController();
+        const reason = new Error("stop");
+        const inner = seq(new Response("ok"));
+        const f = withThrottle(inner, { requestsPerSecond: 0.01 });
+        await f(URL_, GET);
+        const waiting = f(URL_, { ...GET, signal: controller.signal });
+        setTimeout(() => controller.abort(reason), 10);
+        await expect(waiting).rejects.toBe(reason);
+        expect(inner.calls).toBe(1);
+    });
+});

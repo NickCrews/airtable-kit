@@ -332,10 +332,13 @@ describe("Records API", () => {
         it("reports which records an upsert created and which it updated", async () => {
             const { records: [existing] } = await tasks.createRecords([{ name: "Upsert Existing" }]);
 
-            const result = await tasks.updateRecords([
-                { fields: { name: "Upsert Existing", priority: 1 } },
-                { fields: { name: "Upsert New", priority: 2 } },
-            ], { performUpsert: { fieldsToMergeOn: ["name"] } });
+            const result = await tasks.updateRecords({
+                records: [
+                    { fields: { name: "Upsert Existing", priority: 1 } },
+                    { fields: { name: "Upsert New", priority: 2 } },
+                ],
+                performUpsert: { fieldsToMergeOn: ["name"] },
+            });
 
             expect(result.records).toHaveLength(2);
             expect(result.records[0]).toMatchObject({ id: existing.id, operation: "updated" });
@@ -369,14 +372,8 @@ describe("Records API", () => {
                 },
             ]);
 
-            await tasks.updateRecords([
-                {
-                    id: created.id,
-                    fields: {
-                        name: "Updated Name",
-                    },
-                },
-            ], {
+            await tasks.updateRecords({
+                records: [{ id: created.id, fields: { name: "Updated Name" } }],
                 destructive: false,
             });
 
@@ -396,14 +393,8 @@ describe("Records API", () => {
                 },
             ]);
 
-            await tasks.updateRecords([
-                {
-                    id: created.id,
-                    fields: {
-                        name: "Updated Name",
-                    },
-                },
-            ], {
+            await tasks.updateRecords({
+                records: [{ id: created.id, fields: { name: "Updated Name" } }],
                 destructive: true,
             });
 
@@ -417,14 +408,8 @@ describe("Records API", () => {
         it("can enable typecast", async () => {
             const { records: [created] } = await tasks.createRecords([{ name: "Typecast Task" }]);
 
-            const result = await tasks.updateRecords([
-                {
-                    id: created.id,
-                    fields: {
-                        priority: "2" as any,
-                    },
-                },
-            ], {
+            const result = await tasks.updateRecords({
+                records: [{ id: created.id, fields: { priority: "2" as any } }],
                 typecast: true,
             });
 
@@ -501,7 +486,9 @@ describe("Records API", () => {
             it(`can upload an attachment to a record with attachmentFieldIdOrName=${attachmentFieldIdOrName}`, async () => {
                 const { records: [created] } = await tasks.createRecords([{ name: "Attachment Test" }]);
                 const base64File = Buffer.from("test file content").toString("base64");
-                await tasks.uploadAttachment(created.id, attachmentFieldIdOrName, {
+                await tasks.uploadAttachment({
+                    recordId: created.id,
+                    field: attachmentFieldIdOrName,
                     "contentType": "text/plain",
                     "file": base64File,
                     "filename": "test.txt"
